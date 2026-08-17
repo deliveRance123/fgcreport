@@ -1,0 +1,26 @@
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    
+    # Do not rewrite if file or directory physically exists
+    RewriteCond %{REQUEST_FILENAME} -f [OR]
+    RewriteCond %{REQUEST_FILENAME} -d
+    RewriteRule ^ - [L]
+
+    # Clean URL rewrites without .php
+    RewriteRule ^church-report/?$ church_report.php [L,QSA]
+    RewriteRule ^zonal-report/?$ zonal_reports.php [L,QSA]
+    RewriteRule ^zonal-reports/?$ zonal_reports.php [L,QSA]
+    RewriteRule ^church-dashboard/?$ church-dashboard.php [L,QSA]
+    RewriteRule ^zone-dashboard/?$ zone-dashboard.php [L,QSA]
+    RewriteRule ^admin-dashboard/?$ admin-dashboard.php [L,QSA]
+    RewriteRule ^register-church/?$ register_church.php [L,QSA]
+    RewriteRule ^register-zone/?$ register_zone.php [L,QSA]
+    RewriteRule ^login/?$ login.php [L,QSA]
+    RewriteRule ^logout/?$ logout.php [L,QSA]
+    RewriteRule ^profile/?$ profile.php [L,QSA]
+    RewriteRule ^dues-manage/?$ dues_manage.php [L,QSA]
+
+    # Automatic fallback for any clean route to matching php file
+    RewriteCond %{REQUEST_FILENAME}.php -f
+    RewriteRule ^(.*)$ $1.php [L,QSA]
+</IfModule>

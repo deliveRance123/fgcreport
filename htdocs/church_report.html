@@ -1,0 +1,1267 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <title>Foursquare Gospel Church Monthly Report</title>
+  <style>
+    @page {
+      size: A4;
+      margin: 10mm;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: "Times New Roman", Times, serif;
+      background: #e5e5e5;
+      margin: 0;
+      padding: 20px 0;
+      color: #111;
+    }
+
+    .page {
+      width: 210mm;
+      min-height: 297mm;
+      background: #fff;
+      margin: 0 auto 24px auto;
+      padding: 12mm 10mm;
+      box-shadow: 0 0 12px rgba(0, 0, 0, 0.3);
+      position: relative;
+    }
+
+    /* ---------- Shared field styles ---------- */
+    input[type="text"],
+    input[type="number"] {
+      font-family: "Times New Roman", Times, serif;
+      border: none;
+      border-bottom: 1px dotted #888;
+      background: transparent;
+      font-size: 12px;
+      width: 100%;
+      padding: 1px 2px;
+    }
+
+    input[type="text"]:focus,
+    input[type="number"]:focus {
+      outline: 1px solid #2563eb;
+      background: #eef4ff;
+    }
+
+    input.cell {
+      border: none;
+      background: transparent;
+      text-align: right;
+      font-size: 12.5px;
+      width: 100%;
+      height: 100%;
+      padding: 1px 4px;
+    }
+
+    input.cell:focus {
+      outline: 1px solid #2563eb;
+      background: #eef4ff;
+    }
+
+    input.center {
+      text-align: center;
+    }
+
+    input.left {
+      text-align: left;
+    }
+
+    /* ================= PAGE 1 ================= */
+    .title-block {
+      text-align: center;
+      margin-bottom: 4px;
+    }
+
+    .title-block h1 {
+      font-size: 15px;
+      margin: 0 0 2px 0;
+      letter-spacing: 0.2px;
+    }
+
+    .subtitle-row {
+      display: flex;
+      justify-content: space-between;
+      border-bottom: 1px solid #000;
+      padding-bottom: 3px;
+      margin-bottom: 6px;
+    }
+
+    .subtitle-row .left-label {
+      font-style: italic;
+      text-decoration: underline;
+      font-size: 13px;
+    }
+
+    .subtitle-row .right-label {
+      font-size: 13px;
+    }
+
+    .meta-line {
+      display: flex;
+      flex-wrap: nowrap;
+      align-items: baseline;
+      gap: 12px;
+      font-size: 12.5px;
+      margin-bottom: 6px;
+      width: 100%;
+    }
+
+    .meta-group {
+      display: flex;
+      align-items: baseline;
+      gap: 4px;
+      min-width: 0;
+    }
+
+    .meta-group label {
+      white-space: nowrap;
+      font-weight: normal;
+    }
+
+    .meta-group input.meta-input {
+      border: none;
+      border-bottom: 1px solid #444;
+      background: transparent;
+      font-family: "Times New Roman", Times, serif;
+      font-size: 12.5px;
+      padding: 0 2px;
+      flex: 1;
+      min-width: 0;
+    }
+
+    .mg-district {
+      flex: 1.5;
+    }
+
+    .mg-month {
+      flex: 1;
+    }
+
+    .mg-year {
+      flex: 0.8;
+    }
+
+    .mg-pastorname {
+      flex: 2.5;
+    }
+
+    .mg-church {
+      flex: 1.2;
+    }
+
+    .mg-churchaddr {
+      flex: 2.5;
+    }
+
+    .mg-pastoraddr {
+      flex: 2.5;
+    }
+
+    /* Two-column ledger layout */
+    .ledger {
+      display: flex;
+      border: 2px solid #000;
+      margin-top: 4px;
+    }
+
+    .ledger-col {
+      flex: 1;
+      border-right: 2px solid #000;
+    }
+
+    .ledger-col:last-child {
+      border-right: none;
+    }
+
+    table.report-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 11.5px;
+    }
+
+    table.report-table td,
+    table.report-table th {
+      border: 1px solid #000;
+      padding: 1.5px 3px;
+      vertical-align: middle;
+      height: 14px;
+    }
+
+    table.report-table th {
+      text-align: center;
+      font-weight: bold;
+    }
+
+    .col-label {
+      width: auto;
+    }
+
+    .col-naira {
+      width: 38px;
+      text-align: center;
+    }
+
+    .col-kobo {
+      width: 26px;
+      text-align: center;
+    }
+
+    .row-header td {
+      font-weight: bold;
+      text-decoration: underline;
+      background: #fafafa;
+    }
+
+    .indent {
+      padding-left: 10px !important;
+    }
+
+    .small-note {
+      font-size: 9.5px;
+      font-style: italic;
+    }
+
+    .bottom-note {
+      background: #000;
+      color: #fff;
+      font-size: 10px;
+      padding: 3px 6px;
+      margin-top: 6px;
+      line-height: 1.4;
+      text-align: center;
+    }
+
+    /* ================= PAGE 2 ================= */
+    .page2-title {
+      text-align: center;
+      font-size: 15px;
+      font-weight: bold;
+      letter-spacing: 1px;
+      margin-bottom: 14px;
+    }
+
+    .stat-grid-top {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px 24px;
+      font-size: 13px;
+      margin-bottom: 10px;
+    }
+
+    .stat-line {
+      display: flex;
+      align-items: baseline;
+      gap: 6px;
+    }
+
+    .stat-line label {
+      white-space: nowrap;
+    }
+
+    .stat-line input {
+      flex: 1;
+      border: none;
+      border-bottom: 1px dotted #888;
+      background: transparent;
+      font-family: "Times New Roman", Times, serif;
+      font-size: 13px;
+    }
+
+    .section-title {
+      text-align: center;
+      font-weight: bold;
+      font-size: 13.5px;
+      margin: 10px 0 6px 0;
+      text-decoration: underline;
+    }
+
+    .two-col-section {
+      display: flex;
+      gap: 14px;
+      align-items: flex-start;
+    }
+
+    .two-col-section>div {
+      flex: 1;
+    }
+
+    table.small-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 11px;
+    }
+
+    table.small-table td,
+    table.small-table th {
+      border: 1px solid #000;
+      padding: 2px 4px;
+      height: 15px;
+    }
+
+    table.small-table th {
+      text-align: center;
+      font-weight: bold;
+    }
+
+    .credential-box {
+      border: 1px dashed #000;
+      padding: 6px 8px;
+      font-size: 12px;
+      margin-top: 10px;
+    }
+
+    .credential-box .cbtitle {
+      text-align: center;
+      font-weight: bold;
+      margin-bottom: 4px;
+      text-decoration: underline;
+    }
+
+    .credential-row {
+      display: flex;
+      align-items: baseline;
+      gap: 4px;
+      margin-bottom: 2px;
+    }
+
+    .credential-row label {
+      min-width: 70px;
+    }
+
+    .credential-row input {
+      flex: 1;
+      border: none;
+      border-bottom: 1px dotted #888;
+      background: transparent;
+      font-family: "Times New Roman", Times, serif;
+    }
+
+    .credential-row.multi input {
+      flex: 0 1 40px;
+      margin-right: 6px;
+    }
+
+    .credential-row.multi label.small {
+      min-width: auto;
+      margin-right: 2px;
+    }
+
+    .membership-block {
+      font-size: 12.5px;
+      margin-top: 10px;
+    }
+
+    .membership-block .line {
+      display: flex;
+      justify-content: space-between;
+      border-bottom: 1px dotted #999;
+      padding: 2px 0;
+    }
+
+    .age-table-wrap {
+      margin-top: 8px;
+    }
+
+    .age-table-wrap .caption {
+      font-size: 11px;
+      font-weight: bold;
+      margin-bottom: 2px;
+    }
+
+    .signature-block {
+      margin-top: 26px;
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+    }
+
+    .sig-col {
+      flex: 1;
+      text-align: center;
+      padding: 0 8px;
+    }
+
+    .sig-line {
+      border-bottom: 1px solid #000;
+      height: 26px;
+      margin-bottom: 3px;
+    }
+
+    .sig-name-line {
+      display: flex;
+      align-items: baseline;
+      gap: 4px;
+      margin-top: 6px;
+      justify-content: center;
+    }
+
+    .sig-name-line input {
+      border: none;
+      border-bottom: 1px dotted #888;
+      background: transparent;
+      font-family: "Times New Roman", Times, serif;
+      width: 70%;
+      text-align: center;
+    }
+
+    .note-box {
+      font-size: 10px;
+      margin-top: 18px;
+      border-top: 1px solid #000;
+      padding-top: 4px;
+      line-height: 1.5;
+      text-align: center;
+    }
+
+    @media print {
+      body {
+        background: #fff;
+        padding: 0;
+      }
+
+      .page {
+        box-shadow: none;
+        margin: 0;
+        page-break-after: always;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- ============ PAGE 1 ============ -->
+  <div class="page">
+    <div class="title-block">
+      <h1>MONTHLY REPORT OF THE FOURSQUARE GOSPEL CHURCH IN NIGERIA</h1>
+    </div>
+    <div class="subtitle-row">
+      <div class="left-label">CHARTERED CHURCHES</div>
+      <div class="right-label">FINANCIAL REPORT</div>
+    </div>
+
+    <div class="meta-line">
+      <div class="meta-group mg-district">
+        <label>DISTRICT</label><input class="meta-input" type="text">
+      </div>
+      <div class="meta-group mg-month">
+        <label>MONTH</label><input class="meta-input" type="text">
+      </div>
+      <div class="meta-group mg-year">
+        <label>YEAR</label><input class="meta-input" type="text">
+      </div>
+      <div class="meta-group mg-pastorname">
+        <label>PASTOR'S NAME</label><input class="meta-input" type="text">
+      </div>
+    </div>
+    <div class="meta-line">
+      <div class="meta-group mg-church">
+        <label>CHURCH</label><input class="meta-input" type="text">
+      </div>
+      <div class="meta-group mg-churchaddr">
+        <label>CHURCH ADDRESS</label><input class="meta-input" type="text">
+      </div>
+      <div class="meta-group mg-pastoraddr">
+        <label>PASTOR'S ADDRESS</label><input class="meta-input" type="text">
+      </div>
+    </div>
+
+    <div class="ledger">
+      <!-- LEFT COLUMN -->
+      <div class="ledger-col">
+        <table class="report-table">
+          <tr>
+            <th class="col-label">PAYMENTS</th>
+            <th class="col-naira">N</th>
+            <th class="col-kobo">K</th>
+          </tr>
+          <tr class="row-header">
+            <td colspan="3">TITHES</td>
+          </tr>
+          <tr>
+            <td class="indent">A&nbsp;&nbsp;General Tithe</td>
+            <td><input class="cell"></td>
+            <td><input class="cell"></td>
+          </tr>
+          <tr>
+            <td class="indent">B&nbsp;&nbsp;Minister's Tithe</td>
+            <td><input class="cell"></td>
+            <td><input class="cell"></td>
+          </tr>
+          <tr>
+            <td class="indent">C&nbsp;&nbsp;Worship Offerings</td>
+            <td><input class="cell"></td>
+            <td><input class="cell"></td>
+          </tr>
+          <tr>
+            <td></td>
+            <td></td>
+            <td></td>
+          </tr>
+          <tr>
+            <td><strong>SUB - TOTAL (a - c)</strong></td>
+            <td><input class="cell"></td>
+            <td><input class="cell"></td>
+          </tr>
+          <tr>
+            <td>Missionary Offerings</td>
+            <td><input class="cell"></td>
+            <td><input class="cell"></td>
+          </tr>
+          <tr>
+            <td>Midweek Offerings</td>
+            <td><input class="cell"></td>
+            <td><input class="cell"></td>
+          </tr>
+          <tr>
+            <td>Sunday School Offerings</td>
+            <td><input class="cell"></td>
+            <td><input class="cell"></td>
+          </tr>
+          <tr>
+            <td>Thanksgiving Offerings</td>
+            <td><input class="cell"></td>
+            <td><input class="cell"></td>
+          </tr>
+          <tr>
+            <td>Love/Welfare Offerings</td>
+            <td><input class="cell"></td>
+            <td><input class="cell"></td>
+          </tr>
+          <tr>
+            <td>Building Pledge Offerings</td>
+            <td><input class="cell"></td>
+            <td><input class="cell"></td>
+          </tr>
+          <tr>
+            <td>Church Pioneering</td>
+            <td><input class="cell"></td>
+            <td><input class="cell"></td>
+          </tr>
+          <tr>
+            <td>Donation from Other Churches</td>
+            <td><input class="cell"></td>
+            <td><input class="cell"></td>
+          </tr>
+          <tr>
+            <td>Other Pledges</td>
+            <td><input class="cell"></td>
+            <td><input class="cell"></td>
+          </tr>
+          <tr>
+            <td>Seed Faith</td>
+            <td><input class="cell"></td>
+            <td><input class="cell"></td>
+          </tr>
+          <tr>
+            <td>Staff Loans Repayment</td>
+            <td><input class="cell"></td>
+            <td><input class="cell"></td>
+          </tr>
+          <tr>
+            <td>Loan/Cash Deposit from Church Arms</td>
+            <td><input class="cell"></td>
+            <td><input class="cell"></td>
+          </tr>
+          <tr>
+            <td>5% Pastor's Personal Pension</td>
+            <td><input class="cell"></td>
+            <td><input class="cell"></td>
+          </tr>
+          <tr>
+            <td>National Grant/Augumentation</td>
+            <td><input class="cell"></td>
+            <td><input class="cell"></td>
+          </tr>
+          <tr>
+            <td>Convention Pledges</td>
+            <td><input class="cell"></td>
+            <td><input class="cell"></td>
+          </tr>
+          <tr>
+            <td>Special Projects <input class="cell left" style="width:60%;display:inline;"></td>
+            <td><input class="cell"></td>
+            <td><input class="cell"></td>
+          </tr>
+          <tr>
+            <td>Decade of Multiplication Projects</td>
+            <td><input class="cell"></td>
+            <td><input class="cell"></td>
+          </tr>
+          <tr>
+            <td></td>
+            <td></td>
+            <td></td>
+          </tr>
+          <tr class="row-header">
+            <td><strong>TOTAL RECEIPTS</strong></td>
+            <td><input class="cell"></td>
+            <td><input class="cell"></td>
+          </tr>
+
+          <tr>
+            <td colspan="1"></td>
+            <th class="col-naira">N</th>
+            <th class="col-kobo">K</th>
+          </tr>
+          <tr>
+            <td><strong>TOTAL RECEIPTS</strong></td>
+            <td><input class="cell"></td>
+            <td><input class="cell"></td>
+          </tr>
+          <tr>
+            <td>LESS TOTAL PAYMENT</td>
+            <td><input class="cell"></td>
+            <td><input class="cell"></td>
+          </tr>
+          <tr>
+            <td>Balance Surplus/Deficit</td>
+            <td><input class="cell"></td>
+            <td><input class="cell"></td>
+          </tr>
+          <tr>
+            <td>Balance from Last Month</td>
+            <td><input class="cell"></td>
+            <td><input class="cell"></td>
+          </tr>
+          <tr>
+            <td>Balance for this Month</td>
+            <td><input class="cell"></td>
+            <td><input class="cell"></td>
+          </tr>
+          <tr class="row-header">
+            <td colspan="3">FINANCIAL INFORMATION</td>
+          </tr>
+          <tr>
+            <td>CASH IN HAND &amp; AT BANK</td>
+            <td><input class="cell"></td>
+            <td><input class="cell"></td>
+          </tr>
+          <tr>
+            <td>INVESTMENT</td>
+            <td><input class="cell"></td>
+            <td><input class="cell"></td>
+          </tr>
+          <tr>
+            <td>TOTAL BALANCE</td>
+            <td><input class="cell"></td>
+            <td><input class="cell"></td>
+          </tr>
+          <tr>
+            <td>OUTSTANDING LOAN</td>
+            <td><input class="cell"></td>
+            <td><input class="cell"></td>
+          </tr>
+          <tr class="row-header">
+            <td colspan="3">DETAILS OF NATIONAL DUES</td>
+          </tr>
+          <tr>
+            <td>TITHES AND OFFERINGS (a - c) 10%</td>
+            <td><input class="cell"></td>
+            <td><input class="cell"></td>
+          </tr>
+          <tr>
+            <td>PASTOR'S WELFARE (a - c) &nbsp;5%</td>
+            <td><input class="cell"></td>
+            <td><input class="cell"></td>
+          </tr>
+          <tr>
+            <td>PROJECT DEV. FUND (a - c) 1.5%</td>
+            <td><input class="cell"></td>
+            <td><input class="cell"></td>
+          </tr>
+          <tr>
+            <td>MACPHERSON UNI (a - c) 4%</td>
+            <td><input class="cell"></td>
+            <td><input class="cell"></td>
+          </tr>
+          <tr>
+            <td>AUGMENTATION FUND (a - c) 1%</td>
+            <td><input class="cell"></td>
+            <td><input class="cell"></td>
+          </tr>
+          <tr>
+            <td>FFS SAVINS (a - c) 3%</td>
+            <td><input class="cell"></td>
+            <td><input class="cell"></td>
+          </tr>
+          <tr>
+            <td>SUNDAY SCHOOL OFFERINGS 30%</td>
+            <td><input class="cell"></td>
+            <td><input class="cell"></td>
+          </tr>
+          <tr>
+            <td>MISSIONARY OFFERINGS 30%</td>
+            <td><input class="cell"></td>
+            <td><input class="cell"></td>
+          </tr>
+          <tr>
+            <td>LOVE OFFERINGS 10%</td>
+            <td><input class="cell"></td>
+            <td><input class="cell"></td>
+          </tr>
+          <tr>
+            <td>FOURSQUARE TV (a - c) 2%</td>
+            <td><input class="cell"></td>
+            <td><input class="cell"></td>
+          </tr>
+          <tr>
+            <td>3RD SUNDAY OFFERING 100%</td>
+            <td><input class="cell"></td>
+            <td><input class="cell"></td>
+          </tr>
+          <tr>
+            <td><strong>TOTAL</strong></td>
+            <td><input class="cell"></td>
+            <td><input class="cell"></td>
+          </tr>
+        </table>
+      </div>
+
+      <!-- RIGHT COLUMN -->
+      <div class="ledger-col">
+        <table class="report-table">
+          <tr>
+            <th class="col-label">PAYMENTS</th>
+            <th class="col-naira">N</th>
+            <th class="col-kobo">K</th>
+          </tr>
+          <tr class="row-header">
+            <td colspan="3">STAFF SALARIES: Number on Pay Roll</td>
+          </tr>
+          <tr>
+            <td>Minister's: Basic</td>
+            <td><input class="cell"></td>
+            <td><input class="cell"></td>
+          </tr>
+          <tr>
+            <td class="indent">Allowances</td>
+            <td><input class="cell"></td>
+            <td><input class="cell"></td>
+          </tr>
+          <tr>
+            <td class="indent">Sub Total</td>
+            <td><input class="cell"></td>
+            <td><input class="cell"></td>
+          </tr>
+          <tr>
+            <td>Other Workers': Basic</td>
+            <td><input class="cell"></td>
+            <td><input class="cell"></td>
+          </tr>
+          <tr>
+            <td class="indent">Allowances</td>
+            <td><input class="cell"></td>
+            <td><input class="cell"></td>
+          </tr>
+          <tr>
+            <td class="indent">Sub Total</td>
+            <td><input class="cell"></td>
+            <td><input class="cell"></td>
+          </tr>
+          <tr>
+            <td>Total Emoluments (Ministers &amp; Other Workers)</td>
+            <td><input class="cell"></td>
+            <td><input class="cell"></td>
+          </tr>
+          <tr>
+            <td>Entertainment/Office Refreshments</td>
+            <td><input class="cell"></td>
+            <td><input class="cell"></td>
+          </tr>
+          <tr>
+            <td>Church Pioneering Expenses</td>
+            <td><input class="cell"></td>
+            <td><input class="cell"></td>
+          </tr>
+          <tr>
+            <td>Donations/Love Offering</td>
+            <td><input class="cell"></td>
+            <td><input class="cell"></td>
+          </tr>
+          <tr>
+            <td>Support to Churches <input class="cell left" style="width:45%;display:inline;"></td>
+            <td><input class="cell"></td>
+            <td><input class="cell"></td>
+          </tr>
+          <tr>
+            <td>Sunday School Expenses</td>
+            <td><input class="cell"></td>
+            <td><input class="cell"></td>
+          </tr>
+          <tr>
+            <td>Loan Repayment</td>
+            <td><input class="cell"></td>
+            <td><input class="cell"></td>
+          </tr>
+          <tr>
+            <td>Crusade/Revival Expenses</td>
+            <td><input class="cell"></td>
+            <td><input class="cell"></td>
+          </tr>
+          <tr>
+            <td>Church Vehicles Repairs/Maintenance and Fuel</td>
+            <td><input class="cell"></td>
+            <td><input class="cell"></td>
+          </tr>
+          <tr>
+            <td>General Building Repairs/Maintenance of Generator</td>
+            <td><input class="cell"></td>
+            <td><input class="cell"></td>
+          </tr>
+          <tr>
+            <td>Pastors' Training &amp; Development</td>
+            <td><input class="cell"></td>
+            <td><input class="cell"></td>
+          </tr>
+          <tr>
+            <td>Stationery, Printing &amp; Photocopies</td>
+            <td><input class="cell"></td>
+            <td><input class="cell"></td>
+          </tr>
+          <tr>
+            <td>Quarterly/Annual Membership Expenses</td>
+            <td><input class="cell"></td>
+            <td><input class="cell"></td>
+          </tr>
+          <tr>
+            <td>Bible College Students Sponsorship</td>
+            <td><input class="cell"></td>
+            <td><input class="cell"></td>
+          </tr>
+          <tr>
+            <td>Retreat/Camping Expenses</td>
+            <td><input class="cell"></td>
+            <td><input class="cell"></td>
+          </tr>
+          <tr>
+            <td>Convention Levy</td>
+            <td><input class="cell"></td>
+            <td><input class="cell"></td>
+          </tr>
+          <tr>
+            <td>Honourarie/District Convocation</td>
+            <td><input class="cell"></td>
+            <td><input class="cell"></td>
+          </tr>
+          <tr>
+            <td>Decade fo Multiplication Project</td>
+            <td><input class="cell"></td>
+            <td><input class="cell"></td>
+          </tr>
+          <tr>
+            <td>Electricity</td>
+            <td><input class="cell"></td>
+            <td><input class="cell"></td>
+          </tr>
+          <tr>
+            <td>Transportation</td>
+            <td><input class="cell"></td>
+            <td><input class="cell"></td>
+          </tr>
+          <tr>
+            <td>Welfare/Sent Forth</td>
+            <td><input class="cell"></td>
+            <td><input class="cell"></td>
+          </tr>
+          <tr>
+            <td>Bank Charges</td>
+            <td><input class="cell"></td>
+            <td><input class="cell"></td>
+          </tr>
+          <tr class="row-header">
+            <td colspan="3">FIXED ASSETS:</td>
+          </tr>
+          <tr>
+            <td>Land Acquisition</td>
+            <td><input class="cell"></td>
+            <td><input class="cell"></td>
+          </tr>
+          <tr>
+            <td>Church Building</td>
+            <td><input class="cell"></td>
+            <td><input class="cell"></td>
+          </tr>
+          <tr>
+            <td>Purchase of Motor Vehicles</td>
+            <td><input class="cell"></td>
+            <td><input class="cell"></td>
+          </tr>
+          <tr>
+            <td>Purchase of New Equipment</td>
+            <td><input class="cell"></td>
+            <td><input class="cell"></td>
+          </tr>
+          <tr>
+            <td><strong>SUB TOTAL</strong></td>
+            <td><input class="cell"></td>
+            <td><input class="cell"></td>
+          </tr>
+          <tr>
+            <td>National Dues</td>
+            <td><input class="cell"></td>
+            <td><input class="cell"></td>
+          </tr>
+          <tr>
+            <td>Regional Dues</td>
+            <td><input class="cell"></td>
+            <td><input class="cell"></td>
+          </tr>
+          <tr>
+            <td>District Dues</td>
+            <td><input class="cell"></td>
+            <td><input class="cell"></td>
+          </tr>
+          <tr>
+            <td>Zonal Dues</td>
+            <td><input class="cell"></td>
+            <td><input class="cell"></td>
+          </tr>
+          <tr>
+            <td>Life Dues</td>
+            <td><input class="cell"></td>
+            <td><input class="cell"></td>
+          </tr>
+          <tr>
+            <td><strong>TOTAL PAYMENTS</strong></td>
+            <td><input class="cell"></td>
+            <td><input class="cell"></td>
+          </tr>
+          <tr>
+            <td>Payables</td>
+            <td><input class="cell"></td>
+            <td><input class="cell"></td>
+          </tr>
+          <tr>
+            <td>Regional Dues &nbsp;(a-c) &nbsp;0.5%</td>
+            <td><input class="cell"></td>
+            <td><input class="cell"></td>
+          </tr>
+          <tr>
+            <td>DISTRICT DUES District Fund (a - c) 4%</td>
+            <td><input class="cell"></td>
+            <td><input class="cell"></td>
+          </tr>
+          <tr>
+            <td>District Love Offring</td>
+            <td><input class="cell"></td>
+            <td><input class="cell"></td>
+          </tr>
+          <tr>
+            <td>Pastors/Staff Pension Cont. 8%</td>
+            <td><input class="cell"></td>
+            <td><input class="cell"></td>
+          </tr>
+          <tr>
+            <td>Church Staff Pension Cont (As Above) 10%</td>
+            <td><input class="cell"></td>
+            <td><input class="cell"></td>
+          </tr>
+          <tr>
+            <td>Missionary Offering &nbsp;15%</td>
+            <td><input class="cell"></td>
+            <td><input class="cell"></td>
+          </tr>
+          <tr>
+            <td>Sunday School Offering &nbsp;10%</td>
+            <td><input class="cell"></td>
+            <td><input class="cell"></td>
+          </tr>
+          <tr>
+            <td>ZONAL DUES Zonal Fund (a - c) 2%</td>
+            <td><input class="cell"></td>
+            <td><input class="cell"></td>
+          </tr>
+          <tr>
+            <td>Missionary Offering &nbsp;5%</td>
+            <td><input class="cell"></td>
+            <td><input class="cell"></td>
+          </tr>
+          <tr>
+            <td>Sunday School Offering &nbsp;10%</td>
+            <td><input class="cell"></td>
+            <td><input class="cell"></td>
+          </tr>
+          <tr>
+            <td>LIFE THEO SEMINARY LIFE (a - c) 2%</td>
+            <td><input class="cell"></td>
+            <td><input class="cell"></td>
+          </tr>
+        </table>
+      </div>
+    </div>
+
+    <div class="bottom-note">
+      NOTE: CALCULATION OF DUES IS BASED ON THE ADDITION OF TITHES AND WORSHIP OFFERINGS (A - C)<br>
+      CALCULATION OF PENSION = BASIC SALARY + HOUSING + TRANSPORT ALLOWANCES
+    </div>
+  </div>
+
+  <!-- ============ PAGE 2 ============ -->
+  <div class="page">
+    <div class="page2-title">SPIRITUAL REPORT</div>
+
+    <div class="stat-grid-top">
+      <div class="stat-line"><label>1&nbsp;&nbsp;Total New Comers Total</label><input type="text"></div>
+      <div class="stat-line"><label>Holy Spirit Baptism</label><input type="text"></div>
+      <div class="stat-line"><label>Total Decision for Christ</label><input type="text"></div>
+      <div class="stat-line"><label>Total Healings</label><input type="text"></div>
+      <div class="stat-line"><label>Total Water Baptism</label><input type="text"></div>
+      <div class="stat-line"><label>Total No of House Fellowship Centres</label><input type="text"></div>
+    </div>
+
+    <div class="section-title">ATTENDANCE</div>
+
+    <div class="two-col-section">
+      <div>
+        <div class="section-title" style="text-align:left;">2&nbsp;&nbsp;CRUSADER PROGRAMME</div>
+        <table class="small-table">
+          <tr>
+            <th>Section</th>
+            <th>Age Range</th>
+            <th>Total No</th>
+          </tr>
+          <tr>
+            <td>Children</td>
+            <td></td>
+            <td></td>
+          </tr>
+          <tr>
+            <td class="indent">- Candlelighters</td>
+            <td>4 - 5</td>
+            <td><input class="cell"></td>
+          </tr>
+          <tr>
+            <td class="indent">- Cup Bearers</td>
+            <td>6 - 8</td>
+            <td><input class="cell"></td>
+          </tr>
+          <tr>
+            <td class="indent">- Cadets</td>
+            <td>9 - 12</td>
+            <td><input class="cell"></td>
+          </tr>
+          <tr>
+            <td>Teens</td>
+            <td></td>
+            <td></td>
+          </tr>
+          <tr>
+            <td class="indent">- Junior Teens</td>
+            <td>13 - 15</td>
+            <td><input class="cell"></td>
+          </tr>
+          <tr>
+            <td class="indent">- Senior Teens</td>
+            <td>16 - 19</td>
+            <td><input class="cell"></td>
+          </tr>
+          <tr>
+            <td>Youth</td>
+            <td></td>
+            <td><input class="cell"></td>
+          </tr>
+          <tr>
+            <td>Adult (CFM/FWI)</td>
+            <td></td>
+            <td></td>
+          </tr>
+          <tr>
+            <td class="indent">- Challengers</td>
+            <td>30 - 49</td>
+            <td><input class="cell"></td>
+          </tr>
+          <tr>
+            <td class="indent">- Defenders</td>
+            <td>50 - 69</td>
+            <td><input class="cell"></td>
+          </tr>
+          <tr>
+            <td class="indent">- Senior Citizens</td>
+            <td>70 &amp; Above</td>
+            <td><input class="cell"></td>
+          </tr>
+        </table>
+      </div>
+
+      <div>
+        <div class="section-title" style="text-align:left;">CHURCH PROGRAMME AVERAGE ATTENDANCE</div>
+        <table class="small-table">
+          <tr>
+            <th>Section</th>
+            <th>Children</th>
+            <th>Adults</th>
+            <th>Total</th>
+          </tr>
+          <tr>
+            <td>Average Pre Sun. Sch. Prayer</td>
+            <td><input class="cell"></td>
+            <td><input class="cell"></td>
+            <td><input class="cell"></td>
+          </tr>
+          <tr>
+            <td>Average Sun School</td>
+            <td><input class="cell"></td>
+            <td><input class="cell"></td>
+            <td><input class="cell"></td>
+          </tr>
+          <tr>
+            <td>Average Sun. Worship</td>
+            <td><input class="cell"></td>
+            <td><input class="cell"></td>
+            <td><input class="cell"></td>
+          </tr>
+          <tr>
+            <td>Average House Fellowship</td>
+            <td><input class="cell"></td>
+            <td><input class="cell"></td>
+            <td><input class="cell"></td>
+          </tr>
+          <tr>
+            <td>Average Bible Study</td>
+            <td><input class="cell"></td>
+            <td><input class="cell"></td>
+            <td><input class="cell"></td>
+          </tr>
+          <tr>
+            <td>Average Prayer Meeting</td>
+            <td><input class="cell"></td>
+            <td><input class="cell"></td>
+            <td><input class="cell"></td>
+          </tr>
+        </table>
+
+        <div class="credential-box">
+          <div class="cbtitle">CREDENTIAL WORKERS</div>
+          <div class="credential-row"><label>Ordained</label><input type="text"></div>
+          <div class="credential-row"><label>Licenced</label><input type="text"></div>
+          <div class="credential-row"><label>Exhorters</label><input type="text"></div>
+          <div class="credential-row multi">
+            <label class="small">Elders</label><input type="text">
+            <label class="small">Deacons</label><input type="text">
+            <label class="small">Deaconesses</label><input type="text">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-title" style="text-align:left; margin-top:16px;">3&nbsp;&nbsp;CHURCH INMEMBERSHIP</div>
+    <div class="two-col-section">
+      <div class="membership-block">
+        <div style="font-weight:bold; text-decoration:underline;">INTAKES</div>
+        <div class="line"><span>Members up to previous month</span><input type="text"
+            style="width:80px;text-align:right;border:none;border-bottom:1px dotted #999;"></div>
+        <div class="line"><span>New Memberes this month</span><input type="text"
+            style="width:80px;text-align:right;border:none;border-bottom:1px dotted #999;"></div>
+        <div class="line"><span>TOTAL MEMBERS before WITHDRAWAL</span><input type="text"
+            style="width:80px;text-align:right;border:none;border-bottom:1px dotted #999;"></div>
+
+        <div style="font-weight:bold; text-decoration:underline; margin-top:10px;">WITHDRAWN</div>
+        <div style="font-size:11.5px; margin:4px 0;">No of Members withdrawn for the following reasons</div>
+        <div class="line"><span>1. Transfer</span><input type="text"
+            style="width:80px;text-align:right;border:none;border-bottom:1px dotted #999;"></div>
+        <div class="line"><span>2. Resignation</span><input type="text"
+            style="width:80px;text-align:right;border:none;border-bottom:1px dotted #999;"></div>
+        <div class="line"><span>&nbsp;&nbsp;&nbsp;Dismissal</span><input type="text"
+            style="width:80px;text-align:right;border:none;border-bottom:1px dotted #999;"></div>
+        <div class="line"><span>&nbsp;&nbsp;&nbsp;Death</span><input type="text"
+            style="width:80px;text-align:right;border:none;border-bottom:1px dotted #999;"></div>
+
+        <div class="line" style="margin-top:8px;"><span style="font-weight:bold; text-decoration:underline;">TOTAL
+            WITHDRAWALS THIS MONTH</span><input type="text"
+            style="width:80px;text-align:right;border:none;border-bottom:1px dotted #999;"></div>
+
+        <div style="font-weight:bold; text-decoration:underline; margin-top:10px;">MEMBERSHIP SUMMARY</div>
+        <div class="line"><span>Total Members Before Withdrawal</span><input type="text"
+            style="width:80px;text-align:right;border:none;border-bottom:1px dotted #999;"></div>
+        <div class="line"><span>Total Withdrawals This Month</span><input type="text"
+            style="width:80px;text-align:right;border:none;border-bottom:1px dotted #999;"></div>
+        <div class="line"><span>Total Members After Withdrawal</span><input type="text"
+            style="width:80px;text-align:right;border:none;border-bottom:1px dotted #999;"></div>
+
+        <div class="stat-line" style="margin-top:10px;"><label>DATE</label><input type="text"></div>
+      </div>
+
+      <div>
+        <div class="age-table-wrap">
+          <table class="small-table">
+            <tr>
+              <th>18 Years and above</th>
+              <th>Under 18 Years</th>
+              <th>TOTAL</th>
+            </tr>
+            <tr>
+              <td><input class="cell"></td>
+              <td><input class="cell"></td>
+              <td><input class="cell"></td>
+            </tr>
+          </table>
+        </div>
+        <div class="age-table-wrap">
+          <table class="small-table">
+            <tr>
+              <th>18 Years and above</th>
+              <th>Under 18 Years</th>
+              <th>TOTAL</th>
+            </tr>
+            <tr>
+              <td><input class="cell"></td>
+              <td><input class="cell"></td>
+              <td><input class="cell"></td>
+            </tr>
+          </table>
+        </div>
+        <div class="age-table-wrap">
+          <table class="small-table">
+            <tr>
+              <th>18 Years and above</th>
+              <th>Under 18 Years</th>
+              <th>TOTAL</th>
+            </tr>
+            <tr>
+              <td><input class="cell"></td>
+              <td><input class="cell"></td>
+              <td><input class="cell"></td>
+            </tr>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="signature-block">
+      <div class="sig-col">
+        <div class="sig-line"></div>
+        TREASURER'S SIGNATURE
+        <div class="sig-name-line"><label>NAME</label><input type="text"></div>
+      </div>
+      <div class="sig-col">
+        <div class="sig-line"></div>
+        PASTOR'S SIGNATURE
+        <div class="sig-name-line"><label>NAME</label><input type="text"></div>
+      </div>
+      <div class="sig-col">
+        <div class="sig-line"></div>
+        SECRETARY'S SIGNATURE
+        <div class="sig-name-line"><label>NAME</label><input type="text"></div>
+      </div>
+    </div>
+
+    <div class="note-box">
+      <strong>NOTE</strong><br>
+      This report must be completed on the last Sunday of the month and taken to the Zonal council Meeting for onward
+      transmission to the District.<br>
+      The Final report must get to the National Office on or before the 14th of the new month. It should be sent by
+      courier Service to natseedv@yahoo.com
+    </div>
+  </div>
+
+</body>
+
+</html>
