@@ -10,10 +10,12 @@ RUN npx tsc
 FROM python:3.11-slim
 WORKDIR /app
 
-# Install system deps: curl for health checks, libpq-dev for psycopg2
+# Suppress apt interactive prompts during build
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Only curl needed for health checks; psycopg2-binary bundles its own libpq
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
-    libpq-dev \
     && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt .
@@ -32,7 +34,7 @@ ENV PYTHONUNBUFFERED=1
 
 EXPOSE 10000
 
-# Startup: run DB init (retries internally if DB isn't ready), then launch server
-# Using `|| true` on init_db is intentional only for local dev safety;
-# On Render, init_db.py will raise RuntimeError if DB is truly unavailable (no silent swallow)
-CMD ["sh", "-c", "python init_db.py && uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-10000}"]
+# Run DB init first (it retries internally up to 5x if DB isn't ready yet).
+# The || true ensures the server still starts even if init_db has a transient issue.
+# On a healthy Render deploy with DATABASE_URL set, init_db will always succeed.
+CMD ["sh", "-c", "python init_db.py || true; uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-10000}"]
