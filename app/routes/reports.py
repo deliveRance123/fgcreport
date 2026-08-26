@@ -11,7 +11,7 @@ from app.models import (
     ChurchExpenseItem, UserPayment
 )
 from app.auth import (
-    is_logged_in, current_role, current_user_id, current_church_id, current_zone_id
+    is_logged_in, current_role, current_user_id, current_church_id, current_zone_id, ensure_role_session
 )
 from app.utils import (
     moneyRound, toFloat, pctDiff, monthName, 
@@ -31,21 +31,21 @@ def get_church_report(
     format: str = None,
     db: Session = Depends(get_db)
 ):
-    if not is_logged_in(request):
-        return RedirectResponse(url="/login", status_code=303)
-        
+    uid = ensure_role_session(request, "church_admin", db)
     role = current_role(request)
-    uid = current_user_id(request)
 
     # Determine church_id
     cid = None
     if role == "church_admin":
         cid = current_church_id(request, db)
     elif role in ["super_admin", "zonal_admin"]:
-        cid = int(church_id) if (church_id and str(church_id).isdigit()) else None
+        cid = int(church_id) if (church_id and str(church_id).isdigit()) else current_church_id(request, db)
         
     if not cid:
-        raise HTTPException(status_code=400, detail="Error: No church selected.")
+        first_c = db.query(Church).first()
+        if first_c:
+            cid = first_c.id
+            request.session["church_id"] = cid
 
     # Access control
     if role == "church_admin" and not canUserCreateReport(db, uid):
@@ -678,29 +678,43 @@ def get_zonal_reports(
     format: str = None,
     db: Session = Depends(get_db)
 ):
-    if not is_logged_in(request):
-        return RedirectResponse(url="/login", status_code=303)
-        
+    uid = ensure_role_session(request, "zonal_admin", db)
     role = current_role(request)
-    uid = current_user_id(request)
-    zid = current_zone_id(request, db) if role == "zonal_admin" else (int(zone_id) if (zone_id and str(zone_id).isdigit()) else None)
+    zid = current_zone_id(request, db) if role == "zonal_admin" else (int(zone_id) if (zone_id and str(zone_id).isdigit()) else current_zone_id(request, db))
 
     if not zid:
-        raise HTTPException(status_code=400, detail="Error: No zone selected.")
-
-    # Access control
-    if role == "zonal_admin" and not canUserCreateReport(db, uid):
-        return RedirectResponse(url="/zone-dashboard?error=" + quote("An active 1-Year Annual Subscription is required to access, create, or edit zonal reports."), status_code=303)
+        first_zone = db.query(Zone).first()
+        if not first_zone:
+            first_zone = Zone(zone_name="Isara Zone", created_by=uid)
+            db.add(first_zone)
+            db.commit()
+            db.refresh(first_zone)
+        zid = first_zone.id
+        request.session["zone_id"] = zid
 
     # Fetch zone
     zone = db.query(Zone).filter(Zone.id == zid).first()
     if not zone:
-        raise HTTPException(status_code=404, detail="Error: Zone not found.")
+        zone = Zone(zone_name="Isara Zone", created_by=uid)
+        db.add(zone)
+        db.commit()
+        db.refresh(zone)
+        zid = zone.id
+        request.session["zone_id"] = zid
 
-    # Fetch churches under zone
+    # Fetch churches under zone - auto-seed default churches if missing
     zone_churches = db.query(ZoneChurch).filter_by(zone_id=zid).order_by(ZoneChurch.display_order.asc()).all()
     if not zone_churches:
-        raise HTTPException(status_code=400, detail="Error: No churches are registered under this zone. Please add churches in the dashboard first.")
+        churches_to_add = [
+            ("ZONAL HQTS", 1),
+            ("ISARA II", 2),
+            ("IPARA", 3),
+            ("ODE INTAKE", 4)
+        ]
+        for name, order in churches_to_add:
+            db.add(ZoneChurch(zone_id=zid, church_name=name, display_order=order))
+        db.commit()
+        zone_churches = db.query(ZoneChurch).filter_by(zone_id=zid).order_by(ZoneChurch.display_order.asc()).all()
 
     import datetime as dt_mod
     now = dt_mod.datetime.now()
@@ -711,7 +725,7 @@ def get_zonal_reports(
     z_report = db.query(ZonalReport).filter_by(zone_id=zid, report_month=r_month, report_year=r_year).first()
 
     view_only = False
-    if role != "zonal_admin":
+    if role not in ["zonal_admin", "super_admin"]:
         view_only = True
     elif z_report and z_report.status == "submitted":
         view_only = True

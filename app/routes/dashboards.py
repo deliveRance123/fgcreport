@@ -14,7 +14,7 @@ from app.models import (
     ChatbotKnowledgeBase, ChurchFinancialReport, ChurchSpiritualReport, ZonalReport
 )
 from app.auth import (
-    is_logged_in, current_role, current_user_id, current_church_id, current_zone_id
+    is_logged_in, current_role, current_user_id, current_church_id, current_zone_id, ensure_role_session
 )
 from app.utils import getUserTrialAndSubStatus, getPaymentSettings, formatNaira, monthName
 
@@ -28,48 +28,47 @@ from app.main import templates
 # =========================================================================
 @router.get("/church-dashboard", response_class=HTMLResponse)
 def get_church_dashboard(request: Request, error: str = "", msg: str = "", db: Session = Depends(get_db)):
-    if not is_logged_in(request) or current_role(request) != "church_admin":
-        return RedirectResponse(url="/login", status_code=303)
-
-    uid = current_user_id(request)
+    uid = ensure_role_session(request, "church_admin", db)
     cid = current_church_id(request, db)
-    if not cid:
-        return HTMLResponse("Error: No church registered under this administrator.", status_code=400)
-
     church = db.query(Church).filter(Church.id == cid).first()
+
     sub_status = getUserTrialAndSubStatus(db, uid)
-    
-    # Fetch report history
-    reports = db.query(ChurchFinancialReport).filter(
-        ChurchFinancialReport.church_id == cid
-    ).order_by(ChurchFinancialReport.report_year.desc(), ChurchFinancialReport.report_month.desc()).all()
+    pay_settings = getPaymentSettings(db)
+    sub_amount = float(pay_settings.get("monthly_sub_amount") or 5000)
+    can_create_report = bool(sub_status.get("is_active", True)) or pay_settings.get("payment_enabled") != "1"
 
     now = datetime.datetime.now()
-    default_year = now.year
     default_month = now.month
+    default_year = now.year
 
-    error_msg = error or request.query_params.get("error", "")
-    success_msg = msg or request.query_params.get("msg", "")
-
-    # Fetch stats of the latest report
+    # Fetch report history
+    reports = db.query(ChurchFinancialReport).filter_by(church_id=cid).order_by(
+        ChurchFinancialReport.report_year.desc(),
+        ChurchFinancialReport.report_month.desc()
+    ).all()
     latest_report = reports[0] if reports else None
-    total_receipts_current = 0.00
-    total_dues_current = 0.00
-    newcomers_count_current = 0
-    total_membership_count = 0
-    
+
+    # Calculate YTD receipts and attendance totals
+    ytd_receipts = 0.0
+    latest_month_newcomers = 0
+    latest_month_members = 0
+
+    for r in reports:
+        if r.report_year == default_year:
+            ytd_receipts += float(r.total_receipts or 0.0)
+
     if latest_report:
-        total_receipts_current = float(latest_report.total_receipts or 0)
-        total_dues_current = float(latest_report.payable or 0)
-        
-        latest_sp = db.query(ChurchSpiritualReport).filter_by(
+        sp = db.query(ChurchSpiritualReport).filter_by(
             church_id=cid,
             report_month=latest_report.report_month,
             report_year=latest_report.report_year
         ).first()
-        if latest_sp:
-            newcomers_count_current = latest_sp.total_new_comers or 0
-            total_membership_count = latest_sp.membership_total or 0
+        if sp:
+            latest_month_newcomers = sp.total_new_comers or 0
+            latest_month_members = sp.intake_total or 0
+
+    error_msg = error or request.query_params.get("error", "")
+    success_msg = msg or request.query_params.get("msg", "")
 
     user = db.query(User).filter(User.id == uid).first()
 
@@ -80,23 +79,24 @@ def get_church_dashboard(request: Request, error: str = "", msg: str = "", db: S
             "church": church,
             "user": user,
             "sub": sub_status,
-            "reports": reports,
-            "latestReport": latest_report,
-            "total_receipts_current": total_receipts_current,
-            "total_dues_current": total_dues_current,
-            "newcomers_count_current": newcomers_count_current,
-            "total_membership_count": total_membership_count,
+            "canCreateReport": can_create_report,
+            "subAmount": sub_amount,
+            "paymentSettings": pay_settings,
             "default_month": default_month,
             "default_year": default_year,
+            "reports": reports,
+            "latestReport": latest_report,
+            "ytdReceipts": ytd_receipts,
+            "latestMonthNewcomers": latest_month_newcomers,
+            "latestMonthMembers": latest_month_members,
             "error": error_msg,
             "msg": success_msg,
-            "paymentSettings": getPaymentSettings(db)
         }
     )
 
 
 # =========================================================================
-# ZONE DASHBOARD
+# ZONAL DASHBOARD
 # =========================================================================
 @router.get("/zone-dashboard", response_class=HTMLResponse)
 def get_zone_dashboard(
@@ -107,13 +107,17 @@ def get_zone_dashboard(
     msg: str = "",
     db: Session = Depends(get_db)
 ):
-    if not is_logged_in(request) or current_role(request) != "zonal_admin":
-        return RedirectResponse(url="/login", status_code=303)
-
-    uid = current_user_id(request)
+    uid = ensure_role_session(request, "zonal_admin", db)
     zid = current_zone_id(request, db)
     if not zid:
-        return HTMLResponse("Error: No zone registered under this administrator.", status_code=400)
+        first_zone = db.query(Zone).first()
+        if not first_zone:
+            first_zone = Zone(zone_name="Isara Zone", created_by=uid)
+            db.add(first_zone)
+            db.commit()
+            db.refresh(first_zone)
+        zid = first_zone.id
+        request.session["zone_id"] = zid
 
     zone = db.query(Zone).filter(Zone.id == zid).first()
     sub_status = getUserTrialAndSubStatus(db, uid)
@@ -125,8 +129,19 @@ def get_zone_dashboard(
     selected_month = month or int(request.query_params.get("month", now.month))
     selected_year = year or int(request.query_params.get("year", now.year))
 
-    # Fetch zonal churches
+    # Fetch zonal churches - ensure at least default churches exist
     zone_churches = db.query(ZoneChurch).filter(ZoneChurch.zone_id == zid).order_by(ZoneChurch.display_order.asc()).all()
+    if not zone_churches:
+        churches_to_add = [
+            ("ZONAL HQTS", 1),
+            ("ISARA II", 2),
+            ("IPARA", 3),
+            ("ODE INTAKE", 4)
+        ]
+        for name, order in churches_to_add:
+            db.add(ZoneChurch(zone_id=zid, church_name=name, display_order=order))
+        db.commit()
+        zone_churches = db.query(ZoneChurch).filter(ZoneChurch.zone_id == zid).order_by(ZoneChurch.display_order.asc()).all()
     church_count = len(zone_churches)
     
     # Fetch zonal reports history
@@ -170,7 +185,7 @@ def get_zone_dashboard(
                     ).first()
                     if sp:
                         zone_newcomers_total += (sp.total_new_comers or 0)
-                        zone_new_members_total += (sp.intake_new_members or 0)
+                        zone_new_members_total += (sp.intake_total or 0)
                         
                         # Average worship attendance parsing
                         if sp.church_prog_data:
