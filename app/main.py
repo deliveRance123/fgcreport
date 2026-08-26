@@ -141,7 +141,11 @@ templates.env.globals.update({
 # Database setup on startup (checks & creates tables if missing)
 @app.on_event("startup")
 def startup_event():
-    Base.metadata.create_all(bind=engine)
+    try:
+        Base.metadata.create_all(bind=engine)
+        print("[Startup] Database tables verified successfully.")
+    except Exception as e:
+        print(f"[Startup] Database setup warning: {e}")
 
 # Import routes (we will create these routers in the next steps)
 from app.routes import auth, dashboards, reports, chat, payments
