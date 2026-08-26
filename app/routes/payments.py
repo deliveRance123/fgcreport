@@ -2,7 +2,7 @@ import requests
 from datetime import datetime, timedelta
 from urllib.parse import quote
 from fastapi import APIRouter, Request, Depends, HTTPException, status
-from fastapi.responses import JSONResponse, RedirectResponse
+from fastapi.responses import JSONResponse, RedirectResponse, HTMLResponse
 from sqlalchemy.orm import Session
 
 from app.database import get_db
