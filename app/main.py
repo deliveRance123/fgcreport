@@ -23,6 +23,26 @@ _https_only = os.getenv("RENDER") == "true"
 app.add_middleware(SessionMiddleware, secret_key=SECRET_KEY, same_site="lax", https_only=_https_only)
 
 @app.middleware("http")
+async def no_cache_html(request: Request, call_next):
+    """
+    Force browsers to NEVER cache HTML pages.
+    This means every page visit fetches the latest version from the server,
+    so changes always show immediately without a hard refresh.
+    Static files (assets/, uploads/) are excluded and can still be cached.
+    """
+    response = await call_next(request)
+    path = request.url.path
+    # Apply no-cache only to HTML page responses (not to static assets)
+    is_static = path.startswith("/assets") or path.startswith("/uploads")
+    content_type = response.headers.get("content-type", "")
+    if not is_static and "text/html" in content_type:
+        response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+        response.headers["Pragma"] = "no-cache"
+        response.headers["Expires"] = "0"
+    return response
+
+
+@app.middleware("http")
 async def redirect_php_requests(request: Request, call_next):
     path = request.url.path
     if path.endswith(".php"):
