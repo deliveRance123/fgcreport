@@ -92,41 +92,20 @@ def init_db():
         Base.metadata.create_all(bind=engine)
         print("Tables verified/created successfully.")
 
-        # --- Safe column migrations (idempotent: safe to run on every startup) ---
+        # --- Safe column migrations (checked via inspect to avoid duplicate column errors) ---
         print("Running safe schema migrations...")
-        from sqlalchemy import text as _text
-        with engine.connect() as _conn:
-            # Add 'action' column to due_percentage_audit_log if missing
-            try:
-                _conn.execute(_text(
-                    "ALTER TABLE due_percentage_audit_log ADD COLUMN IF NOT EXISTS action VARCHAR(50)"
-                ))
-                print("  Migration: due_percentage_audit_log.action - OK")
-            except Exception:
-                try:
-                    _conn.execute(_text(
-                        "ALTER TABLE due_percentage_audit_log ADD COLUMN action VARCHAR(50)"
-                    ))
-                    print("  Migration: due_percentage_audit_log.action - added")
-                except Exception as _e:
-                    print(f"  Migration: due_percentage_audit_log.action - verified ({_e})")
-
-            # Add 'note' column to due_percentage_audit_log if missing
-            try:
-                _conn.execute(_text(
-                    "ALTER TABLE due_percentage_audit_log ADD COLUMN IF NOT EXISTS note VARCHAR(255)"
-                ))
-                print("  Migration: due_percentage_audit_log.note - OK")
-            except Exception:
-                try:
-                    _conn.execute(_text(
-                        "ALTER TABLE due_percentage_audit_log ADD COLUMN note VARCHAR(255)"
-                    ))
-                    print("  Migration: due_percentage_audit_log.note - added")
-                except Exception as _e:
-                    print(f"  Migration: due_percentage_audit_log.note - verified ({_e})")
-
-            _conn.commit()
+        from sqlalchemy import inspect as _inspect, text as _text
+        _insp = _inspect(engine)
+        if _insp.has_table("due_percentage_audit_log"):
+            _existing_cols = [c["name"] for c in _insp.get_columns("due_percentage_audit_log")]
+            with engine.connect() as _conn:
+                if "action" not in _existing_cols:
+                    _conn.execute(_text("ALTER TABLE due_percentage_audit_log ADD COLUMN action VARCHAR(50)"))
+                    print("  Migration: Added column 'action' to due_percentage_audit_log")
+                if "note" not in _existing_cols:
+                    _conn.execute(_text("ALTER TABLE due_percentage_audit_log ADD COLUMN note VARCHAR(255)"))
+                    print("  Migration: Added column 'note' to due_percentage_audit_log")
+                _conn.commit()
         print("Schema migrations complete.")
     except Exception as e:
         print(f"[InitDB] Warning during table creation: {e}")
