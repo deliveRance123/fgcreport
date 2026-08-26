@@ -106,6 +106,8 @@ class DuePercentageAuditLog(Base):
     new_value = Column(Numeric(8, 4), nullable=False)
     changed_by = Column(Integer, ForeignKey("users.id", ondelete="RESTRICT"), nullable=False)
     changed_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+    action = Column(String(50), nullable=True)   # e.g. 'rate_change', 'lock_change'
+    note = Column(String(255), nullable=True)    # optional description of the change
 
 
 class ChurchFinancialReport(Base):
