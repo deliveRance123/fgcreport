@@ -9,11 +9,22 @@ DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://postgres:2004@localhost:5
 if DATABASE_URL.startswith("postgres://"):
     DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
 
-# Create database engine
-engine = create_engine(
-    DATABASE_URL,
-    pool_pre_ping=True,  # Test connections before executing queries to prevent stale connections
-)
+try:
+    engine = create_engine(
+        DATABASE_URL,
+        pool_pre_ping=True,  # Test connections before executing queries to prevent stale connections
+    )
+    # Test connection
+    with engine.connect() as conn:
+        pass
+except Exception as e:
+    print(f"Warning: Primary DB connection failed ({e}). Using SQLite fallback.")
+    DATABASE_URL = "sqlite:///./foursquare_reports.db"
+    engine = create_engine(
+        DATABASE_URL,
+        connect_args={"check_same_thread": False},
+        pool_pre_ping=True,
+    )
 
 # Session factory for individual requests
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)

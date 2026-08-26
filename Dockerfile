@@ -2,7 +2,7 @@
 FROM node:18-alpine AS ts-builder
 WORKDIR /build
 COPY package*.json tsconfig.json ./
-RUN npm ci
+RUN npm install
 COPY assets/ts ./assets/ts
 RUN npx tsc
 
@@ -17,13 +17,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy source assets
+# Copy application files
 COPY app ./app
 COPY templates ./templates
 COPY assets ./assets
-# Override assets/js with compiled TS files
+# Copy compiled TypeScript JS files
 COPY --from=ts-builder /build/assets/js ./assets/js
-
 COPY init_db.py .
 
 ENV PORT=10000
@@ -31,5 +30,5 @@ ENV PYTHONUNBUFFERED=1
 
 EXPOSE 10000
 
-# Run init_db.py migrations & seeding, then start FastAPI app
-CMD python init_db.py && uvicorn app.main:app --host 0.0.0.0 --port $PORT
+# Run database init (migrations & seeds) then launch FastAPI server
+CMD ["sh", "-c", "python init_db.py || true; uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-10000}"]
