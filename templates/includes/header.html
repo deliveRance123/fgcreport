@@ -1,0 +1,170 @@
+<!-- templates/includes/header.html -->
+{% set is_logged = is_logged_in(request) %}
+{% set role = current_role(request) %}
+{% set user_name = current_user_name(request) %}
+
+{% if is_logged %}
+  {% set names = user_name.strip().split() %}
+  {% if names|length > 0 %}
+    {% set first_initial = names[0][0]|upper %}
+    {% if names|length > 1 %}
+      {% set initials = first_initial + names[-1][0]|upper %}
+    {% else %}
+      {% set initials = first_initial %}
+    {% endif %}
+  {% else %}
+    {% set initials = 'U' %}
+  {% endif %}
+{% endif %}
+
+<header class="site-header">
+  <div class="nav-row">
+    <!-- Left: Brand -->
+    <a href="/" class="brand">
+      <img src="/assets/logo.jpg" alt="Logo">
+      <span class="brand-name">Foursquare Reports</span>
+    </a>
+
+    <!-- Right: Desktop Actions -->
+    <div class="header-actions desktop-only">
+      {% if is_logged %}
+        <!-- User Profile Dropdown -->
+        <div class="profile-dropdown">
+          <button class="profile-trigger" id="profileTrigger" aria-label="User Profile">
+            <span class="profile-avatar">{{ initials }}</span>
+            <span class="profile-arrow">&#9662;</span>
+          </button>
+          <div class="profile-dropdown-menu" id="profileMenu">
+            <div class="dropdown-user-info">
+              <strong>{{ user_name }}</strong>
+              <span>{{ request.session.get("email", "") }}</span>
+            </div>
+            <hr>
+            <a href="/profile" class="dropdown-item">Profile</a>
+            <a href="/profile" class="dropdown-item">Settings</a>
+            <hr>
+            <a href="/logout" class="dropdown-item text-danger">Logout</a>
+          </div>
+        </div>
+      {% else %}
+        <!-- Guest: Login + Get Started -->
+        <a href="/login" class="btn btn-solid hdr-login">Login</a>
+
+        <div class="get-started-dropdown">
+          <button class="btn btn-outline hdr-getstarted" id="getStartedTrigger">
+            Get Started <span class="arrow">&#9662;</span>
+          </button>
+          <div class="get-started-menu" id="getStartedMenu">
+            <a href="/register-church" class="dropdown-item">Register Church</a>
+            <a href="/register-zone" class="dropdown-item">Register Zone</a>
+          </div>
+        </div>
+      {% endif %}
+    </div>
+
+    <!-- Right: Mobile Hamburger -->
+    <button class="menu-toggle" id="menuToggle" aria-label="Open navigation">
+      <span></span><span></span><span></span>
+    </button>
+
+    <!-- Mobile Drawer Menu -->
+    <nav class="nav-menu" id="navMenu">
+      {% if is_logged %}
+        <div class="mobile-user-profile">
+          <div class="mobile-avatar">{{ initials }}</div>
+          <div class="mobile-user-details">
+            <strong>{{ user_name }}</strong>
+            <span>{{ request.session.get("email", "") }}</span>
+          </div>
+        </div>
+        <hr>
+        <div class="mobile-section-title">Navigation</div>
+        {% if role == 'super_admin' %}
+          <a href="/admin-dashboard" class="nav-link">Dashboard</a>
+          <a href="/admin-dashboard?page=dues" class="nav-link">Manage Dues</a>
+          <a href="/profile" class="nav-link">My Profile</a>
+        {% elif role == 'zonal_admin' %}
+          <a href="/zone-dashboard" class="nav-link">Dashboard</a>
+          <a href="/profile" class="nav-link">My Profile</a>
+        {% elif role == 'church_admin' %}
+          <a href="/church-dashboard" class="nav-link">Dashboard</a>
+          <a href="/profile" class="nav-link">My Profile</a>
+        {% endif %}
+        <hr>
+        <a href="/profile" class="nav-link">Settings</a>
+        <a href="/logout" class="nav-link text-danger">Logout</a>
+      {% else %}
+        <a href="/login" class="btn btn-solid mobile-btn" style="width:100%; text-align:center;">Login</a>
+        <div class="mobile-section-title">Get Started</div>
+        <a href="/register-church" class="nav-link">&bull; Register Church</a>
+        <a href="/register-zone" class="nav-link">&bull; Register Zone</a>
+      {% endif %}
+    </nav>
+  </div>
+</header>
+
+<script>
+// Prevent layout flash by ensuring body has-header class is immediately present
+document.body.classList.add('has-header');
+
+(function() {
+  // Mobile Hamburger Toggle
+  const toggle = document.getElementById('menuToggle');
+  const menu   = document.getElementById('navMenu');
+  
+  if (toggle && menu) {
+    toggle.addEventListener('click', function(e) {
+      e.stopPropagation();
+      const isOpen = menu.classList.toggle('open');
+      toggle.classList.toggle('open', isOpen);
+      toggle.setAttribute('aria-label', isOpen ? 'Close navigation' : 'Open navigation');
+      closeAllDropdowns();
+    });
+  }
+
+  // Get Started Dropdown (Guest)
+  const getStartedTrigger = document.getElementById('getStartedTrigger');
+  const getStartedMenu = document.getElementById('getStartedMenu');
+  if (getStartedTrigger && getStartedMenu) {
+    getStartedTrigger.addEventListener('click', function(e) {
+      e.stopPropagation();
+      const isOpen = getStartedMenu.classList.toggle('open');
+      closeAllDropdowns(getStartedMenu);
+    });
+  }
+
+  // User Profile Dropdown (Logged in)
+  const profileTrigger = document.getElementById('profileTrigger');
+  const profileMenu = document.getElementById('profileMenu');
+  if (profileTrigger && profileMenu) {
+    profileTrigger.addEventListener('click', function(e) {
+      e.stopPropagation();
+      const isOpen = profileMenu.classList.toggle('open');
+      closeAllDropdowns(profileMenu);
+    });
+  }
+
+  // Helper to close dropdowns
+  function closeAllDropdowns(except = null) {
+    if (getStartedMenu && getStartedMenu !== except) getStartedMenu.classList.remove('open');
+    if (profileMenu && profileMenu !== except) profileMenu.classList.remove('open');
+  }
+
+  document.addEventListener('click', function(e) {
+    closeAllDropdowns();
+    if (menu && toggle && !menu.contains(e.target) && !toggle.contains(e.target)) {
+      menu.classList.remove('open');
+      toggle.classList.remove('open');
+    }
+  });
+
+  if (menu) {
+    menu.querySelectorAll('a').forEach(function(a) {
+      a.addEventListener('click', function() {
+        menu.classList.remove('open');
+        if (toggle) toggle.classList.remove('open');
+      });
+    });
+  }
+})();
+</script>

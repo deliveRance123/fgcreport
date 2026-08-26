@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Register Local Church — Foursquare Reports</title>
+<link rel="icon" type="image/jpeg" href="/assets/logo.jpg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/assets/style.css">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Inter', system-ui, sans-serif;
+    min-height: 100svh; background: #0f0a2e;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    padding: 60px 16px 40px; position: relative; overflow-y: auto;
+  }
+  body::before {
+    content: ''; position: fixed; inset: 0;
+    background:
+      radial-gradient(ellipse 60% 50% at 10% 20%, rgba(227,30,36,0.16) 0%, transparent 60%),
+      radial-gradient(ellipse 50% 60% at 90% 80%, rgba(99,60,180,0.20) 0%, transparent 60%);
+    pointer-events: none;
+  }
+  body::after {
+    content: ''; position: fixed; inset: 0;
+    background-image:
+      repeating-linear-gradient(0deg, transparent, transparent 39px, rgba(255,255,255,0.02) 39px, rgba(255,255,255,0.02) 40px),
+      repeating-linear-gradient(90deg, transparent, transparent 39px, rgba(255,255,255,0.02) 39px, rgba(255,255,255,0.02) 40px);
+    pointer-events: none;
+  }
+  .auth-topbar {
+    position: fixed; top: 0; left: 0; right: 0;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 18px 32px; z-index: 10;
+  }
+  .auth-back-link {
+    display: inline-flex; align-items: center; gap: 7px;
+    font-size: 13px; font-weight: 500; color: rgba(255,255,255,0.65);
+    text-decoration: none; transition: all 0.15s;
+    border: 1px solid rgba(255,255,255,0.12); padding: 7px 16px;
+    border-radius: 99px; backdrop-filter: blur(10px);
+    background: rgba(255,255,255,0.06);
+  }
+  .auth-back-link:hover { color: #fff; background: rgba(255,255,255,0.12); border-color: rgba(255,255,255,0.25); }
+  .auth-card {
+    position: relative; z-index: 2;
+    width: 100%; max-width: 580px;
+    background: #ffffff; border-radius: 20px;
+    padding: 40px;
+    box-shadow: 0 32px 80px rgba(0,0,0,0.45);
+  }
+  .auth-form-head { margin-bottom: 28px; }
+  .auth-form-head h1 { font-family: 'Outfit', sans-serif; font-size: 24px; font-weight: 800; color: #1A1040; margin-bottom: 5px; }
+  .auth-form-head p { font-size: 13.5px; color: #71717A; }
+  .section-title { font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; color: #E31E24; margin: 24px 0 12px; display: flex; align-items: center; gap: 8px; }
+  .section-title::after { content: ''; flex: 1; height: 1px; background: #F0F0F0; }
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 18px; }
+  .field-group { margin-bottom: 4px; }
+  .field-group.full { grid-column: span 2; }
+  .field-label { font-size: 12px; font-weight: 600; color: #3F3F46; margin-bottom: 6px; display: block; }
+  .field-input, .field-select {
+    width: 100%; padding: 10px 14px;
+    border: 1.5px solid #E4E4E7; border-radius: 8px;
+    font-size: 13.5px; color: #0D0D12; background: #FAFAFA;
+    transition: all 0.15s; outline: none; font-family: inherit;
+  }
+  .field-input:focus, .field-select:focus { border-color: #E31E24; box-shadow: 0 0 0 3px rgba(227,30,36,0.08); background: #fff; }
+  .submit-btn {
+    width: 100%; padding: 13px; margin-top: 24px;
+    background: linear-gradient(135deg, #E31E24 0%, #B81018 100%);
+    color: #fff; border: none; border-radius: 9px;
+    font-size: 14px; font-weight: 700; cursor: pointer; font-family: inherit;
+    box-shadow: 0 4px 16px rgba(227,30,36,0.35); transition: all 0.15s;
+  }
+  .submit-btn:hover { box-shadow: 0 6px 22px rgba(227,30,36,0.45); opacity: 0.95; }
+  .error-bar {
+    background: #FEF2F2; border: 1px solid #FECACA; color: #DC2626;
+    border-radius: 8px; padding: 10px 14px; font-size: 13px; font-weight: 500;
+    margin-bottom: 20px; display: flex; align-items: center; gap: 8px;
+  }
+  .success-bar {
+    background: #ECFDF5; border: 1px solid #A7F3D0; color: #047857;
+    border-radius: 8px; padding: 10px 14px; font-size: 13px; font-weight: 500;
+    margin-bottom: 20px; display: flex; align-items: center; gap: 8px;
+  }
+  .login-link { text-align: center; margin-top: 20px; font-size: 13px; color: #71717A; }
+  .login-link a { font-weight: 700; color: #1A1040; text-decoration: underline; }
+  @media (max-width: 560px) {
+    .form-grid { grid-template-columns: 1fr; }
+    .field-group.full { grid-column: span 1; }
+    .auth-card { padding: 32px 20px; }
+  }
+</style>
+</head>
+<body>
+
+<nav class="auth-topbar">
+  <a href="/" class="auth-back-link">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+    Back to home
+  </a>
+</nav>
+
+<div class="auth-card">
+  <div class="auth-form-head">
+    <h1>Register Church</h1>
+    <p>Setup a local church and administrator account</p>
+  </div>
+
+  {% if error %}
+  <div class="error-bar">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+    {{ error }}
+  </div>
+  {% endif %}
+
+  {% if success %}
+  <div class="success-bar">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 8 12 12 14 14"/><path d="M22 12A10 10 0 1 1 12 2v10z"/></svg>
+    {{ success }}
+  </div>
+  {% endif %}
+
+  <form method="POST" action="/register-church">
+    
+    <div class="section-title">1. Church Information</div>
+    <div class="form-grid">
+      <div class="field-group full">
+        <label class="field-label">Church Name *</label>
+        <input type="text" name="church_name" class="field-input" required placeholder="e.g. FGC Isara-Remo" value="{{ form_data.get('church_name', '') }}">
+      </div>
+      <div class="field-group">
+        <label class="field-label">District *</label>
+        <input type="text" name="district" class="field-input" required placeholder="e.g. Lagos District" value="{{ form_data.get('district', '') }}">
+      </div>
+      <div class="field-group">
+        <label class="field-label">Church Type *</label>
+        <select name="church_type" class="field-select" required>
+          <option value="unchartered" {% if form_data.get('church_type') == 'unchartered' %}selected{% endif %}>Unchartered Local Church</option>
+          <option value="chartered" {% if form_data.get('church_type') == 'chartered' %}selected{% endif %}>Chartered Local Church</option>
+        </select>
+      </div>
+      <div class="field-group full">
+        <label class="field-label">Church Address</label>
+        <input type="text" name="address" class="field-input" placeholder="Physical Address" value="{{ form_data.get('address', '') }}">
+      </div>
+      <div class="field-group">
+        <label class="field-label">Pastor's Name</label>
+        <input type="text" name="pastor_name" class="field-input" placeholder="Lead Pastor" value="{{ form_data.get('pastor_name', '') }}">
+      </div>
+      <div class="field-group">
+        <label class="field-label">Pastor's Address</label>
+        <input type="text" name="pastor_address" class="field-input" placeholder="Pastor's Residence" value="{{ form_data.get('pastor_address', '') }}">
+      </div>
+    </div>
+
+    <div class="section-title">2. Administrator Credentials</div>
+    <div class="form-grid">
+      <div class="field-group full">
+        <label class="field-label">Full Name *</label>
+        <input type="text" name="full_name" class="field-input" required placeholder="e.g. Pastor James Adebayo" value="{{ form_data.get('full_name', '') }}">
+      </div>
+      <div class="field-group">
+        <label class="field-label">Email Address *</label>
+        <input type="email" name="email" class="field-input" required placeholder="admin@example.com" value="{{ form_data.get('email', '') }}">
+      </div>
+      <div class="field-group">
+        <label class="field-label">Phone Number</label>
+        <input type="text" name="phone" class="field-input" placeholder="e.g. 08012345678" value="{{ form_data.get('phone', '') }}">
+      </div>
+      <div class="field-group">
+        <label class="field-label">Passcode *</label>
+        <input type="password" name="password" class="field-input" required placeholder="Minimum 8 characters">
+      </div>
+      <div class="field-group">
+        <label class="field-label">Confirm Passcode *</label>
+        <input type="password" name="confirm_password" class="field-input" required placeholder="Retype passcode">
+      </div>
+    </div>
+
+    <button type="submit" class="submit-btn">Complete Registration</button>
+  </form>
+
+  <div class="login-link">
+    Already have an account? <a href="/login">Log in here</a>
+  </div>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin Setup — Foursquare Reports</title>
+<link rel="icon" type="image/jpeg" href="/assets/logo.jpg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/assets/style.css">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Inter', system-ui, sans-serif;
+    min-height: 100svh; background: #0f0a2e;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    padding: 40px 16px; position: relative; overflow-y: auto;
+  }
+  .auth-card {
+    position: relative; z-index: 2;
+    width: 100%; max-width: 440px;
+    background: #ffffff; border-radius: 20px;
+    padding: 40px 40px 36px;
+    box-shadow: 0 32px 80px rgba(0,0,0,0.45);
+  }
+  .auth-form-head { margin-bottom: 24px; text-align: center; }
+  .auth-form-head h1 { font-family: 'Outfit', sans-serif; font-size: 24px; font-weight: 800; color: #1A1040; margin-bottom: 6px; }
+  .auth-form-head p { font-size: 13px; color: #71717A; }
+  .field-group { margin-bottom: 16px; }
+  .field-label { font-size: 12px; font-weight: 600; color: #3F3F46; margin-bottom: 6px; display: block; }
+  .field-input {
+    width: 100%; padding: 11px 14px;
+    border: 1.5px solid #E4E4E7; border-radius: 9px;
+    font-size: 13.5px; color: #0D0D12; background: #FAFAFA;
+    transition: all 0.15s; outline: none; font-family: inherit;
+  }
+  .field-input:focus { border-color: #E31E24; box-shadow: 0 0 0 3px rgba(227,30,36,0.10); background: #fff; }
+  .submit-btn {
+    width: 100%; padding: 13px; margin-top: 8px;
+    background: linear-gradient(135deg, #E31E24 0%, #B81018 100%);
+    color: #fff; border: none; border-radius: 9px;
+    font-size: 14px; font-weight: 700; cursor: pointer; font-family: inherit;
+    box-shadow: 0 4px 16px rgba(227,30,36,0.38); transition: all 0.15s;
+  }
+  .error-bar {
+    background: #FEF2F2; border: 1px solid #FECACA; color: #DC2626;
+    border-radius: 9px; padding: 10px 14px; font-size: 13px; font-weight: 500;
+    margin-bottom: 18px; display: flex; align-items: center; gap: 8px;
+  }
+  .success-bar {
+    background: #ECFDF5; border: 1px solid #A7F3D0; color: #047857;
+    border-radius: 9px; padding: 10px 14px; font-size: 13px; font-weight: 500;
+    margin-bottom: 18px; display: flex; align-items: center; gap: 8px;
+  }
+</style>
+</head>
+<body>
+
+<div class="auth-card">
+  <div class="auth-form-head">
+    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#E31E24" stroke-width="2" style="background:#FFEBEB; padding:10px; border-radius:50%; margin-bottom:12px;"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+    <h1>Super Admin Setup</h1>
+    <p>Initialize the platform administrator credentials</p>
+  </div>
+
+  {% if error %}
+  <div class="error-bar" role="alert">
+    {{ error }}
+  </div>
+  {% endif %}
+
+  {% if success %}
+  <div class="success-bar" role="alert">
+    {{ success }}
+  </div>
+  {% endif %}
+
+  {% if superAdminExists %}
+    <div style="text-align: center; padding: 20px 0;">
+      <p style="font-size: 14px; color: #4B5563; margin-bottom: 16px;">The Super Admin account has already been initialized on this database.</p>
+      <a href="/login" style="display: block; background: #1A1040; color: #fff; padding: 12px; border-radius: 9px; font-weight: 600; text-decoration: none;">Go to Login Portal</a>
+    </div>
+  {% else %}
+    <form method="POST" action="/admin/setup">
+      <div class="field-group">
+        <label class="field-label">Full Name *</label>
+        <input type="text" name="full_name" class="field-input" required placeholder="e.g. Administrator" value="{{ form_data.get('full_name', '') }}">
+      </div>
+      <div class="field-group">
+        <label class="field-label">Email Address *</label>
+        <input type="email" name="email" class="field-input" required placeholder="admin@example.com" value="{{ form_data.get('email', '') }}">
+      </div>
+      <div class="field-group">
+        <label class="field-label">Phone Number</label>
+        <input type="text" name="phone" class="field-input" placeholder="e.g. 08012345678" value="{{ form_data.get('phone', '') }}">
+      </div>
+      <div class="field-group">
+        <label class="field-label">Passcode *</label>
+        <input type="password" name="password" class="field-input" required placeholder="Minimum 8 characters">
+      </div>
+      <div class="field-group">
+        <label class="field-label">Confirm Passcode *</label>
+        <input type="password" name="confirm_password" class="field-input" required placeholder="Retype passcode">
+      </div>
+      <button type="submit" class="submit-btn">Initialize Administrator</button>
+    </form>
+  {% endif %}
+</div>
+
+</body>
+</html>

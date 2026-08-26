@@ -1,0 +1,1215 @@
+<!-- templates/church_report.html -->
+{% set is_logged = is_logged_in(request) %}
+{% set role = current_role(request) %}
+{% set user_name = current_user_name(request) or 'User' %}
+
+{% macro renderInput(fieldName, value, view_only_flag, class='cell', isLocked=false) %}
+  {% set val = 0.0 if (isLocked or value is none or value is undefined or value == '') else (value|float) %}
+  {% set naira = (val|abs)|round(0, 'floor')|int %}
+  {% set kobo = (((val|abs) - naira) * 100)|round|int %}
+  {% set naira_str = (naira|string) if val != 0 else '' %}
+  {% set kobo_str = (kobo|string).zfill(2) if val != 0 else '' %}
+  {% if is_pdf %}
+    <td style="text-align:right; font-size:12px; font-family:'Times New Roman';">{{ naira_str }}</td>
+    <td style="text-align:center; font-size:12px; font-family:'Times New Roman';">{{ kobo_str }}</td>
+  {% else %}
+    <td><input type="text" class="{{ class }}" name="{{ fieldName }}_naira" value="{{ naira_str }}" {{ 'disabled' if view_only_flag or isLocked }}></td>
+    <td><input type="text" class="{{ class }}" name="{{ fieldName }}_kobo" value="{{ kobo_str }}" {{ 'disabled' if view_only_flag or isLocked }}></td>
+  {% endif %}
+{% endmacro %}
+
+{% macro renderSimpleInput(name, value, view_only_flag, class='', style='', placeholder='', type='text') %}
+  {% if is_pdf %}
+    <span style="{{ style }} font-size:12px; font-family:'Times New Roman'; border:none; background:transparent;">{{ value or '' }}</span>
+  {% else %}
+    <input type="{{ type }}" {% if class %}class="{{ class }}"{% endif %} name="{{ name }}" value="{{ value or '' }}" {{ 'disabled' if view_only_flag }} {% if style %}style="{{ style }}"{% endif %} {% if placeholder %}placeholder="{{ placeholder }}"{% endif %}>
+  {% endif %}
+{% endmacro %}
+
+{% macro renderExpenseRow(item, view_only_flag) %}
+  {% if item %}
+    <tr data-expense-item="true" data-item-key="{{ item.item_key }}">
+      <td>
+        {% if not view_only_flag and not is_pdf %}
+          <span class="editable-label text-decoration-underline" onclick="openRenameModal({{ item.id }}, '{{ item.label }}')" style="cursor:pointer;" title="Click to rename">{{ item.label }}</span>
+        {% else %}
+          {{ item.label }}
+        {% endif %}
+      </td>
+      {{ renderInput('expense_amount[' ~ item.id ~ ']', item.amount, view_only_flag) }}
+    </tr>
+  {% endif %}
+{% endmacro %}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>{{ church.name }} - Church Report {{ month|month_name }} {{ year }}</title>
+  <link rel="icon" type="image/jpeg" href="/assets/logo.jpg">
+  <link rel="stylesheet" href="/assets/bootstrap.min.css">
+  <style>
+    @page {
+      size: A4 portrait;
+      margin: 6mm 8mm;
+    }
+
+    /* Ensure disabled inputs do not fade out and remain black */
+    input:disabled,
+    input[disabled] {
+      color: #000 !important;
+      -webkit-text-fill-color: #000 !important;
+      opacity: 1 !important;
+      background: transparent !important;
+    }
+
+    {% if is_pdf %}
+      /* ===== PDF MODE: mirror @media print exactly ===== */
+      body { background: #fff !important; padding: 0 !important; margin: 0 !important; }
+      .no-print,
+      .action-bar,
+      .back-btn-container { display: none !important; }
+
+      /* Each .page div = one A4 portrait page */
+      .page {
+        box-shadow: none !important;
+        margin: 0 !important;
+        width: 194mm !important;
+        height: 277mm !important;
+        min-height: 0 !important;
+        padding: 3mm 5mm !important;
+        overflow: hidden !important;
+        box-sizing: border-box !important;
+        page-break-after: always !important;
+        page-break-inside: avoid !important;
+      }
+      .page:last-child { page-break-after: avoid !important; }
+
+      /* PAGE 1: Spacing */
+      table.report-table { font-size: 8.5px !important; }
+      table.report-table td,
+      table.report-table th {
+        padding: 1.5px 2px !important;
+        height: 11px !important;
+      }
+      table.report-table input,
+      table.report-table select,
+      input.cell,
+      .cell {
+        font-size: 8.5px !important;
+        height: 11px !important;
+        line-height: 11px !important;
+        padding: 0 1px !important;
+      }
+      .title-block { margin-bottom: 3px !important; }
+      .title-block h1 { font-size: 12px !important; }
+      .subtitle-row { font-size: 10px !important; margin-bottom: 3px !important; }
+      .meta-line { font-size: 10px !important; margin-bottom: 3px !important; gap: 4px !important; }
+      .meta-group { gap: 2px !important; }
+      .ledger { font-size: 8.5px !important; margin-top: 2px !important; }
+      .bottom-note { font-size: 7.5px !important; padding: 1px 3px !important; margin-top: 2px !important; }
+      .col-naira { width: 46px !important; }
+      .col-kobo  { width: 28px !important; }
+
+      /* PAGE 2: Spiritual Report */
+      .page2-title { font-size: 10px !important; margin-bottom: 2px !important; }
+      .stat-grid-top { font-size: 9px !important; margin-bottom: 2px !important; }
+      .section-title { font-size: 10px !important; margin: 2px 0 2px 0 !important; }
+      table.small-table { font-size: 8px !important; }
+      table.small-table td, table.small-table th { height: 9px !important; padding: 0.2px 2px !important; }
+      table.membership-table { margin-bottom: 4px !important; }
+      table.membership-table td, table.membership-table th { height: 9px !important; padding: 0.2px 2px !important; }
+      table.membership-table td.label-cell { font-size: 8px !important; }
+      table.membership-table th.label-header { font-size: 8.5px !important; }
+      table.membership-table th.input-header { font-size: 8px !important; }
+      .signature-block { margin-top: 4px !important; font-size: 8.5px !important; }
+      .sig-col { padding: 0 4px !important; }
+      .sig-line { height: 14px !important; margin-bottom: 2px !important; }
+
+      td span, td { font-family: "DejaVu Sans", sans-serif !important; }
+    {% endif %}
+
+    * { box-sizing: border-box; }
+    body {
+      font-family: "Times New Roman", Times, serif;
+      background: #e5e5e5;
+      margin: 0;
+      padding: 20px 0;
+      color: #111;
+    }
+    html, body {
+      max-width: 100%;
+      overflow-x: hidden;
+    }
+    .report-scroll-wrapper {
+      width: 100%;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      padding: 0 4px;
+      box-sizing: border-box;
+    }
+    .page {
+      width: 210mm;
+      height: 297mm;
+      background: #fff;
+      margin: 0 auto 24px auto;
+      padding: 3mm 6mm;
+      box-shadow: 0 0 12px rgba(0, 0, 0, 0.3);
+      position: relative;
+      box-sizing: border-box;
+      overflow: visible;
+    }
+    input[type="text"],
+    input[type="number"] {
+      font-family: "Times New Roman", Times, serif;
+      border: none;
+      border-bottom: 1px dotted #888;
+      background: transparent;
+      font-size: 10px;
+      width: 100%;
+      padding: 0 2px;
+    }
+    input[type="text"]:focus,
+    input[type="number"]:focus {
+      outline: 1px solid #2563eb;
+      background: #eef4ff;
+    }
+    input.cell {
+      border: none;
+      background: transparent;
+      text-align: right;
+      font-size: 10px;
+      width: 100%;
+      height: 13px;
+      line-height: 13px;
+      padding: 0 2px;
+    }
+    input.cell:focus {
+      outline: 1px solid #2563eb;
+      background: #eef4ff;
+    }
+    input.center { text-align: center; }
+    input.left { text-align: left; }
+    .title-block { text-align: center; margin-bottom: 2px; }
+    .title-block h1 { font-size: 12.5px; margin: 0 0 1px 0; letter-spacing: 0.1px; }
+    .subtitle-row { display: flex; justify-content: space-between; border-bottom: 1px solid #000; padding-bottom: 1px; margin-bottom: 2px; }
+    .subtitle-row .left-label { font-style: italic; text-decoration: underline; font-size: 11px; }
+    .subtitle-row .right-label { font-size: 11px; }
+    .meta-line { display: flex; flex-wrap: nowrap; align-items: baseline; gap: 6px; font-size: 10.5px; margin-bottom: 2px; width: 100%; }
+    .meta-group { display: flex; align-items: baseline; gap: 4px; min-width: 0; }
+    .meta-group label { white-space: nowrap; font-weight: normal; }
+    .meta-group input.meta-input { border: none; border-bottom: 1px solid #444; background: transparent; font-family: "Times New Roman", Times, serif; font-size: 10.5px; padding: 0 2px; flex: 1; min-width: 0; }
+    .mg-district { flex: 1.5; }
+    .mg-month { flex: 1; }
+    .mg-year { flex: 0.8; }
+    .mg-pastorname { flex: 2.5; }
+    .mg-church { flex: 1.2; }
+    .mg-churchaddr { flex: 2.5; }
+    .mg-pastoraddr { flex: 2.5; }
+    .ledger { display: flex; border: 2px solid #000; margin-top: 2px; }
+    .ledger-col { flex: 1; border-right: 2px solid #000; }
+    .ledger-col:last-child { border-right: none; }
+    table.report-table { width: 100%; border-collapse: collapse; font-size: 10px; }
+    table.report-table td, table.report-table th { border: 1px solid #000; padding: 1px 2px; vertical-align: middle; height: 13px; line-height: 1.1; }
+    table.report-table th { text-align: center; font-weight: bold; }
+    .col-label { width: auto; }
+    .col-naira { width: 58px; text-align: center; }
+    .col-kobo  { width: 28px; text-align: center; }
+    .row-header td { font-weight: bold; text-decoration: underline; background: #fafafa; }
+    .indent { padding-left: 10px !important; }
+    .small-note { font-size: 9.5px; font-style: italic; }
+    .bottom-note { background: #000; color: #fff; font-size: 8px; padding: 2px 4px; margin-top: 2px; line-height: 1.3; text-align: center; }
+
+    /* Page 2 Spiritual */
+    .page2-title { text-align: center; font-size: 13px; font-weight: bold; letter-spacing: 0.5px; margin-bottom: 4px; }
+    .stat-grid-top { display: grid; grid-template-columns: 1fr 1fr; gap: 3px 16px; font-size: 11.5px; margin-bottom: 4px; }
+    .stat-line { display: flex; align-items: baseline; gap: 6px; }
+    .stat-line label { white-space: nowrap; }
+    .stat-line input { flex: 1; border: none; border-bottom: 1px dotted #888; background: transparent; font-family: "Times New Roman", Times, serif; font-size: 13px; }
+    .section-title { text-align: center; font-weight: bold; font-size: 12px; margin: 4px 0 3px 0; text-decoration: underline; }
+    .two-col-section { display: flex; gap: 8px; align-items: flex-start; }
+    .two-col-section>div { flex: 1; }
+    table.small-table { width: 100%; border-collapse: collapse; font-size: 10px; }
+    table.small-table td, table.small-table th { border: 1px solid #000; padding: 1px 3px; height: 13px; }
+    table.small-table th { text-align: center; font-weight: bold; }
+    .credential-box { border: 1px dashed #000; padding: 3px 6px; font-size: 11px; margin-top: 4px; }
+    .credential-box .cbtitle { text-align: center; font-weight: bold; margin-bottom: 4px; text-decoration: underline; }
+    .credential-row { display: flex; align-items: baseline; gap: 4px; margin-bottom: 2px; }
+    .credential-row label { min-width: 70px; }
+    .credential-row input { flex: 1; border: none; border-bottom: 1px dotted #888; background: transparent; font-family: "Times New Roman", Times, serif; }
+    .credential-row.multi input { flex: 0 1 40px; margin-right: 6px; }
+    .credential-row.multi label.small { min-width: auto; margin-right: 2px; }
+    table.membership-table { width: 100%; border-collapse: collapse; margin-bottom: 4px; }
+    table.membership-table th, table.membership-table td { padding: 1px 3px; height: 14px; vertical-align: middle; }
+    table.membership-table td.label-cell { border: none; border-bottom: 1px dotted #999; text-align: left; font-family: "Times New Roman", Times, serif; font-size: 12.5px; }
+    table.membership-table td.label-cell.no-line { border-bottom: none; }
+    table.membership-table th.label-header { border: none; text-align: left; font-family: "Times New Roman", Times, serif; font-size: 13.5px; font-weight: bold; text-decoration: underline; }
+    table.membership-table th.input-header { border: 1px solid #000; text-align: center; font-weight: bold; font-size: 11.5px; width: 140px; }
+    table.membership-table td.input-cell { border: 1px solid #000; text-align: center; padding: 0; }
+    table.membership-table td.input-cell input { border: none; background: transparent; text-align: center; font-family: "Times New Roman", Times, serif; font-size: 12.5px; width: 100%; height: 100%; padding: 2px; }
+    table.membership-table td.input-cell input:focus { outline: 1px solid #2563eb; background: #eef4ff; }
+    .signature-block { margin-top: 8px; display: flex; justify-content: space-between; font-size: 11px; }
+    .sig-col { flex: 1; text-align: center; padding: 0 4px; }
+    .sig-line { border-bottom: 1px solid #000; height: 18px; margin-bottom: 2px; }
+    .sig-name-line { display: flex; align-items: baseline; gap: 4px; margin-top: 6px; justify-content: center; }
+    .sig-name-line input { border: none; border-bottom: 1px dotted #888; background: transparent; font-family: "Times New Roman", Times, serif; width: 70%; text-align: center; }
+    .note-box { font-size: 9px; margin-top: 4px; border-top: 1px solid #000; padding-top: 2px; line-height: 1.3; text-align: center; }
+
+    .back-btn { display: inline-block; margin: 0 12px 12px 0; padding: 8px 16px; background: #1C0F4A; color: #fff; text-decoration: none; border-radius: 6px; font-family: system-ui, sans-serif; font-size: 13px; font-weight: 600; text-align: center; transition: background 0.2s; }
+    .back-btn:hover { background: #EF231C; }
+    .back-btn-container { width: 210mm; margin: 0 auto; text-align: left; display: flex; justify-content: space-between; align-items: center; }
+
+    @media print {
+      @page { size: A4 portrait; margin: 6mm 8mm; }
+      *, *::before, *::after {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+        color-adjust: exact !important;
+      }
+      .back-btn-container { display: none !important; }
+      body { background: #fff; padding: 0; margin: 0; }
+      .page {
+        box-shadow: none !important;
+        margin: 0 !important;
+        width: 194mm !important;
+        height: 285mm !important;
+        min-height: 0 !important;
+        padding: 2mm 3mm !important;
+        overflow: hidden !important;
+        box-sizing: border-box !important;
+        page-break-after: always !important;
+        page-break-inside: avoid !important;
+        break-after: page !important;
+        break-inside: avoid !important;
+      }
+      .page:last-child { page-break-after: avoid !important; break-after: avoid !important; }
+      input, select, textarea {
+        background: transparent !important;
+        box-shadow: none !important;
+        outline: none !important;
+        color: #000 !important;
+        -webkit-appearance: none !important;
+        -moz-appearance: none !important;
+        appearance: none !important;
+        border-top: none !important;
+        border-left: none !important;
+        border-right: none !important;
+      }
+      input.cell, table.report-table input, table.small-table input, table.membership-table input { border: none !important; }
+      .stat-line input { border-bottom: 1px dotted #888 !important; }
+      .credential-row input { border-bottom: 1px dotted #888 !important; }
+      .sig-name-line input { border-bottom: 1px dotted #888 !important; }
+      input.meta-input { border-bottom: 1px solid #444 !important; }
+      input:disabled, input[disabled], select:disabled { color: #000 !important; -webkit-text-fill-color: #000 !important; opacity: 1 !important; }
+      table.report-table { font-size: 10px !important; }
+      table.report-table td, table.report-table th { padding: 1px 2px !important; height: 13px !important; }
+      .row-header td { background: #fafafa !important; font-weight: bold !important; text-decoration: underline !important; }
+      table.report-table input, table.report-table select, input.cell, .cell { font-size: 10px !important; height: 13px !important; line-height: 13px !important; padding: 0 2px !important; }
+      .title-block { margin-bottom: 3px !important; }
+      .title-block h1 { font-size: 12px !important; }
+      .subtitle-row { font-size: 10px !important; margin-bottom: 3px !important; }
+      .meta-line { font-size: 10px !important; margin-bottom: 3px !important; gap: 4px !important; }
+      .meta-group { gap: 2px !important; }
+      .ledger { font-size: 8.5px !important; margin-top: 2px !important; }
+      .bottom-note { background: #000 !important; color: #fff !important; font-size: 7.5px !important; padding: 1px 3px !important; margin-top: 2px !important; }
+      .col-naira { width: 46px !important; }
+      .col-kobo  { width: 28px !important; }
+
+      .page2-title { font-size: 10px !important; margin-bottom: 2px !important; }
+      .stat-grid-top { font-size: 9px !important; margin-bottom: 2px !important; }
+      .section-title { font-size: 10px !important; margin: 2px 0 2px 0 !important; }
+      table.small-table { font-size: 8px !important; }
+      table.small-table td, table.small-table th { height: 9px !important; padding: 0.2px 2px !important; }
+      table.membership-table { margin-bottom: 4px !important; }
+      table.membership-table td, table.membership-table th { height: 9px !important; padding: 0.2px 2px !important; }
+      table.membership-table td.label-cell { font-size: 8px !important; }
+      table.membership-table th.label-header { font-size: 8.5px !important; }
+      table.membership-table th.input-header { font-size: 8px !important; }
+      .signature-block { margin-top: 4px !important; font-size: 8.5px !important; }
+      .sig-col { padding: 0 4px !important; }
+      .sig-line { height: 14px !important; margin-bottom: 2px !important; }
+      .no-print { display: none !important; }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="back-btn-container">
+    <div>
+        {% set dashUrl = '/login' %}
+        {% if role == 'church_admin' %}{% set dashUrl = '/church-dashboard' %}
+        {% elif role == 'zonal_admin' %}{% set dashUrl = '/zone-dashboard' %}
+        {% elif role == 'super_admin' %}{% set dashUrl = '/admin-dashboard' %}{% endif %}
+        <a href="{{ dashUrl }}" class="back-btn">&larr; Back to Dashboard</a>
+    </div>
+    
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+        {% if not viewOnly %}
+        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="document.getElementById('actionField').value='save'; document.getElementById('reportForm').submit();">Save Draft</button>
+        <button type="button" class="btn btn-sm btn-danger" onclick="if(confirm('Are you sure you want to submit? This report will be locked and cannot be edited.')) { document.getElementById('actionField').value='submit'; document.getElementById('reportForm').submit(); }">Submit Report</button>
+        <button type="button" class="btn btn-sm btn-outline-danger" onclick="if(confirm('Are you sure you want to delete this draft report? All draft data will be lost.')) { document.getElementById('actionField').value='delete_draft'; document.getElementById('reportForm').submit(); }">🗑 Delete Draft</button>
+        {% else %}
+        <span class="badge bg-secondary p-2" style="font-size: 12px;">Locked / View-Only</span>
+        {% set paySettings = ss_raw %}
+        {% if ss('payment_enabled','0') == '1' and ss('payment_public_key','') %}
+        <button type="button" class="btn btn-sm btn-warning fw-bold text-dark d-inline-flex align-items-center gap-1" onclick="payToUnlockReport()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          Pay ₦{{ ss('report_unlock_fee','2000')|format_naira }} to Unlock &amp; Edit
+        </button>
+        {% endif %}
+        {% endif %}
+        <button type="button" class="btn btn-sm btn-dark" onclick="printReport()">🖨️ Print / Save as PDF</button>
+    </div>
+  </div>
+
+  {% if successMsg %}
+      <div class="container my-2 no-print" style="max-width: 210mm;"><div class="alert alert-success p-2 small">{{ successMsg }}</div></div>
+  {% endif %}
+  {% if errorMsg %}
+      <div class="container my-2 no-print" style="max-width: 210mm;"><div class="alert alert-danger p-2 small">{{ errorMsg }}</div></div>
+  {% endif %}
+
+  <form method="POST" action="/church-report" id="reportForm">
+    <input type="hidden" name="action" id="actionField" value="save">
+    <input type="hidden" name="month" value="{{ month }}">
+    <input type="hidden" name="year" value="{{ year }}">
+    {% if church_id %}<input type="hidden" name="church_id" value="{{ church.id }}">{% endif %}
+    
+    <div class="report-scroll-wrapper">
+
+    <!-- ============ PAGE 1 ============ -->
+    <div class="page">
+      <div class="title-block">
+        <h1>MONTHLY REPORT OF THE FOURSQUARE GOSPEL CHURCH IN NIGERIA</h1>
+      </div>
+      <div class="subtitle-row">
+        <div class="left-label">{{ church.church_type|upper }} CHURCHES</div>
+        <div class="right-label">FINANCIAL REPORT</div>
+      </div>
+
+      <div class="meta-line">
+        <div class="meta-group mg-district">
+          <label>DISTRICT</label>
+          <input class="meta-input" type="text" disabled value="{{ church.district or '' }}">
+        </div>
+        <div class="meta-group mg-month">
+          <label>MONTH</label>
+          <input class="meta-input" type="text" disabled value="{{ month|month_name }}">
+        </div>
+        <div class="meta-group mg-year">
+          <label>YEAR</label>
+          <input class="meta-input" type="text" disabled value="{{ year }}">
+        </div>
+        <div class="meta-group mg-pastorname">
+          <label>PASTOR'S NAME</label>
+          <input class="meta-input" type="text" disabled value="{{ church.pastor_name or '' }}">
+        </div>
+      </div>
+      <div class="meta-line">
+        <div class="meta-group mg-church">
+          <label>CHURCH</label>
+          <input class="meta-input" type="text" disabled value="{{ church.name or '' }}">
+        </div>
+        <div class="meta-group mg-churchaddr">
+          <label>CHURCH ADDRESS</label>
+          <input class="meta-input" type="text" disabled value="{{ church.address or '' }}">
+        </div>
+        <div class="meta-group mg-pastoraddr">
+          <label>PASTOR'S ADDRESS</label>
+          <input class="meta-input" type="text" disabled value="{{ church.pastor_address or '' }}">
+        </div>
+      </div>
+
+      <div class="ledger">
+        <!-- LEFT COLUMN -->
+        <div class="ledger-col">
+          <table class="report-table">
+            <tr>
+              <th class="col-label">RECEIPTS</th>
+              <th class="col-naira">N</th>
+              <th class="col-kobo">K</th>
+            </tr>
+            <tr class="row-header">
+              <td colspan="3">TITHES</td>
+            </tr>
+            <tr>
+              <td class="indent">A&nbsp;&nbsp;General Tithe</td>
+              {{ renderInput('general_tithe', finReport.general_tithe, viewOnly) }}
+            </tr>
+            <tr>
+              <td class="indent">B&nbsp;&nbsp;Minister's Tithe</td>
+              {{ renderInput('minister_tithe', finReport.minister_tithe, viewOnly) }}
+            </tr>
+            <tr>
+              <td class="indent">C&nbsp;&nbsp;Worship Offerings</td>
+              {{ renderInput('worship_offerings', finReport.worship_offerings, viewOnly) }}
+            </tr>
+            <tr>
+              <td></td>
+              <td></td>
+              <td></td>
+            </tr>
+            <tr>
+              <td><strong>SUB - TOTAL (a - c)</strong></td>
+              {{ renderInput('subtotal_ac', finReport.subtotal_ac, true) }}
+            </tr>
+            <tr>
+              <td>Missionary Offerings</td>
+              {{ renderInput('missionary_offerings', finReport.missionary_offerings, viewOnly) }}
+            </tr>
+            <tr>
+              <td>Midweek Offerings</td>
+              {{ renderInput('midweek_offerings', finReport.midweek_offerings, viewOnly) }}
+            </tr>
+            <tr>
+              <td>Sunday School Offerings</td>
+              {{ renderInput('sunday_school_offerings', finReport.sunday_school_offerings, viewOnly) }}
+            </tr>
+            <tr>
+              <td>Thanksgiving Offerings</td>
+              {{ renderInput('thanksgiving_offerings', finReport.thanksgiving_offerings, viewOnly) }}
+            </tr>
+            <tr>
+              <td>Love/Welfare Offerings</td>
+              {{ renderInput('love_welfare_offerings', finReport.love_welfare_offerings, viewOnly) }}
+            </tr>
+            <tr>
+              <td>Building Pledge Offerings</td>
+              {{ renderInput('building_pledge_offerings', finReport.building_pledge_offerings, viewOnly) }}
+            </tr>
+            <tr>
+              <td>Church Pioneering</td>
+              {{ renderInput('church_pioneering_receipts', finReport.church_pioneering_receipts, viewOnly) }}
+            </tr>
+            <tr>
+              <td>Donation from Other Churches</td>
+              {{ renderInput('donation_other_churches', finReport.donation_other_churches, viewOnly) }}
+            </tr>
+            <tr>
+              <td>Other Pledges</td>
+              {{ renderInput('other_pledges', finReport.other_pledges, viewOnly) }}
+            </tr>
+            <tr>
+              <td>Seed Faith</td>
+              {{ renderInput('seed_faith', finReport.seed_faith, viewOnly) }}
+            </tr>
+            <tr>
+              <td>Staff Loans Repayment</td>
+              {{ renderInput('staff_loans_repayment', finReport.staff_loans_repayment, viewOnly) }}
+            </tr>
+            <tr>
+              <td>Loan/Cash Deposit from Church Arms</td>
+              {{ renderInput('loan_cash_deposit', finReport.loan_cash_deposit, viewOnly) }}
+            </tr>
+            <tr>
+              <td>5% Pastor's Personal Pension</td>
+              {{ renderInput('pastor_pension_5pct', finReport.pastor_pension_5pct, viewOnly) }}
+            </tr>
+            <tr>
+              <td>National Grant/Augumentation</td>
+              {{ renderInput('national_grant', finReport.national_grant, viewOnly) }}
+            </tr>
+            <tr>
+              <td>Convention Pledges</td>
+              {{ renderInput('convention_pledges', finReport.convention_pledges, viewOnly) }}
+            </tr>
+            <tr>
+              <td>Special Projects 
+                {{ renderSimpleInput('special_projects_details', finReport.special_projects_details or '', viewOnly, 'cell left', 'width:60%;display:inline;border-bottom:1px solid #444;', 'Detail') }}
+              </td>
+              {{ renderInput('special_projects', finReport.special_projects, viewOnly) }}
+            </tr>
+            <tr>
+              <td>Decade of Multiplication Projects</td>
+              {{ renderInput('decade_multiplication_receipts', finReport.decade_multiplication_receipts, viewOnly) }}
+            </tr>
+            <tr>
+              <td>3rd Sunday Offering</td>
+              {{ renderInput('third_sunday_offering', finReport.third_sunday_offering, viewOnly) }}
+            </tr>
+            <tr>
+              <td>TOTAL RECEIPTS</td>
+              {{ renderInput('total_receipts', finReport.total_receipts, true) }}
+            </tr>
+
+            <tr>
+              <td colspan="1"></td>
+              <th class="col-naira">N</th>
+              <th class="col-kobo">K</th>
+            </tr>
+            <tr>
+              <td><strong>TOTAL RECEIPTS</strong></td>
+              {{ renderInput('total_receipts_dup', finReport.total_receipts, true) }}
+            </tr>
+            <tr>
+              <td>LESS TOTAL PAYMENT</td>
+              {{ renderInput('less_total_payment', finReport.total_payment, true) }}
+            </tr>
+            <tr>
+              <td>Balance Surplus/Deficit</td>
+              {{ renderInput('balance_surplus_deficit', finReport.balance_surplus_deficit, true) }}
+            </tr>
+            <tr>
+              <td>Balance from Last Month</td>
+              {{ renderInput('balance_last_month', finReport.balance_last_month, viewOnly) }}
+            </tr>
+            <tr>
+              <td>Balance for this Month</td>
+              {{ renderInput('balance_this_month', finReport.balance_this_month, true) }}
+            </tr>
+            <tr class="row-header">
+              <td colspan="3">FINANCIAL INFORMATION</td>
+            </tr>
+            <tr>
+              <td>CASH IN HAND &amp; AT BANK</td>
+              {{ renderInput('cash_in_hand_bank', finReport.cash_in_hand_bank, viewOnly) }}
+            </tr>
+            <tr>
+              <td>INVESTMENT</td>
+              {{ renderInput('investment', finReport.investment, viewOnly) }}
+            </tr>
+            <tr>
+              <td>TOTAL BALANCE</td>
+              {{ renderInput('total_balance', finReport.total_balance, true) }}
+            </tr>
+            <tr>
+              <td>OUTSTANDING LOAN</td>
+              {{ renderInput('outstanding_loan', finReport.outstanding_loan, viewOnly) }}
+            </tr>
+            <tr class="row-header">
+              <td colspan="3">DETAILS OF NATIONAL DUES</td>
+            </tr>
+            <tr>
+              <td>TITHES AND OFFERINGS (a - c) {{ rates.tithes_offerings }}%</td>
+              {{ renderInput('due_tithes_offerings', finReport.due_tithes_offerings, viewOnly, 'cell', 'tithes_offerings' in lockedKeys) }}
+            </tr>
+            <tr>
+              <td>PASTOR'S WELFARE (a - c) &nbsp;{{ rates.pastors_welfare }}%</td>
+              {{ renderInput('due_pastors_welfare', finReport.due_pastors_welfare, viewOnly, 'cell', 'pastors_welfare' in lockedKeys) }}
+            </tr>
+            <tr>
+              <td>PROJECT DEV. FUND (a - c) {{ rates.project_dev_fund }}%</td>
+              {{ renderInput('due_project_dev', finReport.due_project_dev, viewOnly, 'cell', 'project_dev_fund' in lockedKeys) }}
+            </tr>
+            <tr>
+              <td>MACPHERSON UNI (a - c) {{ rates.macpherson_uni }}%</td>
+              {{ renderInput('due_macpherson', finReport.due_macpherson, viewOnly, 'cell', 'macpherson_uni' in lockedKeys) }}
+            </tr>
+            <tr>
+              <td>AUGMENTATION FUND (a - c) {{ rates.augmentation_fund }}%</td>
+              {{ renderInput('due_augmentation', finReport.due_augmentation, viewOnly, 'cell', 'augmentation_fund' in lockedKeys) }}
+            </tr>
+            <tr>
+              <td>FFS SAVINS (a - c) {{ rates.ffs_savings }}%</td>
+              {{ renderInput('due_ffs_savings', finReport.due_ffs_savings, viewOnly, 'cell', 'ffs_savings' in lockedKeys) }}
+            </tr>
+            <tr>
+              <td>SUNDAY SCHOOL OFFERINGS {{ rates.sunday_school_offering }}%</td>
+              {{ renderInput('due_sunday_school', finReport.due_sunday_school, viewOnly, 'cell', 'sunday_school_offering' in lockedKeys) }}
+            </tr>
+            <tr>
+              <td>MISSIONARY OFFERINGS {{ rates.missionary_offering }}%</td>
+              {{ renderInput('due_missionary', finReport.due_missionary, viewOnly, 'cell', 'missionary_offering' in lockedKeys) }}
+            </tr>
+            <tr>
+              <td>LOVE OFFERINGS {{ rates.love_offering }}%</td>
+              {{ renderInput('due_love_offering', finReport.due_love_offering, viewOnly, 'cell', 'love_offering' in lockedKeys) }}
+            </tr>
+            <tr>
+              <td>FOURSQUARE TV (a - c) {{ rates.foursquare_tv }}%</td>
+              {{ renderInput('due_foursquare_tv', finReport.due_foursquare_tv, viewOnly, 'cell', 'foursquare_tv' in lockedKeys) }}
+            </tr>
+            <tr>
+              <td>3RD SUNDAY OFFERING {{ rates.third_sunday }}%</td>
+              {{ renderInput('due_third_sunday', finReport.due_third_sunday, viewOnly, 'cell', 'third_sunday' in lockedKeys) }}
+            </tr>
+            <tr class="row-header">
+              <td><strong>TOTAL</strong></td>
+              {{ renderInput('national_dues_total', finReport.national_dues_total, true) }}
+            </tr>
+          </table>
+        </div>
+
+        <!-- RIGHT COLUMN -->
+        <div class="ledger-col">
+          <table class="report-table">
+            <tr>
+              <th class="col-label">PAYMENTS</th>
+              <th class="col-naira">N</th>
+              <th class="col-kobo">K</th>
+            </tr>
+            <tr class="row-header">
+              <td colspan="3" style="text-decoration: none !important;">STAFF SALARIES: Number on Pay Roll</td>
+            </tr>
+            
+            {% set basic = expenseItems|selectattr('item_key', 'equalto', 'ministers_basic')|first %}
+            {% set allowance = expenseItems|selectattr('item_key', 'equalto', 'ministers_allowances')|first %}
+            {{ renderExpenseRow(basic, viewOnly) }}
+            {{ renderExpenseRow(allowance, viewOnly) }}
+            
+            <tr>
+              <td class="indent">Sub Total (Ministers)</td>
+              {{ renderInput('ministers_subtotal', finReport.ministers_subtotal or 0, true) }}
+            </tr>
+            
+            {% set obasic = expenseItems|selectattr('item_key', 'equalto', 'other_workers_basic')|first %}
+            {% set oallowance = expenseItems|selectattr('item_key', 'equalto', 'other_workers_allowances')|first %}
+            {{ renderExpenseRow(obasic, viewOnly) }}
+            {{ renderExpenseRow(oallowance, viewOnly) }}
+            
+            <tr>
+              <td class="indent">Sub Total (Other Workers)</td>
+              {{ renderInput('other_workers_subtotal', finReport.other_workers_subtotal or 0, true) }}
+            </tr>
+            <tr>
+              <td><strong>Total Emoluments</strong></td>
+              {{ renderInput('total_emoluments', finReport.total_emoluments, true) }}
+            </tr>
+
+            <!-- General expenses items (rendered dynamically) -->
+            {% for item in expenseItems %}
+              {% if item.item_key not in skipExpenseKeys %}
+                {{ renderExpenseRow(item, viewOnly) }}
+              {% endif %}
+            {% endfor %}
+            
+            {% if not viewOnly and not is_pdf %}
+            <tr class="no-print">
+                <td colspan="3" class="text-center bg-light">
+                    <button type="button" class="btn btn-xs btn-outline-primary" style="font-size:10px; padding:2px 6px;" onclick="openAddCustomModal()">+ Add Line Item</button>
+                </td>
+            </tr>
+            {% endif %}
+
+            <tr class="row-header">
+              <td colspan="3">FIXED ASSETS:</td>
+            </tr>
+            
+            {% set land = expenseItems|selectattr('item_key', 'equalto', 'land_acquisition')|first %}
+            {% set building = expenseItems|selectattr('item_key', 'equalto', 'church_building')|first %}
+            {% set motor = expenseItems|selectattr('item_key', 'equalto', 'purchase_motor_vehicles')|first %}
+            {% set equip = expenseItems|selectattr('item_key', 'equalto', 'purchase_new_equipment')|first %}
+            
+            {{ renderExpenseRow(land, viewOnly) }}
+            {{ renderExpenseRow(building, viewOnly) }}
+            {{ renderExpenseRow(motor, viewOnly) }}
+            {{ renderExpenseRow(equip, viewOnly) }}
+            
+            <tr>
+              <td><strong>SUB TOTAL (Fixed Assets)</strong></td>
+              {{ renderInput('fixed_assets_subtotal', finReport.fixed_assets_subtotal or 0, true) }}
+            </tr>
+            
+            <tr class="row-header">
+              <td colspan="3">DUESSUMMARY</td>
+            </tr>
+            <tr>
+              <td>National Dues</td>
+              {{ renderInput('top_national_dues', finReport.national_dues_total, true) }}
+            </tr>
+            <tr>
+              <td>Regional Dues</td>
+              {{ renderInput('top_regional_dues', finReport.regional_dues, true) }}
+            </tr>
+            <tr>
+              <td>District Dues</td>
+              {{ renderInput('top_district_dues', finReport.district_dues, true) }}
+            </tr>
+            <tr>
+              <td>Zonal Dues</td>
+              {{ renderInput('top_zonal_dues', finReport.zonal_dues, true) }}
+            </tr>
+            <tr>
+              <td>Life Dues</td>
+              {{ renderInput('top_life_dues', finReport.life_dues, true) }}
+            </tr>
+            <tr class="row-header">
+              <td><strong>TOTAL PAYMENTS</strong></td>
+              {{ renderInput('total_payment', finReport.total_payment, true) }}
+            </tr>
+
+            <tr class="row-header">
+              <td colspan="3">PAYABLESSUMMARY</td>
+            </tr>
+            <tr>
+              <td><strong>PAYABLES</strong></td>
+              {{ renderInput('payable_disp', finReport.payable, true) }}
+            </tr>
+             <tr>
+              <td>Regional Dues &nbsp;(a-c) &nbsp;{{ rates.regional_fund }}%</td>
+              {{ renderInput('due_regional_fund', finReport.due_regional_fund, viewOnly, 'cell', 'regional_fund' in lockedKeys) }}
+            </tr>
+            <tr>
+              <td>DISTRICT DUES District Fund (a - c) {{ rates.district_fund }}%</td>
+              {{ renderInput('due_district_fund', finReport.due_district_fund, viewOnly, 'cell', 'district_fund' in lockedKeys) }}
+            </tr>
+            <tr>
+              <td>District Love Offering</td>
+              {{ renderInput('due_straight_love_offering', finReport.due_straight_love_offering, viewOnly, 'cell', 'straight_love_offering' in lockedKeys) }}
+            </tr>
+            <tr>
+              <td>Pastors/Staff Pension Cont. {{ rates.pastors_staff_pension_8 }}%</td>
+              {{ renderInput('due_staff_pension_8', finReport.due_staff_pension_8, viewOnly, 'cell', 'pastors_staff_pension_8' in lockedKeys) }}
+            </tr>
+            <tr>
+              <td>Church Staff Pension Cont (As Above) {{ rates.church_staff_pension_10 }}%</td>
+              {{ renderInput('due_church_pension_10', finReport.due_church_pension_10, viewOnly, 'cell', 'church_staff_pension_10' in lockedKeys) }}
+            </tr>
+            <tr>
+              <td>Missionary Offering &nbsp;{{ rates.district_missionary }}%</td>
+              {{ renderInput('due_dist_missionary', finReport.due_dist_missionary, viewOnly, 'cell', 'district_missionary' in lockedKeys) }}
+            </tr>
+            <tr>
+              <td>Sunday School Offering &nbsp;{{ rates.district_sunday_school }}%</td>
+              {{ renderInput('due_dist_sunday_school', finReport.due_dist_sunday_school, viewOnly, 'cell', 'district_sunday_school' in lockedKeys) }}
+            </tr>
+            <tr>
+              <td>ZONAL DUES Zonal Fund (a - c) {{ rates.zonal_fund }}%</td>
+              {{ renderInput('due_zonal_fund', finReport.due_zonal_fund, viewOnly, 'cell', 'zonal_fund' in lockedKeys) }}
+            </tr>
+            <tr>
+              <td>Missionary Offering &nbsp;{{ rates.zonal_missionary }}%</td>
+              {{ renderInput('due_zonal_missionary', finReport.due_zonal_missionary, viewOnly, 'cell', 'zonal_missionary' in lockedKeys) }}
+            </tr>
+            <tr>
+              <td>Sunday School Offering &nbsp;{{ rates.zonal_sunday_school }}%</td>
+              {{ renderInput('due_zonal_sunday_school', finReport.due_zonal_sunday_school, viewOnly, 'cell', 'zonal_sunday_school' in lockedKeys) }}
+            </tr>
+            <tr>
+              <td>LIFE THEO SEMINARY LIFE (a - c) {{ rates.life_theo_seminary }}%</td>
+              {{ renderInput('due_life_theo_seminary', finReport.due_life_theo_seminary, viewOnly, 'cell', 'life_theo_seminary' in lockedKeys) }}
+            </tr>
+          </table>
+        </div>
+      </div>
+
+      <div class="bottom-note">
+        NOTE: CALCULATION OF DUES IS BASED ON THE ADDITION OF TITHES AND WORSHIP OFFERINGS (A - C)<br>
+        CALCULATION OF PENSION = BASIC SALARY + HOUSING + TRANSPORT ALLOWANCES
+      </div>
+    </div>
+
+    <!-- ============ PAGE 2 ============ -->
+    <div class="page">
+      <div class="page2-title">SPIRITUAL REPORT</div>
+
+      <div class="stat-grid-top">
+        <div class="stat-line">
+          <label>1&nbsp;&nbsp;Total New Comers Total</label>
+          {{ renderSimpleInput('total_new_comers', spJson.new_comers or '', viewOnly) }}
+        </div>
+        <div class="stat-line">
+          <label>Holy Spirit Baptism</label>
+          {{ renderSimpleInput('total_holy_spirit_baptism', spJson.spirit_bapt or '', viewOnly) }}
+        </div>
+        <div class="stat-line">
+          <label>Total Decision for Christ</label>
+          {{ renderSimpleInput('total_decision_christ', spJson.decisions or '', viewOnly) }}
+        </div>
+        <div class="stat-line">
+          <label>Total Healings</label>
+          {{ renderSimpleInput('total_healings', spJson.healings or '', viewOnly) }}
+        </div>
+        <div class="stat-line">
+          <label>Total Water Baptism</label>
+          {{ renderSimpleInput('total_water_baptism', spJson.water_bapt or '', viewOnly) }}
+        </div>
+        <div class="stat-line">
+          <label>Total No of House Fellowship Centres</label>
+          {{ renderSimpleInput('total_house_fellowship_centres', spJson.house_fellowships or '', viewOnly) }}
+        </div>
+      </div>
+
+      <div class="section-title">ATTENDANCE</div>
+
+      <div class="two-col-section">
+        <div>
+          <div class="section-title" style="text-align:left;">2&nbsp;&nbsp;CRUSADER PROGRAMME</div>
+          <table class="small-table">
+            <tr>
+              <th>Section</th>
+              <th>Age Range</th>
+              <th>Total No</th>
+            </tr>
+            <tr>
+              <td>Children</td>
+              <td></td>
+              <td></td>
+            </tr>
+            <tr>
+              <td class="indent">- Candlelighters</td>
+              <td>4 - 5</td>
+              <td>{{ renderSimpleInput('crusader_candlelighters', spJson.crusaders.candlelighters or '', viewOnly, 'cell') }}</td>
+            </tr>
+            <tr>
+              <td class="indent">- Cup Bearers</td>
+              <td>6 - 8</td>
+              <td>{{ renderSimpleInput('crusader_cupbearers', spJson.crusaders.cupbearers or '', viewOnly, 'cell') }}</td>
+            </tr>
+            <tr>
+              <td class="indent">- Cadets</td>
+              <td>9 - 12</td>
+              <td>{{ renderSimpleInput('crusader_cadets', spJson.crusaders.cadets or '', viewOnly, 'cell') }}</td>
+            </tr>
+            <tr>
+              <td>Teens</td>
+              <td></td>
+              <td></td>
+            </tr>
+            <tr>
+              <td class="indent">- Junior Teens</td>
+              <td>13 - 15</td>
+              <td>{{ renderSimpleInput('crusader_jr_teens', spJson.crusaders.jr_teens or '', viewOnly, 'cell') }}</td>
+            </tr>
+            <tr>
+              <td class="indent">- Senior Teens</td>
+              <td>16 - 19</td>
+              <td>{{ renderSimpleInput('crusader_sr_teens', spJson.crusaders.sr_teens or '', viewOnly, 'cell') }}</td>
+            </tr>
+            <tr>
+              <td>Youth</td>
+              <td></td>
+              <td>{{ renderSimpleInput('crusader_youth', spJson.crusaders.youth or '', viewOnly, 'cell') }}</td>
+            </tr>
+            <tr>
+              <td>Adult (CFM/FWI)</td>
+              <td></td>
+              <td></td>
+            </tr>
+            <tr>
+              <td class="indent">- Challengers</td>
+              <td>30 - 49</td>
+              <td>{{ renderSimpleInput('crusader_challengers', spJson.crusaders.challengers or '', viewOnly, 'cell') }}</td>
+            </tr>
+            <tr>
+              <td class="indent">- Defenders</td>
+              <td>50 - 69</td>
+              <td>{{ renderSimpleInput('crusader_defenders', spJson.crusaders.defenders or '', viewOnly, 'cell') }}</td>
+            </tr>
+            <tr>
+              <td class="indent">- Senior Citizens</td>
+              <td>70 &amp; Above</td>
+              <td>{{ renderSimpleInput('crusader_citizens', spJson.crusaders.citizens or '', viewOnly, 'cell') }}</td>
+            </tr>
+          </table>
+        </div>
+
+        <div>
+          <div class="section-title" style="text-align:left;">CHURCH PROGRAMME AVERAGE ATTENDANCE</div>
+          <table class="small-table">
+            <tr>
+              <th>Section</th>
+              <th>Children</th>
+              <th>Adults</th>
+              <th>Total</th>
+            </tr>
+            {% set attendances = [
+                ('pre_sun_school', 'Average Pre Sun. Sch. Prayer'),
+                ('sun_school', 'Average Sun School'),
+                ('sun_worship', 'Average Sun. Worship'),
+                ('house_fellowship', 'Average House Fellowship'),
+                ('bible_study', 'Average Bible Study'),
+                ('prayer_meeting', 'Average Prayer Meeting')
+            ] %}
+            {% for prefix, label in attendances %}
+              {% set cVal = spReport[prefix ~ "_children"] %}
+              {% set aVal = spReport[prefix ~ "_adults"] %}
+              {% set tVal = spReport[prefix ~ "_total"] %}
+              <tr>
+                <td>{{ label }}</td>
+                <td>{{ renderSimpleInput(prefix ~ "_children", cVal if cVal != 0 else '', viewOnly, 'cell') }}</td>
+                <td>{{ renderSimpleInput(prefix ~ "_adults", aVal if aVal != 0 else '', viewOnly, 'cell') }}</td>
+                <td>{{ renderSimpleInput(prefix ~ "_total", (cVal + aVal) if (cVal + aVal) != 0 else (tVal if tVal != 0 else ''), true, 'cell') }}</td>
+              </tr>
+            {% endfor %}
+          </table>
+
+          <div class="credential-box">
+            <div class="cbtitle">CREDENTIAL WORKERS</div>
+            <div class="credential-row">
+              <label>Ordained</label>
+              {{ renderSimpleInput('cw_ordained', spJson.credential_workers.ordained or '', viewOnly) }}
+            </div>
+            <div class="credential-row">
+              <label>Licenced</label>
+              {{ renderSimpleInput('cw_licensed', spJson.credential_workers.licensed or '', viewOnly) }}
+            </div>
+            <div class="credential-row">
+              <label>Exhorters</label>
+              {{ renderSimpleInput('cw_exhorters', spJson.credential_workers.exhorters or '', viewOnly) }}
+            </div>
+            <div class="credential-row multi">
+              <label class="small">Elders</label>
+              {{ renderSimpleInput('cw_elders', spJson.credential_workers.elders or '', viewOnly) }}
+              <label class="small">Deacons</label>
+              {{ renderSimpleInput('cw_deacons', spJson.credential_workers.deacons or '', viewOnly) }}
+              <label class="small">Deaconesses</label>
+              {{ renderSimpleInput('cw_deaconesses', spJson.credential_workers.deaconesses or '', viewOnly) }}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section-title" style="text-align:left; margin-top:16px;">3&nbsp;&nbsp;CHURCH INMEMBERSHIP</div>
+      <div style="margin-top: 10px;">
+        
+        {% set prev_18 = spJson.membership_details.prev_month['18'] or 0 %}
+        {% set prev_u18 = spJson.membership_details.prev_month.u18 or 0 %}
+        {% set new_18 = spJson.membership_details.new_members['18'] or 0 %}
+        {% set new_u18 = spJson.membership_details.new_members.u18 or 0 %}
+        
+        {% set before_18 = prev_18 + new_18 %}
+        {% set before_u18 = prev_u18 + new_u18 %}
+        
+        <!-- Table 1: INTAKES -->
+        <table class="membership-table">
+          <thead>
+            <tr>
+              <th class="label-header">INTAKES</th>
+              <th class="input-header">18 Years and above</th>
+              <th class="input-header">Under 18 Years</th>
+              <th class="input-header">TOTAL</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="label-cell">Members up to previous month</td>
+              <td class="input-cell">{{ renderSimpleInput('prev_above_18', prev_18 or '', viewOnly, 'cell') }}</td>
+              <td class="input-cell">{{ renderSimpleInput('prev_under_18', prev_u18 or '', viewOnly, 'cell') }}</td>
+              <td class="input-cell">{{ renderSimpleInput('prev_total', (prev_18 + prev_u18) if (prev_18 + prev_u18) != 0 else '', true, 'cell') }}</td>
+            </tr>
+            <tr>
+              <td class="label-cell">New Memberes this month</td>
+              <td class="input-cell">{{ renderSimpleInput('new_above_18', new_18 or '', viewOnly, 'cell') }}</td>
+              <td class="input-cell">{{ renderSimpleInput('new_under_18', new_u18 or '', viewOnly, 'cell') }}</td>
+              <td class="input-cell">{{ renderSimpleInput('new_total', (new_18 + new_u18) if (new_18 + new_u18) != 0 else '', true, 'cell') }}</td>
+            </tr>
+            <tr style="font-weight: bold;">
+              <td class="label-cell">TOTAL MEMBERS before WITHDRAWAL</td>
+              <td class="input-cell">{{ renderSimpleInput('before_withdrawal_above_18', before_18 or '', true, 'cell') }}</td>
+              <td class="input-cell">{{ renderSimpleInput('before_withdrawal_under_18', before_u18 or '', true, 'cell') }}</td>
+              <td class="input-cell">{{ renderSimpleInput('before_withdrawal_total', (before_18 + before_u18) if (before_18 + before_u18) != 0 else '', true, 'cell') }}</td>
+            </tr>
+          </tbody>
+        </table>
+
+        {% set w_trans_18 = spJson.membership_details.withdrawn_reasons.transfer['18'] or 0 %}
+        {% set w_trans_u18 = spJson.membership_details.withdrawn_reasons.transfer.u18 or 0 %}
+        {% set w_resig_18 = spJson.membership_details.withdrawn_reasons.resignation['18'] or 0 %}
+        {% set w_resig_u18 = spJson.membership_details.withdrawn_reasons.resignation.u18 or 0 %}
+        {% set w_dism_18 = spJson.membership_details.withdrawn_reasons.dismissal['18'] or 0 %}
+        {% set w_dism_u18 = spJson.membership_details.withdrawn_reasons.dismissal.u18 or 0 %}
+        {% set w_death_18 = spJson.membership_details.withdrawn_reasons.death['18'] or 0 %}
+        {% set w_death_u18 = spJson.membership_details.withdrawn_reasons.death.u18 or 0 %}
+        
+        {% set w_total_18 = w_trans_18 + w_resig_18 + w_dism_18 + w_death_18 %}
+        {% set w_total_u18 = w_trans_u18 + w_resig_u18 + w_dism_u18 + w_death_u18 %}
+        
+        <!-- Table 2: WITHDRAWN -->
+        <table class="membership-table">
+          <thead>
+            <tr>
+              <th class="label-header">WITHDRAWN</th>
+              <th class="input-header">18 Years and above</th>
+              <th class="input-header">Under 18 Years</th>
+              <th class="input-header">TOTAL</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="label-cell no-line" style="font-style: italic; font-size: 11.5px; padding-left: 0;">No of Members withdrawn for the following reasons</td>
+              <td style="border: none;"></td>
+              <td style="border: none;"></td>
+              <td style="border: none;"></td>
+            </tr>
+            <tr>
+              <td class="label-cell" style="padding-left: 15px;">1. Transfer</td>
+              <td class="input-cell">{{ renderSimpleInput('withdrawn_transfer_above_18', w_trans_18 or '', viewOnly, 'cell') }}</td>
+              <td class="input-cell">{{ renderSimpleInput('withdrawn_transfer_under_18', w_trans_u18 or '', viewOnly, 'cell') }}</td>
+              <td class="input-cell">{{ renderSimpleInput('withdrawn_transfer_total', (w_trans_18 + w_trans_u18) if (w_trans_18 + w_trans_u18) != 0 else '', true, 'cell') }}</td>
+            </tr>
+            <tr>
+              <td class="label-cell" style="padding-left: 15px;">2. Resignation</td>
+              <td class="input-cell">{{ renderSimpleInput('withdrawn_resignation_above_18', w_resig_18 or '', viewOnly, 'cell') }}</td>
+              <td class="input-cell">{{ renderSimpleInput('withdrawn_resignation_under_18', w_resig_u18 or '', viewOnly, 'cell') }}</td>
+              <td class="input-cell">{{ renderSimpleInput('withdrawn_resignation_total', (w_resig_18 + w_resig_u18) if (w_resig_18 + w_resig_u18) != 0 else '', true, 'cell') }}</td>
+            </tr>
+            <tr>
+              <td class="label-cell" style="padding-left: 15px;">&nbsp;&nbsp;&nbsp;Dismissal</td>
+              <td class="input-cell">{{ renderSimpleInput('withdrawn_dismissal_above_18', w_dism_18 or '', viewOnly, 'cell') }}</td>
+              <td class="input-cell">{{ renderSimpleInput('withdrawn_dismissal_under_18', w_dism_u18 or '', viewOnly, 'cell') }}</td>
+              <td class="input-cell">{{ renderSimpleInput('withdrawn_dismissal_total', (w_dism_18 + w_dism_u18) if (w_dism_18 + w_dism_u18) != 0 else '', true, 'cell') }}</td>
+            </tr>
+            <tr>
+              <td class="label-cell" style="padding-left: 15px;">&nbsp;&nbsp;&nbsp;Death</td>
+              <td class="input-cell">{{ renderSimpleInput('withdrawn_death_above_18', w_death_18 or '', viewOnly, 'cell') }}</td>
+              <td class="input-cell">{{ renderSimpleInput('withdrawn_death_under_18', w_death_u18 or '', viewOnly, 'cell') }}</td>
+              <td class="input-cell">{{ renderSimpleInput('withdrawn_death_total', (w_death_18 + w_death_u18) if (w_death_18 + w_death_u18) != 0 else '', true, 'cell') }}</td>
+            </tr>
+            <tr style="font-weight: bold;">
+              <td class="label-cell">TOTAL WITHDRAWALS THIS MONTH</td>
+              <td class="input-cell">{{ renderSimpleInput('withdrawn_total_above_18', w_total_18 or '', true, 'cell') }}</td>
+              <td class="input-cell">{{ renderSimpleInput('withdrawn_total_under_18', w_total_u18 or '', true, 'cell') }}</td>
+              <td class="input-cell">{{ renderSimpleInput('withdrawn_total_total', (w_total_18 + w_total_u18) if (w_total_18 + w_total_u18) != 0 else '', true, 'cell') }}</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <!-- Table 3: MEMBERSHIP SUMMARY -->
+        <table class="membership-table">
+          <thead>
+            <tr>
+              <th class="label-header">MEMBERSHIP SUMMARY</th>
+              <th class="input-header">18 Years and above</th>
+              <th class="input-header">Under 18 Years</th>
+              <th class="input-header">TOTAL</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="label-cell">Total Members Before Withdrawal</td>
+              <td class="input-cell">{{ renderSimpleInput('summary_before_withdrawal_above_18', before_18 or '', true, 'cell') }}</td>
+              <td class="input-cell">{{ renderSimpleInput('summary_before_withdrawal_under_18', before_u18 or '', true, 'cell') }}</td>
+              <td class="input-cell">{{ renderSimpleInput('summary_before_withdrawal_total', (before_18 + before_u18) if (before_18 + before_u18) != 0 else '', true, 'cell') }}</td>
+            </tr>
+            <tr>
+              <td class="label-cell">Total Withdrawals This Month</td>
+              <td class="input-cell">{{ renderSimpleInput('summary_withdrawn_above_18', w_total_18 or '', true, 'cell') }}</td>
+              <td class="input-cell">{{ renderSimpleInput('summary_withdrawn_under_18', w_total_u18 or '', true, 'cell') }}</td>
+              <td class="input-cell">{{ renderSimpleInput('summary_withdrawn_total', (w_total_18 + w_total_u18) if (w_total_18 + w_total_u18) != 0 else '', true, 'cell') }}</td>
+            </tr>
+            <tr style="font-weight: bold;">
+              <td class="label-cell">Total Members After Withdrawal</td>
+              <td class="input-cell">{{ renderSimpleInput('after_withdrawal_above_18', (before_18 - w_total_18) or '', true, 'cell') }}</td>
+              <td class="input-cell">{{ renderSimpleInput('after_withdrawal_under_18', (before_u18 - w_total_u18) or '', true, 'cell') }}</td>
+              <td class="input-cell">{{ renderSimpleInput('after_withdrawal_total', ((before_18 - w_total_18) + (before_u18 - w_total_u18)) if ((before_18 - w_total_18) + (before_u18 - w_total_u18)) != 0 else '', true, 'cell') }}</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="stat-line" style="margin-top: 10px; width: 250px;">
+          <label>DATE</label>
+          {{ renderSimpleInput('report_date', spReport.report_date or '', viewOnly, '', '', '', 'date') }}
+        </div>
+      </div>
+
+      <div class="signature-block">
+        <div class="sig-col">
+          <div class="sig-line"></div>
+          TREASURER'S SIGNATURE
+          <div class="sig-name-line"><label>NAME</label>{{ renderSimpleInput('treasurer_signature_name', spReport.treasurer_signature_name or '', viewOnly) }}</div>
+        </div>
+        <div class="sig-col">
+          <div class="sig-line"></div>
+          PASTOR'S SIGNATURE
+          <div class="sig-name-line"><label>NAME</label>{{ renderSimpleInput('pastor_signature_name', spReport.pastor_signature_name or '', viewOnly) }}</div>
+        </div>
+        <div class="sig-col">
+          <div class="sig-line"></div>
+          SECRETARY'S SIGNATURE
+          <div class="sig-name-line"><label>NAME</label>{{ renderSimpleInput('secretary_signature_name', spReport.secretary_signature_name or '', viewOnly) }}</div>
+        </div>
+      </div>
+
+      <div class="note-box">
+        <strong>NOTE</strong><br>
+        This report must be completed on the last Sunday of the month and taken to the Zonal council Meeting for onward
+        transmission to the District.<br>
+        The Final report must get to the National Office on or before the 14th of the new month. It should be sent by
+        courier Service to natseedv@yahoo.com
+      </div>
+    </div>
+  </div>
+</style>
+</form>
+
+  <!-- Rename Modal -->
+  <div id="renameModal" class="modal" style="display:none; position:fixed; z-index:1000; left:0; top:0; width:100%; height:100%; background:rgba(0,0,0,0.5); align-items:center; justify-content:center;">
+    <div style="background:#fff; padding:20px; border-radius:8px; width:340px; box-shadow:0 4px 15px rgba(0,0,0,0.2);">
+      <h5 class="fw-bold mb-3">Rename Expense Category</h5>
+      <input type="hidden" id="renameItemId">
+      <div class="mb-3">
+          <label class="form-label small fw-semibold">New Label Description</label>
+          <input type="text" id="renameLabelInput" class="form-control form-control-sm" required>
+      </div>
+      <div class="d-flex justify-content-end gap-2">
+        <button type="button" class="btn btn-secondary btn-sm" onclick="closeRenameModal()">Cancel</button>
+        <button type="button" class="btn btn-primary btn-sm" onclick="submitRenameItem()">Save Label</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add Custom Expense Modal -->
+  <div id="addCustomModal" class="modal" style="display:none; position:fixed; z-index:1000; left:0; top:0; width:100%; height:100%; background:rgba(0,0,0,0.5); align-items:center; justify-content:center;">
+    <div style="background:#fff; padding:20px; border-radius:8px; width:340px; box-shadow:0 4px 15px rgba(0,0,0,0.2);">
+      <h5 class="fw-bold mb-3">Add Custom Expense</h5>
+      <div class="mb-3">
+          <label class="form-label small fw-semibold">Expense Name / Label</label>
+          <input type="text" id="customLabelInput" class="form-control form-control-sm" required placeholder="e.g. Youth Day Expenses">
+      </div>
+      <div class="d-flex justify-content-end gap-2">
+        <button type="button" class="btn btn-secondary btn-sm" onclick="closeAddCustomModal()">Cancel</button>
+        <button type="button" class="btn btn-primary btn-sm" onclick="submitCustomItem()">Add Item</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    window.FGC_RATES = {{ rates|tojson|safe }};
+    window.FGC_LOCKED_KEYS = {{ lockedKeys|tojson|safe }};
+    window.FGC_BASE_FIELDS = {{ baseFields|tojson|safe }};
+    window.FGC_VIEW_ONLY = {{ 'true' if viewOnly else 'false' }};
+
+    function openRenameModal(itemId, label) {
+        document.getElementById('renameItemId').value = itemId;
+        document.getElementById('renameLabelInput').value = label;
+        document.getElementById('renameModal').style.display = 'flex';
+    }
+    function closeRenameModal() { document.getElementById('renameModal').style.display = 'none'; }
+    function openAddCustomModal() { document.getElementById('addCustomModal').style.display = 'flex'; }
+    function closeAddCustomModal() { document.getElementById('addCustomModal').style.display = 'none'; }
+
+    function submitCustomItem() {
+        const label = document.getElementById('customLabelInput').value.trim();
+        if (!label) { alert('Please enter an expense name.'); return; }
+        const mainForm = document.getElementById('reportForm');
+        let act = mainForm.querySelector('input[name="action"]');
+        act.value = 'add_custom_item';
+        let lbl = document.createElement('input');
+        lbl.type = 'hidden'; lbl.name = 'custom_label'; lbl.value = label;
+        mainForm.appendChild(lbl);
+        mainForm.submit();
+    }
+
+    function submitRenameItem() {
+        const itemId = document.getElementById('renameItemId').value;
+        const label = document.getElementById('renameLabelInput').value.trim();
+        if (!label || !itemId) { alert('Please enter a new label.'); return; }
+        const mainForm = document.getElementById('reportForm');
+        let act = mainForm.querySelector('input[name="action"]');
+        act.value = 'rename_item';
+        let idVal = document.createElement('input');
+        idVal.type = 'hidden'; idVal.name = 'rename_id'; idVal.value = itemId;
+        let lbl = document.createElement('input');
+        lbl.type = 'hidden'; lbl.name = 'rename_label'; lbl.value = label;
+        mainForm.appendChild(idVal);
+        mainForm.appendChild(lbl);
+        mainForm.submit();
+    }
+
+    function printReport() {
+        fetch('/church-report?format=pdf&month={{ month }}&year={{ year }}&church_id={{ church.id }}').catch(()=>{});
+        window.print();
+    }
+  </script>
+
+  {% include 'includes/payment_modal.html' %}
+  <script>
+  function payToUnlockReport() {
+      openFgcCheckoutModal('report_unlock', 'Unlock Submitted Report for Editing', 2000, {{ finReport.id }}, 'church');
+  }
+  </script>
+  <script src="/assets/js/church_calc.js"></script>
+
+</body>
+</html>

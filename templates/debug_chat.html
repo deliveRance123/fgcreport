@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chat System Debugger</title>
+<link rel="icon" type="image/jpeg" href="/assets/logo.jpg">
+<link rel="stylesheet" href="/assets/style.css">
+<style>
+  body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f3f4f6; padding: 30px; color: #1e1b4b; }
+  .debug-container { max-width: 900px; margin: 0 auto; background: #fff; border-radius: 12px; padding: 32px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); }
+  h1 { font-size: 24px; color: #1A1040; margin-bottom: 20px; }
+  .badge { display: inline-block; padding: 4px 10px; border-radius: 99px; font-size: 11px; font-weight: 700; text-transform: uppercase; background: #e0e7ff; color: #3730a3; }
+  .badge-active { background: #d1fae5; color: #065f46; }
+  table { width: 100%; border-collapse: collapse; margin-top: 24px; }
+  th, td { border-bottom: 1px solid #e5e7eb; padding: 12px 16px; text-align: left; font-size: 13.5px; }
+  th { background: #f9fafb; font-weight: 700; color: #374151; }
+  .message-text { max-width: 300px; word-break: break-all; }
+  .links { margin-top: 20px; display: flex; gap: 10px; }
+</style>
+</head>
+<body>
+<div class="debug-container">
+  <span class="badge badge-active">Chat Engine Active</span>
+  <h1>Chat System Debugger</h1>
+  <p>Logged in as: <strong>{{ user.full_name }}</strong> ({{ user.role }})</p>
+
+  <div class="links">
+    {% if user.role == "church_admin" %}
+      <a href="/church-dashboard" class="btn btn-outline-dark" style="font-size:12px; padding:6px 12px;">Back to Dashboard</a>
+    {% elif user.role == "zonal_admin" %}
+      <a href="/zone-dashboard" class="btn btn-outline-dark" style="font-size:12px; padding:6px 12px;">Back to Dashboard</a>
+    {% else %}
+      <a href="/admin-dashboard" class="btn btn-outline-dark" style="font-size:12px; padding:6px 12px;">Back to Dashboard</a>
+    {% endif %}
+  </div>
+
+  <h2>Recent Message Sync Log (Last 20)</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Sender ID</th>
+        <th>Receiver ID</th>
+        <th>Message Content</th>
+        <th>Read Status</th>
+        <th>Timestamp (UTC)</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for m in recent %}
+        <tr>
+          <td>{{ m.id }}</td>
+          <td>{{ m.sender_id }}</td>
+          <td>{{ m.receiver_id }}</td>
+          <td class="message-text">{{ m.message }}</td>
+          <td>
+            {% if m.is_read %}
+              <span style="color:#059669; font-weight:600;">✓ Read</span>
+            {% else %}
+              <span style="color:#9CA3AF;">✓ Sent</span>
+            {% endif %}
+          </td>
+          <td>{{ m.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+        </tr>
+      {% else %}
+        <tr>
+          <td colspan="6" style="text-align:center; color:#9CA3AF;">No messages logged on the database.</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+</body>
+</html>

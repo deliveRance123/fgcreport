@@ -1,0 +1,11 @@
+{
+  "name": "fgc-report-web",
+  "version": "1.0.0",
+  "description": "Foursquare Gospel Church Reporting System",
+  "scripts": {
+    "build:ts": "tsc"
+  },
+  "devDependencies": {
+    "typescript": "^5.2.2"
+  }
+}
