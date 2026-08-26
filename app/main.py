@@ -18,7 +18,9 @@ app = FastAPI(title="Foursquare Gospel Church Reporting System")
 
 # Session Secret Key config (Render uses environment variable, fallback to default)
 SECRET_KEY = os.getenv("SESSION_SECRET", "super-secret-fgc-key-999")
-app.add_middleware(SessionMiddleware, secret_key=SECRET_KEY, same_site="lax", https_only=False)
+# On Render (HTTPS), cookies must be sent with Secure flag; locally use HTTP
+_https_only = os.getenv("RENDER") == "true"
+app.add_middleware(SessionMiddleware, secret_key=SECRET_KEY, same_site="lax", https_only=_https_only)
 
 @app.middleware("http")
 async def redirect_php_requests(request: Request, call_next):

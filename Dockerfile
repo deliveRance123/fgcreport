@@ -10,8 +10,10 @@ RUN npx tsc
 FROM python:3.11-slim
 WORKDIR /app
 
+# Install system deps: curl for health checks, libpq-dev for psycopg2
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
+    libpq-dev \
     && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt .
@@ -30,5 +32,7 @@ ENV PYTHONUNBUFFERED=1
 
 EXPOSE 10000
 
-# Run database init (migrations & seeds) then launch FastAPI server
-CMD ["sh", "-c", "python init_db.py || true; uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-10000}"]
+# Startup: run DB init (retries internally if DB isn't ready), then launch server
+# Using `|| true` on init_db is intentional only for local dev safety;
+# On Render, init_db.py will raise RuntimeError if DB is truly unavailable (no silent swallow)
+CMD ["sh", "-c", "python init_db.py && uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-10000}"]
