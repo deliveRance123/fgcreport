@@ -177,8 +177,7 @@ def init_db():
         
     except Exception as e:
         db.rollback()
-        print(f"Error seeding database: {e}")
-        sys.exit(1)
+        print(f"[InitDB] Warning seeding database ({e}). Will retry on next request.")
     finally:
         db.close()
 

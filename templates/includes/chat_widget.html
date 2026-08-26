@@ -54,15 +54,22 @@
 <div id="fgcChatWindow" style="position:fixed; bottom:90px; right:24px; z-index:99998; width:380px; max-width:calc(100vw - 32px); height:540px; max-height:calc(100vh - 120px); background:#FFFFFF; border-radius:16px; box-shadow:0 12px 36px rgba(0,0,0,0.25); border:1px solid #E5E7EB; display:none; flex-direction:column; overflow:hidden; font-family:'Inter', sans-serif;">
 
   <!-- WIDGET HEADER -->
-  <div style="background:#1A1040; color:#fff; padding:14px 18px; display:flex; align-items:center; justify-content:space-between; flex-shrink:0;">
+  <div style="background:#1A1040; color:#fff; padding:12px 16px; display:flex; align-items:center; justify-content:space-between; flex-shrink:0;">
     <div style="display:flex; align-items:center; gap:10px;">
       <div style="width:32px; height:32px; border-radius:50%; background:#E31E24; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:14px; color:#fff;">F</div>
       <div>
-        <h6 style="margin:0; font-size:14px; font-weight:700; color:#fff; font-family:'Outfit',sans-serif;">Foursquare Support &amp; Chat</h6>
-        <span style="font-size:11px; opacity:0.75; display:block;">AI Assistant &amp; Live Messaging</span>
+        <h6 style="margin:0; font-size:13.5px; font-weight:700; color:#fff; font-family:'Outfit',sans-serif;">Foursquare Support &amp; Chat</h6>
+        <span style="font-size:10.5px; opacity:0.75; display:block;">AI Assistant &amp; Voice Chat</span>
       </div>
     </div>
-    <button type="button" onclick="toggleFgcChatWidget()" style="background:none; border:none; color:#fff; font-size:20px; cursor:pointer; opacity:0.75; line-height:1;">&times;</button>
+    <div style="display:flex; align-items:center; gap:8px;">
+      <!-- VOICE TTS TOGGLE BUTTON -->
+      <button type="button" id="fgcVoiceToggleBtn" onclick="toggleFgcVoice()" title="Toggle Voice Responses (TTS)" style="background:rgba(255,255,255,0.12); border:1px solid rgba(255,255,255,0.2); color:#fff; border-radius:6px; padding:4px 7px; font-size:12px; cursor:pointer; display:flex; align-items:center; gap:4px; transition:all 0.2s;">
+        <span id="fgcVoiceIcon">🔊</span>
+        <span id="fgcVoiceLabel" style="font-size:10px; font-weight:600;">Voice ON</span>
+      </button>
+      <button type="button" onclick="toggleFgcChatWidget()" style="background:none; border:none; color:#fff; font-size:20px; cursor:pointer; opacity:0.75; line-height:1;">&times;</button>
+    </div>
   </div>
 
   <!-- WIDGET NAVIGATION TABS -->
@@ -78,7 +85,7 @@
     <!-- CHAT MESSAGES BODY -->
     <div id="fgcAiMessages" style="flex:1; padding:14px; overflow-y:auto; display:flex; flex-direction:column; gap:10px;">
       <div style="align-self:flex-start; max-width:85%; background:#FFFFFF; border:1px solid #E5E7EB; border-radius:12px 12px 12px 2px; padding:10px 14px; font-size:13px; color:#1F2937; line-height:1.45; box-shadow:0 1px 2px rgba(0,0,0,0.04);">
-        👋 Hello {{ user_name }}! I am your <strong>Foursquare Monthly Reports AI Assistant</strong>. Ask me anything about how to create reports, calculate dues, pay subscriptions, or unlock submitted reports!
+        👋 Hello {{ user_name }}! I am your <strong>Foursquare Monthly Reports AI Assistant</strong> with 🎙️ <strong>Voice Support</strong>. You can type or tap the microphone to ask anything about creating reports, calculating dues, paying subscriptions, or unlocking reports!
       </div>
       <!-- SUGGESTED CHIPS -->
       <div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:4px;">
@@ -88,10 +95,21 @@
         <button type="button" onclick="sendQuickAiQuery('How does the free trial work?')" style="background:#EFF6FF; color:#2563EB; border:1px solid #BFDBFE; border-radius:99px; padding:4px 10px; font-size:11px; font-weight:600; cursor:pointer;">Do i need to pay monthly?</button>
       </div>
     </div>
-    <!-- AI CHAT INPUT FORM -->
-    <form onsubmit="submitAiChatQuery(event)" style="padding:10px 12px; background:#fff; border-top:1px solid #E5E7EB; display:flex; gap:8px; align-items:center; flex-shrink:0;">
-      <input type="text" id="fgcAiInput" placeholder="Ask a question about the platform..." style="flex:1; padding:9px 12px; border:1.5px solid #D1D5DB; border-radius:8px; font-size:13px; outline:none; font-family:inherit;">
-      <button type="submit" style="background:#1A1040; color:#fff; border:none; border-radius:8px; padding:9px 14px; font-size:13px; font-weight:600; cursor:pointer;">Send</button>
+    <!-- AI CHAT INPUT FORM WITH MIC & SEND -->
+    <form onsubmit="submitAiChatQuery(event)" style="padding:10px 12px; background:#fff; border-top:1px solid #E5E7EB; display:flex; gap:6px; align-items:center; flex-shrink:0;">
+      <input type="text" id="fgcAiInput" placeholder="Type or click mic to speak..." style="flex:1; min-width:0; padding:9px 12px; border:1.5px solid #D1D5DB; border-radius:8px; font-size:13px; outline:none; font-family:inherit;">
+      
+      <!-- MICROPHONE VOICE INPUT BUTTON -->
+      <button type="button" id="fgcAiMicBtn" onclick="toggleFgcSpeechRecognition()" title="Speak your question (Voice Input)" style="background:#F3F4F6; border:1.5px solid #D1D5DB; color:#374151; border-radius:8px; width:38px; height:38px; display:flex; align-items:center; justify-content:center; cursor:pointer; flex-shrink:0; transition:all 0.2s;">
+        <svg id="micIcon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+          <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+          <line x1="12" y1="19" x2="12" y2="23"/>
+          <line x1="8" y1="23" x2="16" y2="23"/>
+        </svg>
+      </button>
+
+      <button type="submit" style="background:#1A1040; color:#fff; border:none; border-radius:8px; padding:9px 14px; font-size:13px; font-weight:600; cursor:pointer; flex-shrink:0;">Send</button>
     </form>
   </div>
 

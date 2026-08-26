@@ -98,6 +98,150 @@ function toggleFgcChatWidget(): void {
 }
 window.toggleFgcChatWidget = toggleFgcChatWidget;
 
+let fgcVoiceEnabled: boolean = localStorage.getItem('fgc_chat_voice_enabled') !== 'false';
+let fgcSpeechRecognizer: any = null;
+let fgcIsListening: boolean = false;
+
+function toggleFgcVoice(): void {
+    fgcVoiceEnabled = !fgcVoiceEnabled;
+    localStorage.setItem('fgc_chat_voice_enabled', fgcVoiceEnabled ? 'true' : 'false');
+    updateFgcVoiceUI();
+    if (!fgcVoiceEnabled && 'speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+    }
+}
+window.toggleFgcVoice = toggleFgcVoice;
+
+function updateFgcVoiceUI(): void {
+    const icon = document.getElementById('fgcVoiceIcon');
+    const label = document.getElementById('fgcVoiceLabel');
+    const btn = document.getElementById('fgcVoiceToggleBtn');
+    if (icon && label && btn) {
+        if (fgcVoiceEnabled) {
+            icon.textContent = '🔊';
+            label.textContent = 'Voice ON';
+            btn.style.background = 'rgba(16, 185, 129, 0.25)';
+            btn.style.borderColor = 'rgba(16, 185, 129, 0.5)';
+            btn.title = 'Voice reading enabled. Click to mute.';
+        } else {
+            icon.textContent = '🔇';
+            label.textContent = 'Voice OFF';
+            btn.style.background = 'rgba(255, 255, 255, 0.12)';
+            btn.style.borderColor = 'rgba(255, 255, 255, 0.2)';
+            btn.title = 'Voice reading muted. Click to enable.';
+        }
+    }
+}
+
+function speakFgcText(text: string): void {
+    if (!fgcVoiceEnabled || !('speechSynthesis' in window)) return;
+    try {
+        window.speechSynthesis.cancel(); // cancel previous utterance
+        // Strip markdown, asterisks, brackets, HTML tags
+        const cleanText = text
+            .replace(/<[^>]+>/g, '')
+            .replace(/\*\*(.*?)\*\*/g, '$1')
+            .replace(/\[(.*?)\]\(.*?\)/g, '$1')
+            .replace(/[#*_~`]/g, '')
+            .trim();
+        if (!cleanText) return;
+
+        const utterance = new SpeechSynthesisUtterance(cleanText);
+        utterance.rate = 1.0;
+        utterance.pitch = 1.0;
+        utterance.lang = 'en-US';
+        
+        // Find best English voice
+        const voices = window.speechSynthesis.getVoices();
+        const preferredVoice = voices.find(v => (v.lang.startsWith('en') && (v.name.includes('Natural') || v.name.includes('Google') || v.name.includes('Samantha') || v.name.includes('Female'))));
+        if (preferredVoice) {
+            utterance.voice = preferredVoice;
+        }
+
+        window.speechSynthesis.speak(utterance);
+    } catch (e) {
+        console.warn('Speech synthesis error:', e);
+    }
+}
+window.speakFgcText = speakFgcText;
+
+function toggleFgcSpeechRecognition(): void {
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    const micBtn = document.getElementById('fgcAiMicBtn');
+    const input = document.getElementById('fgcAiInput') as HTMLInputElement | null;
+    
+    if (!SpeechRecognition) {
+        alert('Voice speech recognition is not supported in this browser. Please use Chrome, Edge, or Safari.');
+        return;
+    }
+
+    if (fgcIsListening && fgcSpeechRecognizer) {
+        fgcSpeechRecognizer.stop();
+        fgcIsListening = false;
+        if (micBtn) {
+            micBtn.style.background = '#F3F4F6';
+            micBtn.style.color = '#374151';
+            micBtn.style.borderColor = '#D1D5DB';
+        }
+        if (input) input.placeholder = 'Type or click mic to speak...';
+        return;
+    }
+
+    try {
+        fgcSpeechRecognizer = new SpeechRecognition();
+        fgcSpeechRecognizer.lang = 'en-US';
+        fgcSpeechRecognizer.interimResults = false;
+        fgcSpeechRecognizer.maxAlternatives = 1;
+
+        fgcSpeechRecognizer.onstart = () => {
+            fgcIsListening = true;
+            if (micBtn) {
+                micBtn.style.background = '#EF4444';
+                micBtn.style.color = '#FFFFFF';
+                micBtn.style.borderColor = '#DC2626';
+            }
+            if (input) input.placeholder = '🎙️ Listening... speak now!';
+        };
+
+        fgcSpeechRecognizer.onresult = (event: any) => {
+            const transcript = event.results[0][0].transcript;
+            if (input && transcript) {
+                input.value = transcript;
+                submitAiChatQuery(new Event('submit'));
+            }
+        };
+
+        fgcSpeechRecognizer.onerror = (event: any) => {
+            console.warn('Speech recognition error:', event.error);
+            fgcIsListening = false;
+            if (micBtn) {
+                micBtn.style.background = '#F3F4F6';
+                micBtn.style.color = '#374151';
+                micBtn.style.borderColor = '#D1D5DB';
+            }
+            if (input) input.placeholder = 'Type or click mic to speak...';
+        };
+
+        fgcSpeechRecognizer.onend = () => {
+            fgcIsListening = false;
+            if (micBtn) {
+                micBtn.style.background = '#F3F4F6';
+                micBtn.style.color = '#374151';
+                micBtn.style.borderColor = '#D1D5DB';
+            }
+            if (input && !input.value) input.placeholder = 'Type or click mic to speak...';
+        };
+
+        fgcSpeechRecognizer.start();
+    } catch (e) {
+        console.error('Speech recognition start failed:', e);
+    }
+}
+window.toggleFgcSpeechRecognition = toggleFgcSpeechRecognition;
+
+// Initialize voice UI state
+setTimeout(updateFgcVoiceUI, 300);
+
 function switchFgcChatTab(tab: string): void {
     const tabAi = document.getElementById('fgcTabAiContent');
     const tabLive = document.getElementById('fgcTabLiveContent');
@@ -186,13 +330,22 @@ function appendAiChatMessage(sender: 'user' | 'bot', text: string): void {
     const msgDiv = document.createElement('div');
     if (sender === 'user') {
         msgDiv.style.cssText = 'align-self:flex-end; max-width:85%; background:#1A1040; color:#fff; border-radius:12px 12px 2px 12px; padding:10px 14px; font-size:13px; line-height:1.45; box-shadow:0 1px 2px rgba(0,0,0,0.08);';
+        const formattedText = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br>');
+        msgDiv.innerHTML = formattedText;
     } else {
-        msgDiv.style.cssText = 'align-self:flex-start; max-width:85%; background:#FFFFFF; border:1px solid #E5E7EB; border-radius:12px 12px 12px 2px; padding:10px 14px; font-size:13px; color:#1F2937; line-height:1.45; box-shadow:0 1px 2px rgba(0,0,0,0.04);';
+        msgDiv.style.cssText = 'align-self:flex-start; max-width:85%; background:#FFFFFF; border:1px solid #E5E7EB; border-radius:12px 12px 12px 2px; padding:10px 14px; font-size:13px; color:#1F2937; line-height:1.45; box-shadow:0 1px 2px rgba(0,0,0,0.04); position:relative;';
+        const formattedText = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br>');
+        
+        // Escape for onclick attribute
+        const escapedText = text.replace(/'/g, "\\'").replace(/"/g, '&quot;').replace(/\n/g, ' ');
+        const audioBtn = `<button type="button" onclick="speakFgcText('${escapedText}')" title="Replay voice audio" style="position:absolute; bottom:6px; right:8px; background:#F3F4F6; border:1px solid #E5E7EB; border-radius:6px; font-size:11px; padding:2px 6px; cursor:pointer; color:#4B5563;">🔊</button>`;
+        
+        msgDiv.innerHTML = formattedText + `<div style="margin-top:4px; height:18px;"></div>` + audioBtn;
+
+        // Auto speak bot reply
+        speakFgcText(text);
     }
 
-    // Format markdown bold & linebreaks
-    const formattedText = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br>');
-    msgDiv.innerHTML = formattedText;
     container.appendChild(msgDiv);
     container.scrollTop = container.scrollHeight;
 }

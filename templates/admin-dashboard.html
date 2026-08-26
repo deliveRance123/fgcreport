@@ -448,14 +448,34 @@
             </div>
           </div>
           <div class="settings-grid">
+            <div class="settings-group" style="grid-column: 1 / -1;">
+              <label class="fw-bold">Payment Environment Mode</label>
+              <select name="payment_mode" class="form-select form-select-sm" style="max-width: 320px; font-weight: 600;">
+                <option value="test" {{ 'selected' if site_settings.get('payment_mode', 'test') == 'test' else '' }}>🧪 Test Mode (Sandbox — use pk_test / sk_test)</option>
+                <option value="live" {{ 'selected' if site_settings.get('payment_mode') == 'live' else '' }}>🚀 Live Mode (Production — use pk_live / sk_live)</option>
+              </select>
+            </div>
+
+            <!-- TEST KEYS -->
             <div class="settings-group">
-              <label>Paystack Public Key</label>
-              <input type="text" name="payment_public_key" placeholder="pk_test_..." value="{{ site_settings.get('payment_public_key', '') }}">
+              <label>Paystack TEST Public Key <span style="font-size:11px;color:#6B7280;">(pk_test_...)</span></label>
+              <input type="text" name="payment_test_public_key" placeholder="pk_test_..." value="{{ site_settings.get('payment_test_public_key') or site_settings.get('payment_public_key', '') }}">
             </div>
             <div class="settings-group">
-              <label>Paystack Secret Key</label>
-              <input type="password" name="payment_secret_key" placeholder="sk_test_..." value="{{ site_settings.get('payment_secret_key', '') }}">
+              <label>Paystack TEST Secret Key <span style="font-size:11px;color:#6B7280;">(sk_test_...)</span></label>
+              <input type="password" name="payment_test_secret_key" placeholder="sk_test_..." value="{{ site_settings.get('payment_test_secret_key') or site_settings.get('payment_secret_key', '') }}">
             </div>
+
+            <!-- LIVE KEYS -->
+            <div class="settings-group">
+              <label>Paystack LIVE Public Key <span style="font-size:11px;color:#10B981;font-weight:600;">(pk_live_...)</span></label>
+              <input type="text" name="payment_live_public_key" placeholder="pk_live_..." value="{{ site_settings.get('payment_live_public_key', '') }}">
+            </div>
+            <div class="settings-group">
+              <label>Paystack LIVE Secret Key <span style="font-size:11px;color:#10B981;font-weight:600;">(sk_live_...)</span></label>
+              <input type="password" name="payment_live_secret_key" placeholder="sk_live_..." value="{{ site_settings.get('payment_live_secret_key', '') }}">
+            </div>
+
             <div class="settings-group">
               <label>Monthly Subscription Fee (₦)</label>
               <input type="number" step="0.01" name="monthly_sub_amount" value="{{ site_settings.get('monthly_sub_amount', '5000') }}">

@@ -461,6 +461,8 @@ async def post_admin_dashboard(
                 'paths_title','paths_subtitle','footer_org_name',
                 'contact_email','contact_phone','how_title','hero_video_url','showcase_video_url',
                 'smtp_email','smtp_secret_key','smtp_sender_name',
+                'payment_mode','payment_test_public_key','payment_test_secret_key',
+                'payment_live_public_key','payment_live_secret_key',
                 'payment_public_key','payment_secret_key','monthly_sub_amount','report_unlock_fee','free_trial_months','free_trial_days'
             ]
             for k in keys:

@@ -47,8 +47,28 @@ def toFloat(v) -> float:
         # Strip commas or formatting if present
         v_str = v_str.replace(",", "")
         return float(v_str)
-    except ValueError:
+    except (ValueError, TypeError):
         return 0.0
+
+def toInt(v, default: int = 0) -> int:
+    """
+    Safely parse form/JSON inputs to an integer. Default to `default` on blank/invalid/empty string.
+    Prevents ValueError: invalid literal for int() with base 10: ''.
+    """
+    if v is None:
+        return default
+    if isinstance(v, int):
+        return v
+    if isinstance(v, float):
+        return int(v)
+    v_str = str(v).strip()
+    if not v_str:
+        return default
+    try:
+        v_str = v_str.replace(",", "")
+        return int(float(v_str))
+    except (ValueError, TypeError):
+        return default
 
 def pctDiff(this_month: float, last_month: float) -> float | None:
     """
@@ -243,6 +263,11 @@ def render_pdf(html_content: str) -> bytes | None:
 def getPaymentSettings(db: Session) -> dict:
     defaults = {
         'payment_enabled': '0',
+        'payment_mode': 'test',  # 'test' or 'live'
+        'payment_test_public_key': '',
+        'payment_test_secret_key': '',
+        'payment_live_public_key': '',
+        'payment_live_secret_key': '',
         'free_trial_enabled': '1',
         'payment_public_key': '',
         'payment_secret_key': '',
@@ -258,6 +283,18 @@ def getPaymentSettings(db: Session) -> dict:
         ).all()
         for r in rows:
             defaults[r.setting_key] = r.setting_value
+        
+        # Dynamically resolve active keys based on selected mode
+        mode = defaults.get("payment_mode", "test").lower()
+        if mode == "live":
+            active_pub = defaults.get("payment_live_public_key") or defaults.get("payment_public_key", "")
+            active_sec = defaults.get("payment_live_secret_key") or defaults.get("payment_secret_key", "")
+        else:
+            active_pub = defaults.get("payment_test_public_key") or defaults.get("payment_public_key", "")
+            active_sec = defaults.get("payment_test_secret_key") or defaults.get("payment_secret_key", "")
+        
+        defaults["payment_public_key"] = active_pub
+        defaults["payment_secret_key"] = active_sec
     except Exception:
         pass
     return defaults

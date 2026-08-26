@@ -14,7 +14,7 @@ from app.auth import (
     is_logged_in, current_role, current_user_id, current_church_id, current_zone_id, ensure_role_session
 )
 from app.utils import (
-    moneyRound, toFloat, pctDiff, monthName, 
+    moneyRound, toFloat, toInt, pctDiff, monthName, 
     canUserCreateReport, sendAppEmail, render_pdf
 )
 
@@ -539,86 +539,94 @@ async def post_church_report(
         fin_report.status = status
 
         # Update Spiritual Report
-        sp_report = db.query(ChurchSpiritualReport).filter_by(church_id=cid, report_month=month, report_year=year).first()
-        if sp_report:
-            sp_report.status = status
-            sp_report.pastor_signature_name = form_data.get("pastor_signature_name", "")
-            sp_report.treasurer_signature_name = form_data.get("treasurer_signature_name", "")
-            sp_report.secretary_signature_name = form_data.get("secretary_signature_name", "")
-            
-            # Save date safely
-            r_date = form_data.get("report_date")
-            if r_date:
-                try:
-                    sp_report.report_date = datetime.strptime(r_date, "%Y-%m-%d").date()
-                except Exception:
-                    pass
-            
-            # Collect attendance fields
-            for prefix in ['pre_sun_school', 'sun_school', 'sun_worship', 'house_fellowship', 'bible_study', 'prayer_meeting']:
-                setattr(sp_report, f"{prefix}_children", int(form_data.get(f"{prefix}_children", 0)))
-                setattr(sp_report, f"{prefix}_adults", int(form_data.get(f"{prefix}_adults", 0)))
-                setattr(sp_report, f"{prefix}_total", int(form_data.get(f"{prefix}_total", 0)))
+        sp_report = db.query(ChurchSpiritualReport).filter_by(church_id=cid, report_month=r_month, report_year=r_year).first()
+        if not sp_report:
+            sp_report = ChurchSpiritualReport(
+                church_id=cid,
+                report_month=r_month,
+                report_year=r_year,
+                status=status
+            )
+            db.add(sp_report)
 
-            # Other fields
-            sp_report.total_new_comers = int(form_data.get("total_new_comers", 0))
-            sp_report.total_decision_christ = int(form_data.get("total_decision_christ", 0))
-            sp_report.total_water_baptism = int(form_data.get("total_water_baptism", 0))
-            sp_report.total_holy_spirit_baptism = int(form_data.get("total_holy_spirit_baptism", 0))
-            sp_report.total_healings = int(form_data.get("total_healings", 0))
-            sp_report.total_house_fellowship_centres = int(form_data.get("total_house_fellowship_centres", 0))
-            
-            sp_report.intake_above_18 = int(form_data.get("intake_above_18", 0))
-            sp_report.intake_under_18 = int(form_data.get("intake_under_18", 0))
-            sp_report.intake_total = int(form_data.get("intake_total", 0))
+        sp_report.status = status
+        sp_report.pastor_signature_name = form_data.get("pastor_signature_name", "")
+        sp_report.treasurer_signature_name = form_data.get("treasurer_signature_name", "")
+        sp_report.secretary_signature_name = form_data.get("secretary_signature_name", "")
+        
+        # Save date safely
+        r_date = form_data.get("report_date")
+        if r_date:
+            try:
+                sp_report.report_date = datetime.strptime(r_date, "%Y-%m-%d").date()
+            except Exception:
+                pass
+        
+        # Collect attendance fields safely
+        for prefix in ['pre_sun_school', 'sun_school', 'sun_worship', 'house_fellowship', 'bible_study', 'prayer_meeting']:
+            setattr(sp_report, f"{prefix}_children", toInt(form_data.get(f"{prefix}_children")))
+            setattr(sp_report, f"{prefix}_adults", toInt(form_data.get(f"{prefix}_adults")))
+            setattr(sp_report, f"{prefix}_total", toInt(form_data.get(f"{prefix}_total")))
 
-            sp_report.withdrawn_above_18 = int(form_data.get("withdrawn_total_above_18", 0))
-            sp_report.withdrawn_under_18 = int(form_data.get("withdrawn_total_under_18", 0))
-            sp_report.withdrawn_total = int(form_data.get("withdrawn_total_total", 0))
+        # Other fields
+        sp_report.total_new_comers = toInt(form_data.get("total_new_comers"))
+        sp_report.total_decision_christ = toInt(form_data.get("total_decision_christ"))
+        sp_report.total_water_baptism = toInt(form_data.get("total_water_baptism"))
+        sp_report.total_holy_spirit_baptism = toInt(form_data.get("total_holy_spirit_baptism"))
+        sp_report.total_healings = toInt(form_data.get("total_healings"))
+        sp_report.total_house_fellowship_centres = toInt(form_data.get("total_house_fellowship_centres"))
+        
+        sp_report.intake_above_18 = toInt(form_data.get("intake_above_18"))
+        sp_report.intake_under_18 = toInt(form_data.get("intake_under_18"))
+        sp_report.intake_total = toInt(form_data.get("intake_total"))
 
-            sp_report.membership_above_18 = int(form_data.get("after_withdrawal_above_18", 0))
-            sp_report.membership_under_18 = int(form_data.get("after_withdrawal_under_18", 0))
-            sp_report.membership_total = int(form_data.get("after_withdrawal_total", 0))
+        sp_report.withdrawn_above_18 = toInt(form_data.get("withdrawn_total_above_18"))
+        sp_report.withdrawn_under_18 = toInt(form_data.get("withdrawn_total_under_18"))
+        sp_report.withdrawn_total = toInt(form_data.get("withdrawn_total_total"))
 
-            # Store payload JSON
-            json_payload = {
-                'new_comers': int(form_data.get('total_new_comers', 0)),
-                'decisions': int(form_data.get('total_decision_christ', 0)),
-                'water_bapt': int(form_data.get('total_water_baptism', 0)),
-                'spirit_bapt': int(form_data.get('total_holy_spirit_baptism', 0)),
-                'healings': int(form_data.get('total_healings', 0)),
-                'house_fellowships': int(form_data.get('total_house_fellowship_centres', 0)),
-                'crusaders': {
-                    'candlelighters': int(form_data.get('crusader_candlelighters', 0)),
-                    'cupbearers': int(form_data.get('crusader_cupbearers', 0)),
-                    'cadets': int(form_data.get('crusader_cadets', 0)),
-                    'jr_teens': int(form_data.get('crusader_jr_teens', 0)),
-                    'sr_teens': int(form_data.get('crusader_sr_teens', 0)),
-                    'youth': int(form_data.get('crusader_youth', 0)),
-                    'challengers': int(form_data.get('crusader_challengers', 0)),
-                    'defenders': int(form_data.get('crusader_defenders', 0)),
-                    'citizens': int(form_data.get('crusader_citizens', 0)),
-                },
-                'credential_workers': {
-                    'ordained': int(form_data.get('cw_ordained', 0)),
-                    'licensed': int(form_data.get('cw_licensed', 0)),
-                    'exhorters': int(form_data.get('cw_exhorters', 0)),
-                    'elders': int(form_data.get('cw_elders', 0)),
-                    'deacons': int(form_data.get('cw_deacons', 0)),
-                    'deaconesses': int(form_data.get('cw_deaconesses', 0)),
-                },
-                'membership_details': {
-                    'prev_month': {'18': int(form_data.get('prev_above_18', 0)), 'u18': int(form_data.get('prev_under_18', 0))},
-                    'new_members': {'18': int(form_data.get('new_above_18', 0)), 'u18': int(form_data.get('new_under_18', 0))},
-                    'withdrawn_reasons': {
-                        'transfer': {'18': int(form_data.get('withdrawn_transfer_above_18', 0)), 'u18': int(form_data.get('withdrawn_transfer_under_18', 0))},
-                        'resignation': {'18': int(form_data.get('withdrawn_resignation_above_18', 0)), 'u18': int(form_data.get('withdrawn_resignation_under_18', 0))},
-                        'dismissal': {'18': int(form_data.get('withdrawn_dismissal_above_18', 0)), 'u18': int(form_data.get('withdrawn_dismissal_under_18', 0))},
-                        'death': {'18': int(form_data.get('withdrawn_death_above_18', 0)), 'u18': int(form_data.get('withdrawn_death_under_18', 0))},
-                    }
+        sp_report.membership_above_18 = toInt(form_data.get("after_withdrawal_above_18"))
+        sp_report.membership_under_18 = toInt(form_data.get("after_withdrawal_under_18"))
+        sp_report.membership_total = toInt(form_data.get("after_withdrawal_total"))
+
+        # Store payload JSON
+        json_payload = {
+            'new_comers': toInt(form_data.get('total_new_comers')),
+            'decisions': toInt(form_data.get('total_decision_christ')),
+            'water_bapt': toInt(form_data.get('total_water_baptism')),
+            'spirit_bapt': toInt(form_data.get('total_holy_spirit_baptism')),
+            'healings': toInt(form_data.get('total_healings')),
+            'house_fellowships': toInt(form_data.get('total_house_fellowship_centres')),
+            'crusaders': {
+                'candlelighters': toInt(form_data.get('crusader_candlelighters')),
+                'cupbearers': toInt(form_data.get('crusader_cupbearers')),
+                'cadets': toInt(form_data.get('crusader_cadets')),
+                'jr_teens': toInt(form_data.get('crusader_jr_teens')),
+                'sr_teens': toInt(form_data.get('crusader_sr_teens')),
+                'youth': toInt(form_data.get('crusader_youth')),
+                'challengers': toInt(form_data.get('crusader_challengers')),
+                'defenders': toInt(form_data.get('crusader_defenders')),
+                'citizens': toInt(form_data.get('crusader_citizens')),
+            },
+            'credential_workers': {
+                'ordained': toInt(form_data.get('cw_ordained')),
+                'licensed': toInt(form_data.get('cw_licensed')),
+                'exhorters': toInt(form_data.get('cw_exhorters')),
+                'elders': toInt(form_data.get('cw_elders')),
+                'deacons': toInt(form_data.get('cw_deacons')),
+                'deaconesses': toInt(form_data.get('cw_deaconesses')),
+            },
+            'membership_details': {
+                'prev_month': {'18': toInt(form_data.get('prev_above_18')), 'u18': toInt(form_data.get('prev_under_18'))},
+                'new_members': {'18': toInt(form_data.get('new_above_18')), 'u18': toInt(form_data.get('new_under_18'))},
+                'withdrawn_reasons': {
+                    'transfer': {'18': toInt(form_data.get('withdrawn_transfer_above_18')), 'u18': toInt(form_data.get('withdrawn_transfer_under_18'))},
+                    'resignation': {'18': toInt(form_data.get('withdrawn_resignation_above_18')), 'u18': toInt(form_data.get('withdrawn_resignation_under_18'))},
+                    'dismissal': {'18': toInt(form_data.get('withdrawn_dismissal_above_18')), 'u18': toInt(form_data.get('withdrawn_dismissal_under_18'))},
+                    'death': {'18': toInt(form_data.get('withdrawn_death_above_18')), 'u18': toInt(form_data.get('withdrawn_death_under_18'))},
                 }
             }
-            sp_report.credential_workers_data = json_payload
+        }
+        sp_report.credential_workers_data = json_payload
 
         # Handle custom expense actions
         successMsg = ""
@@ -1049,11 +1057,11 @@ async def post_zonal_reports(
                 "fin_tm": toFloat(form_data.get(f"p1_fin_tm_{key}", 0)),
                 "fin_lm": toFloat(form_data.get(f"p1_fin_lm_{key}", 0)),
                 "fin_ago": toFloat(form_data.get(f"p1_fin_ago_{key}", 0)),
-                "ft": int(form_data.get(f"p1_ft_{key}", 0)),
-                "pt": int(form_data.get(f"p1_pt_{key}", 0)),
-                "dc": int(form_data.get(f"p1_dc_{key}", 0)),
-                "dcn": int(form_data.get(f"p1_dcn_{key}", 0)),
-                "eld": int(form_data.get(f"p1_eld_{key}", 0)),
+                "ft": toInt(form_data.get(f"p1_ft_{key}")),
+                "pt": toInt(form_data.get(f"p1_pt_{key}")),
+                "dc": toInt(form_data.get(f"p1_dc_{key}")),
+                "dcn": toInt(form_data.get(f"p1_dcn_{key}")),
+                "eld": toInt(form_data.get(f"p1_eld_{key}")),
             }
 
         # 2. Page 2 Comparism (12 params x dynamic churches)
