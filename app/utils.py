@@ -75,18 +75,19 @@ def currentMonthYear() -> dict:
     now = datetime.now()
     return {"month": now.month, "year": now.year}
 
-def monthName(m: int) -> str:
+def monthName(m) -> str:
     """
-    Returns name of month from index (1-12).
+    Returns name of month from index (1-12), e.g. 1 -> "January", 8 -> "August".
     """
+    months = ["", "January", "February", "March", "April", "May", "June", 
+              "July", "August", "September", "October", "November", "December"]
     try:
-        return datetime(2020, int(m), 1).strftime("%F")
+        idx = int(m)
+        if 1 <= idx <= 12:
+            return months[idx]
     except Exception:
-        months = ["", "January", "February", "March", "April", "May", "June", 
-                  "July", "August", "September", "October", "November", "December"]
-        if 1 <= m <= 12:
-            return months[m]
-        return ""
+        pass
+    return str(m or "")
 
 def defaultExpenseItems() -> list:
     """
