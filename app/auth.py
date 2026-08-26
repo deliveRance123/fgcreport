@@ -194,7 +194,7 @@ def ensure_role_session(request: Request, role: str, db: Session) -> int:
         if not zone:
             zone = db.query(Zone).first()
         if not zone:
-            zone = Zone(zone_name="Isara Zone", created_by=user.id)
+            zone = Zone(zone_name="Central Zone", created_by=user.id)
             db.add(zone)
             db.commit()
             db.refresh(zone)
@@ -204,9 +204,9 @@ def ensure_role_session(request: Request, role: str, db: Session) -> int:
         if not existing:
             churches_to_add = [
                 ("ZONAL HQTS", 1),
-                ("ISARA II", 2),
-                ("IPARA", 3),
-                ("ODE INTAKE", 4)
+                ("BRANCH 1", 2),
+                ("BRANCH 2", 3),
+                ("BRANCH 3", 4)
             ]
             for name, order in churches_to_add:
                 db.add(ZoneChurch(zone_id=zone.id, church_name=name, display_order=order))

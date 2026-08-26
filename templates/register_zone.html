@@ -3,96 +3,297 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Register Zonal Office — Foursquare Reports</title>
+<title>Register a Zone — Foursquare Reports</title>
 <link rel="icon" type="image/jpeg" href="/assets/logo.jpg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/assets/style.css">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Outfit:wght@600;700;800&display=swap" rel="stylesheet">
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   body {
     font-family: 'Inter', system-ui, sans-serif;
-    min-height: 100svh; background: #0f0a2e;
-    display: flex; flex-direction: column;
-    align-items: center; justify-content: center;
-    padding: 60px 16px 40px; position: relative; overflow-y: auto;
+    min-height: 100svh;
+    background: #0D0826;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 70px 16px 50px;
+    position: relative;
+    overflow-y: auto;
   }
   body::before {
-    content: ''; position: fixed; inset: 0;
+    content: '';
+    position: fixed;
+    inset: 0;
     background:
-      radial-gradient(ellipse 60% 50% at 10% 20%, rgba(227,30,36,0.16) 0%, transparent 60%),
-      radial-gradient(ellipse 50% 60% at 90% 80%, rgba(99,60,180,0.20) 0%, transparent 60%);
+      radial-gradient(ellipse 65% 50% at 15% 15%, rgba(227,30,36,0.18) 0%, transparent 60%),
+      radial-gradient(ellipse 55% 65% at 85% 85%, rgba(99,60,180,0.22) 0%, transparent 60%);
     pointer-events: none;
   }
   body::after {
-    content: ''; position: fixed; inset: 0;
+    content: '';
+    position: fixed;
+    inset: 0;
     background-image:
       repeating-linear-gradient(0deg, transparent, transparent 39px, rgba(255,255,255,0.02) 39px, rgba(255,255,255,0.02) 40px),
       repeating-linear-gradient(90deg, transparent, transparent 39px, rgba(255,255,255,0.02) 39px, rgba(255,255,255,0.02) 40px);
     pointer-events: none;
   }
   .auth-topbar {
-    position: fixed; top: 0; left: 0; right: 0;
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 18px 32px; z-index: 10;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 32px;
+    z-index: 10;
   }
   .auth-back-link {
-    display: inline-flex; align-items: center; gap: 7px;
-    font-size: 13px; font-weight: 500; color: rgba(255,255,255,0.65);
-    text-decoration: none; transition: all 0.15s;
-    border: 1px solid rgba(255,255,255,0.12); padding: 7px 16px;
-    border-radius: 99px; backdrop-filter: blur(10px);
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 13px;
+    font-weight: 500;
+    color: rgba(255,255,255,0.75);
+    text-decoration: none;
+    transition: all 0.15s ease;
+    border: 1px solid rgba(255,255,255,0.12);
+    padding: 8px 18px;
+    border-radius: 99px;
+    backdrop-filter: blur(12px);
     background: rgba(255,255,255,0.06);
   }
-  .auth-back-link:hover { color: #fff; background: rgba(255,255,255,0.12); border-color: rgba(255,255,255,0.25); }
+  .auth-back-link:hover {
+    color: #fff;
+    background: rgba(255,255,255,0.14);
+    border-color: rgba(255,255,255,0.28);
+  }
   .auth-card {
-    position: relative; z-index: 2;
-    width: 100%; max-width: 580px;
-    background: #ffffff; border-radius: 20px;
-    padding: 40px;
-    box-shadow: 0 32px 80px rgba(0,0,0,0.45);
+    position: relative;
+    z-index: 2;
+    width: 100%;
+    max-width: 640px;
+    background: #FFFFFF;
+    border-radius: 24px;
+    padding: 44px 48px;
+    box-shadow: 0 24px 60px rgba(0,0,0,0.45);
   }
-  .auth-form-head { margin-bottom: 28px; }
-  .auth-form-head h1 { font-family: 'Outfit', sans-serif; font-size: 24px; font-weight: 800; color: #1A1040; margin-bottom: 5px; }
-  .auth-form-head p { font-size: 13.5px; color: #71717A; }
-  .section-title { font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; color: #E31E24; margin: 24px 0 12px; display: flex; align-items: center; gap: 8px; }
-  .section-title::after { content: ''; flex: 1; height: 1px; background: #F0F0F0; }
-  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 18px; }
-  .field-group { margin-bottom: 4px; }
-  .field-group.full { grid-column: span 2; }
-  .field-label { font-size: 12px; font-weight: 600; color: #3F3F46; margin-bottom: 6px; display: block; }
-  .field-input, .field-textarea {
-    width: 100%; padding: 10px 14px;
-    border: 1.5px solid #E4E4E7; border-radius: 8px;
-    font-size: 13.5px; color: #0D0D12; background: #FAFAFA;
-    transition: all 0.15s; outline: none; font-family: inherit;
+  .badge-tag {
+    color: #E31E24;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+    display: block;
   }
-  .field-input:focus, .field-textarea:focus { border-color: #E31E24; box-shadow: 0 0 0 3px rgba(227,30,36,0.08); background: #fff; }
+  .auth-title {
+    font-family: 'Outfit', sans-serif;
+    font-size: 26px;
+    font-weight: 800;
+    color: #1A1040;
+    margin-bottom: 6px;
+    line-height: 1.2;
+  }
+  .auth-desc {
+    font-size: 13.5px;
+    color: #6B7280;
+    line-height: 1.5;
+    margin-bottom: 24px;
+  }
+  .section-label {
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #1F2937;
+    margin-top: 24px;
+    margin-bottom: 12px;
+    display: block;
+  }
+  .form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px 16px;
+  }
+  .field-group {
+    display: flex;
+    flex-direction: column;
+  }
+  .field-group.full {
+    grid-column: 1 / -1;
+  }
+  .field-label {
+    font-size: 12.5px;
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 6px;
+    display: block;
+  }
+  .field-label span.req {
+    color: #E31E24;
+  }
+  .field-input {
+    width: 100%;
+    padding: 11px 14px;
+    border: 1.5px solid #E5E7EB;
+    border-radius: 8px;
+    font-size: 13.5px;
+    color: #111827;
+    background: #F9FAFB;
+    transition: all 0.15s ease;
+    outline: none;
+    font-family: inherit;
+  }
+  .field-input:focus {
+    border-color: #E31E24;
+    background: #FFFFFF;
+    box-shadow: 0 0 0 3px rgba(227,30,36,0.08);
+  }
+  .field-input::placeholder {
+    color: #9CA3AF;
+  }
+  .churches-section-desc {
+    font-size: 12.5px;
+    color: #6B7280;
+    margin-top: -6px;
+    margin-bottom: 12px;
+    line-height: 1.4;
+  }
+  .church-row {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+  .church-row .field-input {
+    flex: 1;
+  }
+  .btn-remove {
+    background: #F9FAFB;
+    border: 1.5px solid #E5E7EB;
+    color: #6B7280;
+    font-size: 12.5px;
+    font-weight: 600;
+    padding: 10px 14px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    flex-shrink: 0;
+  }
+  .btn-remove:hover:not(:disabled) {
+    background: #FEF2F2;
+    border-color: #FECACA;
+    color: #DC2626;
+  }
+  .btn-remove:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+  .btn-add-church {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: #FEF2F2;
+    border: 1px solid #FECACA;
+    color: #E31E24;
+    font-size: 12.5px;
+    font-weight: 700;
+    padding: 8px 14px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    margin-top: 4px;
+  }
+  .btn-add-church:hover {
+    background: #FEE2E2;
+  }
+  .btn-submit-container {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 28px;
+  }
   .submit-btn {
-    width: 100%; padding: 13px; margin-top: 24px;
-    background: linear-gradient(135deg, #E31E24 0%, #B81018 100%);
-    color: #fff; border: none; border-radius: 9px;
-    font-size: 14px; font-weight: 700; cursor: pointer; font-family: inherit;
-    box-shadow: 0 4px 16px rgba(227,30,36,0.35); transition: all 0.15s;
+    background: #E31E24;
+    color: #FFFFFF;
+    border: none;
+    border-radius: 8px;
+    padding: 12px 28px;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: inherit;
+    box-shadow: 0 4px 14px rgba(227,30,36,0.35);
+    transition: all 0.15s ease;
   }
-  .submit-btn:hover { box-shadow: 0 6px 22px rgba(227,30,36,0.45); opacity: 0.95; }
+  .submit-btn:hover {
+    background: #CC161C;
+    box-shadow: 0 6px 18px rgba(227,30,36,0.45);
+  }
   .error-bar {
-    background: #FEF2F2; border: 1px solid #FECACA; color: #DC2626;
-    border-radius: 8px; padding: 10px 14px; font-size: 13px; font-weight: 500;
-    margin-bottom: 20px; display: flex; align-items: center; gap: 8px;
+    background: #FEF2F2;
+    border: 1px solid #FECACA;
+    color: #DC2626;
+    border-radius: 8px;
+    padding: 11px 14px;
+    font-size: 13px;
+    font-weight: 500;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
   }
   .success-bar {
-    background: #ECFDF5; border: 1px solid #A7F3D0; color: #047857;
-    border-radius: 8px; padding: 10px 14px; font-size: 13px; font-weight: 500;
-    margin-bottom: 20px; display: flex; align-items: center; gap: 8px;
+    background: #ECFDF5;
+    border: 1px solid #A7F3D0;
+    color: #047857;
+    border-radius: 8px;
+    padding: 11px 14px;
+    font-size: 13px;
+    font-weight: 500;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
   }
-  .login-link { text-align: center; margin-top: 20px; font-size: 13px; color: #71717A; }
-  .login-link a { font-weight: 700; color: #1A1040; text-decoration: underline; }
-  @media (max-width: 560px) {
-    .form-grid { grid-template-columns: 1fr; }
-    .field-group.full { grid-column: span 1; }
-    .auth-card { padding: 32px 20px; }
+  .login-footer-link {
+    text-align: center;
+    margin-top: 22px;
+    font-size: 13.5px;
+    color: rgba(255,255,255,0.7);
+    position: relative;
+    z-index: 2;
+  }
+  .login-footer-link a {
+    color: #FFFFFF;
+    font-weight: 600;
+    text-decoration: none;
+    transition: opacity 0.15s;
+  }
+  .login-footer-link a:hover {
+    text-decoration: underline;
+    opacity: 0.9;
+  }
+  @media (max-width: 600px) {
+    .auth-card {
+      padding: 32px 20px;
+      border-radius: 20px;
+    }
+    .form-grid {
+      grid-template-columns: 1fr;
+    }
+    .field-group.full {
+      grid-column: 1;
+    }
+    .btn-submit-container {
+      justify-content: stretch;
+    }
+    .submit-btn {
+      width: 100%;
+    }
   }
 </style>
 </head>
@@ -106,10 +307,9 @@
 </nav>
 
 <div class="auth-card">
-  <div class="auth-form-head">
-    <h1>Register Zone</h1>
-    <p>Setup a zonal reporting office and administrator account</p>
-  </div>
+  <span class="badge-tag">Zone Registration</span>
+  <h1 class="auth-title">Register a Zone</h1>
+  <p class="auth-desc">Set up your zone and zonal Secretary account. Add all the churches in your zone below.</p>
 
   {% if error %}
   <div class="error-bar">
@@ -127,49 +327,95 @@
 
   <form method="POST" action="/register-zone">
     
-    <div class="section-title">1. Zonal Information</div>
-    <div class="form-grid">
-      <div class="field-group full">
-        <label class="field-label">Zone Name *</label>
-        <input type="text" name="zone_name" class="field-input" required placeholder="e.g. Isara Zone" value="{{ form_data.get('zone_name', '') }}">
-      </div>
-      <div class="field-group full">
-        <label class="field-label">Churches in Zone * (One per line)</label>
-        <textarea name="church_list" rows="5" class="field-textarea" placeholder="ZONAL HQTS&#10;ISARA II&#10;IPARA&#10;ODE INTAKE">{{ form_data.get('church_list', '') }}</textarea>
+    <!-- 1. ZONE INFORMATION -->
+    <span class="section-label">Zone Information</span>
+    <div class="field-group full" style="margin-bottom: 20px;">
+      <label class="field-label">Zone Name <span class="req">*</span></label>
+      <input type="text" name="zone_name" class="field-input" required placeholder="Imeko Zone" value="{{ form_data.get('zone_name', '') }}">
+    </div>
+
+    <!-- 2. CHURCHES IN THIS ZONE -->
+    <span class="section-label">Churches in this Zone</span>
+    <p class="churches-section-desc">Add the names of all churches under this zone. You can add more later from your dashboard.</p>
+    
+    <div id="churchRowsContainer">
+      <div class="church-row">
+        <input type="text" name="church_names[]" class="field-input" required placeholder="Zonal HQ" value="{{ form_data.get('church_name_1', '') }}">
+        <button type="button" class="btn-remove" disabled onclick="removeChurchRow(this)">Remove</button>
       </div>
     </div>
 
-    <div class="section-title">2. Zonal Secretary / Superintendent credentials</div>
+    <button type="button" class="btn-add-church" onclick="addChurchRow()">
+      + Add another church
+    </button>
+
+    <!-- 3. ZONAL SECRETARY ACCOUNT -->
+    <span class="section-label" style="margin-top: 28px;">Zonal Secretary Account</span>
     <div class="form-grid">
+      <div class="field-group">
+        <label class="field-label">Full Name <span class="req">*</span></label>
+        <input type="text" name="full_name" class="field-input" required placeholder="Your full name" value="{{ form_data.get('full_name', '') }}">
+      </div>
+      <div class="field-group">
+        <label class="field-label">Email Address (Login) <span class="req">*</span></label>
+        <input type="email" name="email" class="field-input" required placeholder="joshua@gmail.com" value="{{ form_data.get('email', '') }}">
+      </div>
       <div class="field-group full">
-        <label class="field-label">Full Name *</label>
-        <input type="text" name="full_name" class="field-input" required placeholder="e.g. Reverend Samuel Johnson" value="{{ form_data.get('full_name', '') }}">
-      </div>
-      <div class="field-group">
-        <label class="field-label">Email Address *</label>
-        <input type="email" name="email" class="field-input" required placeholder="super@example.com" value="{{ form_data.get('email', '') }}">
-      </div>
-      <div class="field-group">
         <label class="field-label">Phone Number</label>
-        <input type="text" name="phone" class="field-input" placeholder="e.g. 08012345678" value="{{ form_data.get('phone', '') }}">
+        <input type="text" name="phone" class="field-input" placeholder="+234..." value="{{ form_data.get('phone', '') }}">
       </div>
       <div class="field-group">
-        <label class="field-label">Passcode *</label>
-        <input type="password" name="password" class="field-input" required placeholder="Minimum 8 characters">
+        <label class="field-label">Password <span class="req">*</span></label>
+        <input type="password" name="password" class="field-input" required placeholder="........">
       </div>
       <div class="field-group">
-        <label class="field-label">Confirm Passcode *</label>
-        <input type="password" name="confirm_password" class="field-input" required placeholder="Retype passcode">
+        <label class="field-label">Confirm Password <span class="req">*</span></label>
+        <input type="password" name="confirm_password" class="field-input" required placeholder="........">
       </div>
     </div>
 
-    <button type="submit" class="submit-btn">Complete Registration</button>
+    <div class="btn-submit-container">
+      <button type="submit" class="submit-btn">Register Zone</button>
+    </div>
   </form>
-
-  <div class="login-link">
-    Already have an account? <a href="/login">Log in here</a>
-  </div>
 </div>
+
+<div class="login-footer-link">
+  Already registered? <a href="/login">Sign in &rarr;</a>
+</div>
+
+<script>
+function addChurchRow() {
+  const container = document.getElementById('churchRowsContainer');
+  const row = document.createElement('div');
+  row.className = 'church-row';
+  row.innerHTML = `
+    <input type="text" name="church_names[]" class="field-input" required placeholder="Branch Church Name">
+    <button type="button" class="btn-remove" onclick="removeChurchRow(this)">Remove</button>
+  `;
+  container.appendChild(row);
+  updateRemoveButtons();
+}
+
+function removeChurchRow(btn) {
+  const row = btn.closest('.church-row');
+  if (row) {
+    row.remove();
+    updateRemoveButtons();
+  }
+}
+
+function updateRemoveButtons() {
+  const rows = document.querySelectorAll('#churchRowsContainer .church-row');
+  rows.forEach((r, idx) => {
+    const btn = r.querySelector('.btn-remove');
+    if (btn) {
+      btn.disabled = (rows.length === 1);
+    }
+  });
+}
+</script>
 
 </body>
 </html>
+

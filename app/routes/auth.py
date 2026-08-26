@@ -96,7 +96,7 @@ def get_login(request: Request, preview: str = None, db: Session = Depends(get_d
 
                     # Create preview zone
                     zone = Zone(
-                        zone_name="Preview Zone (Isara Zone)",
+                        zone_name="Central Zone",
                         created_by=user.id
                     )
                     db.add(zone)
@@ -106,9 +106,9 @@ def get_login(request: Request, preview: str = None, db: Session = Depends(get_d
                     # Add churches to zone
                     churches_to_add = [
                         ("ZONAL HQTS", 1),
-                        ("ISARA II", 2),
-                        ("IPARA", 3),
-                        ("ODE INTAKE", 4)
+                        ("BRANCH 1", 2),
+                        ("BRANCH 2", 3),
+                        ("BRANCH 3", 4)
                     ]
                     for name, order in churches_to_add:
                         db.add(ZoneChurch(
@@ -121,7 +121,7 @@ def get_login(request: Request, preview: str = None, db: Session = Depends(get_d
                     zone = db.query(Zone).filter(Zone.created_by == user.id).first()
                     if not zone:
                         zone = Zone(
-                            zone_name="Preview Zone (Isara Zone)",
+                            zone_name="Central Zone",
                             created_by=user.id
                         )
                         db.add(zone)
@@ -133,9 +133,9 @@ def get_login(request: Request, preview: str = None, db: Session = Depends(get_d
                 if not existing_churches:
                     churches_to_add = [
                         ("ZONAL HQTS", 1),
-                        ("ISARA II", 2),
-                        ("IPARA", 3),
-                        ("ODE INTAKE", 4)
+                        ("BRANCH 1", 2),
+                        ("BRANCH 2", 3),
+                        ("BRANCH 3", 4)
                     ]
                     for name, order in churches_to_add:
                         db.add(ZoneChurch(
@@ -440,7 +440,7 @@ def get_register_zone(request: Request):
 
 
 @router.post("/register-zone", response_class=HTMLResponse)
-def post_register_zone(
+async def post_register_zone(
     request: Request,
     zone_name: str = Form(None),
     church_list: str = Form(""),
@@ -451,6 +451,9 @@ def post_register_zone(
     confirm_password: str = Form(None),
     db: Session = Depends(get_db)
 ):
+    form_obj = await request.form()
+    church_names_list = form_obj.getlist("church_names[]") or form_obj.getlist("church_names")
+
     form_data = {
         "zone_name": zone_name or "",
         "church_list": church_list or "",
@@ -495,19 +498,24 @@ def post_register_zone(
         db.refresh(zone)
 
         # 3. Add churches to zone
-        churches = [c.strip() for c in church_list.split("\n") if c.strip()]
+        churches = []
+        if church_names_list:
+            churches = [c.strip() for c in church_names_list if c and c.strip()]
+        elif church_list:
+            churches = [c.strip() for c in church_list.split("\n") if c and c.strip()]
+        
         if not churches:
-            churches = ["ZONAL HQTS", "ISARA II", "IPARA", "ODE INTAKE"]  # Fallbacks
+            churches = ["Zonal HQ", "Branch 1", "Branch 2"]  # Generic fallbacks
         
         for i, cname in enumerate(churches):
             db.add(ZoneChurch(
                 zone_id=zone.id,
                 church_name=cname,
-                display_order=i+1
+                display_order=i + 1
             ))
         
         db.commit()
-        return templates.TemplateResponse(request, "register_zone.html", {"error": "", "success": "Zone and admin account registered successfully! You can now log in.", "form_data": {}})
+        return templates.TemplateResponse(request, "register_zone.html", {"error": "", "success": "Zone and Zonal Secretary account registered successfully! You can now log in.", "form_data": {}})
     except Exception as e:
         db.rollback()
         return templates.TemplateResponse(request, "register_zone.html", {"error": f"Registration error: {str(e)}", "success": "", "form_data": form_data})

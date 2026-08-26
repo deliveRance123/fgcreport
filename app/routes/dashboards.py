@@ -112,7 +112,7 @@ def get_zone_dashboard(
     if not zid:
         first_zone = db.query(Zone).first()
         if not first_zone:
-            first_zone = Zone(zone_name="Isara Zone", created_by=uid)
+            first_zone = Zone(zone_name="Central Zone", created_by=uid)
             db.add(first_zone)
             db.commit()
             db.refresh(first_zone)
@@ -134,9 +134,9 @@ def get_zone_dashboard(
     if not zone_churches:
         churches_to_add = [
             ("ZONAL HQTS", 1),
-            ("ISARA II", 2),
-            ("IPARA", 3),
-            ("ODE INTAKE", 4)
+            ("BRANCH 1", 2),
+            ("BRANCH 2", 3),
+            ("BRANCH 3", 4)
         ]
         for name, order in churches_to_add:
             db.add(ZoneChurch(zone_id=zid, church_name=name, display_order=order))

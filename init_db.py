@@ -45,7 +45,7 @@ SITE_SETTINGS_DEFAULTS = {
     'strip_item_4':       'Full report history, always on file',
     'paths_title':        'Two kinds of reporting, one system.',
     'paths_subtitle':     'Your church submits its own monthly report. Your zone compares reports across every church under it. Register for the one that applies to you.',
-    'footer_org_name':    'Foursquare Gospel Church, Isara Zone',
+    'footer_org_name':    'Foursquare Gospel Church Reports Portal',
     'contact_email':      'info@foursquarechurch.org',
     'contact_phone':      '',
     'how_title':          'From paper form to filed report.',
