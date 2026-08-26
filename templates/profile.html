@@ -3,162 +3,540 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>My Profile Settings — Foursquare Reports</title>
+<title>My Profile — Foursquare Reports</title>
 <link rel="icon" type="image/jpeg" href="/assets/logo.jpg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Outfit:wght@600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/assets/style.css">
+<link rel="stylesheet" href="/assets/dashboard.css">
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   :root {
     --navy:       #1A1040;
     --red:        #E31E24;
-    --paper:      #FAF9F6;
-    --card:       #FFFFFF;
-    --line:       #E4E4E7;
-    --ink:        #0D0D12;
-    --ink-soft:   #52525B;
-    --ink-faint:  #9CA3AF;
+    --bg-page:    #F8FAFC;
+    --card-bg:    #FFFFFF;
+    --line-border:#E5E7EB;
+    --text-dark:  #111827;
+    --text-muted: #6B7280;
   }
-  body { font-family: 'Inter', sans-serif; background: var(--paper); color: var(--ink); line-height: 1.6; }
-  .profile-container { max-width: 900px; margin: 40px auto 80px; padding: 0 24px; }
-  .profile-header-card { background: linear-gradient(135deg, var(--navy) 0%, #2E1B6A 100%); border-radius: 16px; padding: 32px 40px; color: #fff; display: flex; align-items: center; justify-content: space-between; gap: 24px; box-shadow: 0 10px 25px rgba(26,16,64,0.15); margin-bottom: 32px; }
-  .profile-user-info { display: flex; align-items: center; gap: 20px; }
-  .avatar-circle { width: 80px; height: 80px; border-radius: 50%; background: #E31E24; color: #fff; font-family: 'Outfit', sans-serif; font-size: 28px; font-weight: 800; display: flex; align-items: center; justify-content: center; border: 3px solid rgba(255,255,255,0.25); box-shadow: 0 4px 12px rgba(0,0,0,0.15); overflow: hidden; flex-shrink: 0; }
-  .avatar-circle img { width: 100%; height: 100%; object-fit: cover; }
-  .user-details h2 { font-family: 'Outfit', sans-serif; font-size: 22px; font-weight: 700; color: #fff; margin-bottom: 2px; }
-  .user-details span { font-size: 12.5px; opacity: 0.8; background: rgba(255,255,255,0.12); padding: 3px 10px; border-radius: 99px; text-transform: uppercase; font-weight: 700; letter-spacing: 0.05em; display: inline-block; margin-top: 4px; }
-  .grid-layout { display: grid; grid-template-columns: 2fr 1.2fr; gap: 32px; }
-  .panel-card { background: var(--card); border-radius: 16px; border: 1px solid var(--line); padding: 32px; box-shadow: 0 4px 12px rgba(0,0,0,0.02); }
-  .panel-title { font-family: 'Outfit', sans-serif; font-size: 18px; font-weight: 700; color: var(--navy); margin-bottom: 20px; border-bottom: 1.5px solid #F4F4F5; padding-bottom: 10px; }
-  .form-row { margin-bottom: 16px; }
-  .form-label { display: block; font-size: 12.5px; font-weight: 600; color: var(--ink-soft); margin-bottom: 6px; }
-  .form-input, .form-textarea { width: 100%; padding: 10px 14px; border: 1.5px solid var(--line); border-radius: 8px; font-size: 13.5px; outline: none; background: #FAFAFA; transition: all 0.15s; font-family: inherit; }
-  .form-input:focus, .form-textarea:focus { border-color: var(--red); box-shadow: 0 0 0 3px rgba(227,30,36,0.08); background: #fff; }
-  .btn-save { padding: 11px 24px; background: var(--red); color: #fff; border: none; border-radius: 8px; font-size: 13.5px; font-weight: 700; cursor: pointer; transition: all 0.15s; }
-  .btn-save:hover { background: #C41920; transform: translateY(-1px); }
-  .error-bar { background: #FEF2F2; border: 1px solid #FECACA; color: #DC2626; border-radius: 8px; padding: 10px 14px; font-size: 13px; font-weight: 500; margin-bottom: 20px; display: flex; align-items: center; gap: 8px; }
-  .success-bar { background: #ECFDF5; border: 1px solid #A7F3D0; color: #047857; border-radius: 8px; padding: 10px 14px; font-size: 13px; font-weight: 500; margin-bottom: 20px; display: flex; align-items: center; gap: 8px; }
+  body {
+    font-family: 'Inter', system-ui, sans-serif;
+    background: var(--bg-page);
+    color: var(--text-dark);
+    margin: 0;
+    display: flex;
+    min-height: 100vh;
+  }
+
+  /* ── Sidebar ── */
+  aside.sidebar {
+    width: 250px;
+    background: #1A1040 !important;
+    min-height: 100vh;
+    padding: 24px 16px;
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+  }
+  .sidebar-brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 0 8px 24px;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+    margin-bottom: 24px;
+  }
+  .sidebar-brand img {
+    width: 34px;
+    height: 34px;
+    border-radius: 7px;
+    object-fit: cover;
+  }
+  .sidebar-brand-text .name {
+    font-family: 'Outfit', sans-serif;
+    font-size: 15px;
+    font-weight: 800;
+    color: #FFFFFF;
+    display: block;
+    line-height: 1.1;
+  }
+  .sidebar-brand-text .sub {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    color: rgba(255,255,255,0.45);
+    text-transform: uppercase;
+    display: block;
+    margin-top: 2px;
+  }
+  .sidebar-nav-label {
+    color: rgba(255,255,255,0.35);
+    font-size: 10px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    padding: 0 8px;
+    margin-bottom: 8px;
+  }
+  .sidebar-nav-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    border-radius: 8px;
+    color: rgba(255,255,255,0.7);
+    text-decoration: none;
+    font-size: 13.5px;
+    font-weight: 600;
+    transition: all 0.15s ease;
+    margin-bottom: 4px;
+  }
+  .sidebar-nav-item:hover {
+    background: rgba(255,255,255,0.08);
+    color: #FFFFFF;
+  }
+  .sidebar-nav-item.active {
+    background: #E31E24;
+    color: #FFFFFF;
+    box-shadow: 0 2px 10px rgba(227,30,36,0.35);
+  }
+  .sidebar-bottom {
+    margin-top: auto;
+    padding-top: 20px;
+    border-top: 1px solid rgba(255,255,255,0.08);
+  }
+  .btn-logout {
+    display: block;
+    width: 100%;
+    text-align: center;
+    padding: 9px 12px;
+    border-radius: 8px;
+    color: rgba(255,255,255,0.55);
+    text-decoration: none;
+    font-size: 12.5px;
+    font-weight: 600;
+    margin-top: 4px;
+    transition: all 0.15s;
+  }
+  .btn-logout:hover {
+    background: rgba(255,255,255,0.08);
+    color: #FFFFFF;
+  }
+
+  /* ── Main Workspace ── */
+  main.profile-main {
+    flex: 1;
+    padding: 36px 44px;
+    max-width: 1100px;
+    overflow-y: auto;
+  }
+  .profile-top-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 28px;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .profile-top-header h1 {
+    font-family: 'Outfit', sans-serif;
+    font-size: 24px;
+    font-weight: 800;
+    color: #1A1040;
+    margin: 0;
+  }
+  .profile-top-header p {
+    font-size: 13.5px;
+    color: #6B7280;
+    margin: 0;
+  }
+
+  /* ── User Overview Card ── */
+  .user-overview-card {
+    background: #FFFFFF;
+    border: 1px solid var(--line-border);
+    border-radius: 16px;
+    padding: 24px 28px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    margin-bottom: 24px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  }
+  .user-avatar-circle {
+    width: 70px;
+    height: 70px;
+    border-radius: 50%;
+    background: #111827;
+    color: #FFFFFF;
+    font-family: 'Outfit', sans-serif;
+    font-size: 28px;
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+  .user-avatar-circle img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .user-overview-details h2 {
+    font-family: 'Outfit', sans-serif;
+    font-size: 20px;
+    font-weight: 800;
+    color: #111827;
+    margin: 0 0 6px 0;
+  }
+  .badge-role {
+    background: #F3F4F6;
+    color: #4B5563;
+    font-size: 10.5px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 4px 10px;
+    border-radius: 99px;
+    display: inline-block;
+    margin-right: 6px;
+  }
+  .badge-status {
+    background: #ECFDF5;
+    color: #047857;
+    font-size: 10.5px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 4px 10px;
+    border-radius: 99px;
+    display: inline-block;
+  }
+  .member-since {
+    font-size: 12.5px;
+    color: #9CA3AF;
+    margin-top: 6px;
+    margin-bottom: 0;
+  }
+
+  /* ── Form Section Cards ── */
+  .profile-section-card {
+    background: #FFFFFF;
+    border: 1px solid var(--line-border);
+    border-radius: 16px;
+    padding: 28px 32px;
+    margin-bottom: 24px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  }
+  .section-card-title {
+    font-family: 'Outfit', sans-serif;
+    font-size: 16px;
+    font-weight: 700;
+    color: #111827;
+    margin-bottom: 22px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .form-grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px 20px;
+    margin-bottom: 16px;
+  }
+  .form-field-group {
+    display: flex;
+    flex-direction: column;
+  }
+  .form-field-group.full {
+    grid-column: 1 / -1;
+  }
+  .form-label {
+    font-size: 12.5px;
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 6px;
+  }
+  .form-input, .form-textarea {
+    width: 100%;
+    padding: 10px 14px;
+    border: 1.5px solid var(--line-border);
+    border-radius: 8px;
+    font-size: 13.5px;
+    color: #111827;
+    background: #FFFFFF;
+    transition: all 0.15s ease;
+    outline: none;
+    font-family: inherit;
+  }
+  .form-input:focus, .form-textarea:focus {
+    border-color: #E31E24;
+    box-shadow: 0 0 0 3px rgba(227,30,36,0.08);
+  }
+  .form-hint {
+    font-size: 11.5px;
+    color: #6B7280;
+    margin-top: 5px;
+  }
+  .btn-save-profile {
+    background: #111827;
+    color: #FFFFFF;
+    border: none;
+    border-radius: 8px;
+    padding: 10px 22px;
+    font-size: 13.5px;
+    font-weight: 700;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.15s ease;
+    margin-top: 8px;
+  }
+  .btn-save-profile:hover {
+    background: #1F2937;
+  }
+  .btn-update-pwd {
+    background: #E31E24;
+    color: #FFFFFF;
+    border: none;
+    border-radius: 8px;
+    padding: 10px 22px;
+    font-size: 13.5px;
+    font-weight: 700;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.15s ease;
+    margin-top: 8px;
+  }
+  .btn-update-pwd:hover {
+    background: #CC161C;
+  }
+  .back-dash-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13.5px;
+    font-weight: 600;
+    color: #6366F1;
+    text-decoration: none;
+    margin-top: 8px;
+    margin-bottom: 24px;
+  }
+  .back-dash-link:hover {
+    text-decoration: underline;
+  }
+  .alert-box {
+    padding: 11px 14px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 500;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .alert-error {
+    background: #FEF2F2;
+    border: 1px solid #FECACA;
+    color: #DC2626;
+  }
+  .alert-success {
+    background: #ECFDF5;
+    border: 1px solid #A7F3D0;
+    color: #047857;
+  }
   @media (max-width: 768px) {
-    .grid-layout { grid-template-columns: 1fr; }
-    .profile-header-card { flex-direction: column; text-align: center; padding: 24px; }
-    .profile-user-info { flex-direction: column; }
+    body { flex-direction: column; }
+    aside.sidebar { width: 100%; min-height: auto; }
+    main.profile-main { padding: 24px 16px; }
+    .form-grid-2 { grid-template-columns: 1fr; }
+    .form-field-group.full { grid-column: 1; }
   }
 </style>
 </head>
-<body class="has-header">
+<body>
 
-{% include 'includes/header.html' %}
-
-<div class="profile-container">
-
-  <!-- Header Card -->
-  <div class="profile-header-card">
-    <div class="profile-user-info">
-      <div class="avatar-circle">
-        {% if user.profile_photo %}
-          <img src="/{{ user.profile_photo }}" alt="Profile Photo">
-        {% else %}
-          {{ initials }}
-        {% endif %}
-      </div>
-      <div class="user-details">
-        <h2>{{ user.full_name }}</h2>
-        <span>{{ user.role.replace('_', ' ').upper() }}</span>
-      </div>
-    </div>
-    <div>
-      {% if user.role == "church_admin" %}
-        <a href="/church-dashboard" class="btn btn-outline" style="font-size:12.5px; padding:8px 18px;">Dashboard</a>
-      {% elif user.role == "zonal_admin" %}
-        <a href="/zone-dashboard" class="btn btn-outline" style="font-size:12.5px; padding:8px 18px;">Dashboard</a>
-      {% elif user.role == "super_admin" %}
-        <a href="/admin-dashboard" class="btn btn-outline" style="font-size:12.5px; padding:8px 18px;">Dashboard</a>
-      {% endif %}
+<!-- ═══ SIDEBAR ═══════════════════════════════════════════ -->
+<aside class="sidebar">
+  <div class="sidebar-brand">
+    <img src="/assets/logo.jpg" alt="Logo">
+    <div class="sidebar-brand-text">
+      <span class="name">Foursquare</span>
+      <span class="sub">REPORTS</span>
     </div>
   </div>
 
+  <div class="sidebar-nav-label">Navigation</div>
+  
+  {% if user.role == "church_admin" %}
+    <a href="/church-dashboard" class="sidebar-nav-item">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+      Church Dashboard
+    </a>
+  {% elif user.role == "zonal_admin" %}
+    <a href="/zone-dashboard" class="sidebar-nav-item">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+      Zone Dashboard
+    </a>
+  {% elif user.role == "super_admin" %}
+    <a href="/admin-dashboard" class="sidebar-nav-item">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+      Admin Dashboard
+    </a>
+  {% endif %}
+
+  <div class="sidebar-bottom">
+    <a href="/profile" class="sidebar-nav-item active">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      My Profile
+    </a>
+    <a href="/logout" class="btn-logout">Log out</a>
+  </div>
+</aside>
+
+<!-- ═══ MAIN WORKSPACE ═══════════════════════════════════ -->
+<main class="profile-main">
+  
+  <div class="profile-top-header">
+    <h1>My Profile</h1>
+    <p>Manage your account information and password.</p>
+  </div>
+
   {% if errorMsg %}
-  <div class="error-bar">
+  <div class="alert-box alert-error">
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
     {{ errorMsg }}
   </div>
   {% endif %}
 
   {% if successMsg %}
-  <div class="success-bar">
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M22 12A10 10 0 1 1 12 2v10z"/></svg>
+  <div class="alert-box alert-success">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
     {{ successMsg }}
   </div>
   {% endif %}
 
-  <div class="grid-layout">
-    
-    <!-- Profile details -->
-    <div class="panel-card">
-      <div class="panel-title">Personal Information</div>
-      <form method="POST" action="/profile" enctype="multipart/form-data">
-        <input type="hidden" name="action" value="update_profile">
-        
-        <div class="form-row">
-          <label class="form-label">Full Name *</label>
+  <!-- 1. User Identity Overview Card -->
+  <div class="user-overview-card">
+    <div class="user-avatar-circle">
+      {% if user.profile_photo %}
+        <img src="/{{ user.profile_photo }}" alt="Profile Photo">
+      {% else %}
+        {{ initials or (user.full_name[:1] if user.full_name else 'U') }}
+      {% endif %}
+    </div>
+    <div class="user-overview-details">
+      <h2>{{ user.full_name }}</h2>
+      <div>
+        <span class="badge-role">
+          {% if user.role == 'church_admin' %}Church Secretary Admin
+          {% elif user.role == 'zonal_admin' %}Zonal Secretary Admin
+          {% elif user.role == 'super_admin' %}Super Administrator
+          {% else %}{{ user.role.replace('_', ' ') }}
+          {% endif %}
+        </span>
+        <span class="badge-status">ACTIVE</span>
+      </div>
+      <p class="member-since">Member since {{ user.created_at.strftime('%B %Y') if user.created_at else 'July 2026' }}</p>
+    </div>
+  </div>
+
+  <!-- 2. Personal Information Card -->
+  <div class="profile-section-card">
+    <div class="section-card-title">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      Personal Information
+    </div>
+
+    <form method="POST" action="/profile" enctype="multipart/form-data">
+      <input type="hidden" name="action" value="update_profile">
+
+      <div class="form-field-group full" style="margin-bottom: 18px;">
+        <label class="form-label">Profile Photo</label>
+        <input type="file" name="profile_photo" class="form-input" accept=".jpg,.jpeg,.png,.webp,.gif">
+        <span class="form-hint">Upload a profile picture so other users &amp; admins recognize you in Live Chat. Allowed: JPG, PNG, WEBP, GIF.</span>
+      </div>
+
+      <div class="form-grid-2">
+        <div class="form-field-group">
+          <label class="form-label">Full Name</label>
           <input type="text" name="full_name" class="form-input" required value="{{ user.full_name }}">
         </div>
-
-        <div class="form-row">
-          <label class="form-label">Email Address *</label>
+        <div class="form-field-group">
+          <label class="form-label">Email Address</label>
           <input type="email" name="email" class="form-input" required value="{{ user.email }}">
         </div>
-
-        <div class="form-row">
+        <div class="form-field-group">
           <label class="form-label">Phone Number</label>
           <input type="text" name="phone" class="form-input" value="{{ user.phone or '' }}">
         </div>
-
-        <div class="form-row">
-          <label class="form-label">Biography / Role details</label>
-          <textarea name="bio" rows="4" class="form-textarea" placeholder="Describe your title, church assignment, or general notes...">{{ user.bio or '' }}</textarea>
+        <div class="form-field-group">
+          <label class="form-label">Role</label>
+          <input type="text" disabled class="form-input" style="background:#F9FAFB; color:#6B7280;" value="{% if user.role == 'church_admin' %}Church Secretary Admin{% elif user.role == 'zonal_admin' %}Zonal Secretary Admin{% elif user.role == 'super_admin' %}Super Administrator{% else %}{{ user.role.replace('_', ' ') }}{% endif %}">
         </div>
-
-        <div class="form-row">
-          <label class="form-label">Upload Profile Photo</label>
-          <input type="file" name="profile_photo" class="form-input" accept=".jpg,.jpeg,.png,.webp,.gif">
-          <small style="color:var(--ink-faint); font-size:11px; margin-top:4px; display:block;">Allowed files: PNG, JPG, JPEG, WEBP. Maximum size 3MB.</small>
+        <div class="form-field-group full">
+          <label class="form-label">Bio / Notes</label>
+          <textarea name="bio" rows="3" class="form-textarea" placeholder="A short description about yourself...">{{ user.bio or '' }}</textarea>
         </div>
+      </div>
 
-        <button type="submit" class="btn-save">Save Profile Changes</button>
-      </form>
-    </div>
-
-    <!-- Security details -->
-    <div class="panel-card">
-      <div class="panel-title">Change Passcode</div>
-      <form method="POST" action="/profile">
-        <input type="hidden" name="action" value="change_password">
-
-        <div class="form-row">
-          <label class="form-label">Current Passcode</label>
-          <input type="password" name="current_password" class="form-input" required placeholder="••••••••">
-        </div>
-
-        <div class="form-row">
-          <label class="form-label">New Passcode</label>
-          <input type="password" name="new_password" class="form-input" required placeholder="Minimum 8 characters">
-        </div>
-
-        <div class="form-row">
-          <label class="form-label">Confirm New Passcode</label>
-          <input type="password" name="confirm_password" class="form-input" required placeholder="Retype new passcode">
-        </div>
-
-        <button type="submit" class="btn-save" style="width: 100%;">Change Passcode</button>
-      </form>
-    </div>
-
+      <button type="submit" class="btn-save-profile">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+        Save Profile
+      </button>
+    </form>
   </div>
-</div>
+
+  <!-- 3. Change Password Card -->
+  <div class="profile-section-card">
+    <div class="section-card-title">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      Change Password
+    </div>
+
+    <form method="POST" action="/profile">
+      <input type="hidden" name="action" value="change_password">
+
+      <div class="form-field-group full" style="margin-bottom: 16px;">
+        <label class="form-label">Current Password</label>
+        <input type="password" name="current_password" class="form-input" required placeholder="Enter current password">
+      </div>
+
+      <div class="form-grid-2">
+        <div class="form-field-group">
+          <label class="form-label">New Password</label>
+          <input type="password" name="new_password" class="form-input" required placeholder="Min. 8 characters">
+        </div>
+        <div class="form-field-group">
+          <label class="form-label">Confirm New Password</label>
+          <input type="password" name="confirm_password" class="form-input" required placeholder="Repeat new password">
+        </div>
+      </div>
+
+      <button type="submit" class="btn-update-pwd">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        Update Password
+      </button>
+    </form>
+  </div>
+
+  {% if user.role == "church_admin" %}
+    <a href="/church-dashboard" class="back-dash-link">&larr; Church Dashboard</a>
+  {% elif user.role == "zonal_admin" %}
+    <a href="/zone-dashboard" class="back-dash-link">&larr; Zone Dashboard</a>
+  {% elif user.role == "super_admin" %}
+    <a href="/admin-dashboard" class="back-dash-link">&larr; Admin Dashboard</a>
+  {% endif %}
+
+</main>
 
 {% include 'includes/chat_widget.html' %}
 </body>
 </html>
+

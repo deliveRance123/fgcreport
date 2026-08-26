@@ -214,13 +214,14 @@
   <!-- ══ MAIN ══ -->
   <main class="main">
 
-    <!-- Breadcrumb -->
-    <div class="breadcrumb">
-      <strong>{{ church.name }}</strong>
-      <span>•</span>
-      {{ church.district or 'Lagos District' }}
-      <span>•</span>
-      {{ church.church_type.upper() }} Church
+    <!-- Welcome Back Top Greeting -->
+    <div style="margin-bottom: 24px;">
+      <h1 style="font-family: 'Outfit', sans-serif; font-size: 26px; font-weight: 800; color: #1A1040; margin-bottom: 4px;">
+        Welcome back, {{ (user.full_name.split()[0] if user.full_name else 'Pastor') | lower }}!
+      </h1>
+      <p style="font-size: 13.5px; color: #6B7280;">
+        {{ church.name }} &bull; {{ church.district or 'District' }} &bull; {{ church.church_type }} Church
+      </p>
     </div>
 
     {% if error %}
