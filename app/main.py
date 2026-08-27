@@ -148,13 +148,14 @@ def startup_event():
         print(f"[Startup] Database setup warning: {e}")
 
 # Import routes (we will create these routers in the next steps)
-from app.routes import auth, dashboards, reports, chat, payments
+from app.routes import auth, dashboards, reports, chat, payments, stats_api
 
 app.include_router(auth.router)
 app.include_router(dashboards.router)
 app.include_router(reports.router)
 app.include_router(chat.router)
 app.include_router(payments.router)
+app.include_router(stats_api.router)
 
 # Root landing page route
 @app.get("/")

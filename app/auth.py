@@ -104,6 +104,7 @@ def login_user(request: Request, user: User, db: Session) -> None:
     request.session["role"] = user.role
     request.session["full_name"] = user.full_name
     request.session["email"] = user.email
+    request.session["profile_photo"] = user.profile_photo
 
     # Pre-resolve entity IDs based on role
     if user.role == "church_admin":

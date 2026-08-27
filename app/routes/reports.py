@@ -17,6 +17,8 @@ from app.utils import (
     moneyRound, toFloat, toInt, pctDiff, monthName, 
     canUserCreateReport, sendAppEmail, render_pdf
 )
+from app.services.calculation_engine import CalculationValidationError, sanitize_money, validate_report_period, validate_church_type
+
 
 router = APIRouter()
 
@@ -331,7 +333,37 @@ async def post_church_report(
                     locked_keys.append(d.due_key)
                 base_fields[d.due_key] = d.base_field
 
+        # ── Feature 5: Pre-Calculation Input Validation ──────────────────────────
+        #    Runs BEFORE any formula calculation. Any CalculationValidationError
+        #    is caught by the outer except block and returned as a redirect error.
+        validate_report_period(r_month, r_year)
+        if church:
+            validate_church_type(church.church_type)
+
+        # Validate primary revenue fields (negative receipts are not valid)
+        _val_receipt_fields = [
+            "general_tithe_naira", "general_tithe_kobo",
+            "minister_tithe_naira", "minister_tithe_kobo",
+            "worship_offerings_naira", "worship_offerings_kobo",
+            "missionary_offerings_naira", "midweek_offerings_naira",
+            "sunday_school_offerings_naira", "thanksgiving_offerings_naira",
+            "love_welfare_offerings_naira", "building_pledge_offerings_naira",
+            "church_pioneering_receipts_naira", "donation_other_churches_naira",
+            "other_pledges_naira", "seed_faith_naira", "staff_loans_repayment_naira",
+            "loan_cash_deposit_naira", "pastor_pension_5pct_naira",
+            "national_grant_naira", "convention_pledges_naira",
+            "special_projects_naira", "decade_multiplication_receipts_naira",
+            "third_sunday_offering_naira",
+            "cash_in_hand_bank_naira", "investment_naira", "outstanding_loan_naira",
+        ]
+        for _f in _val_receipt_fields:
+            sanitize_money(form_data.get(_f, 0), _f, allow_negative=False)
+
+        # balance_last_month IS allowed to be negative (deficit carry-forward)
+        sanitize_money(form_data.get("balance_last_month_naira", 0), "balance_last_month_naira", allow_negative=True)
+
         # Extract numerical inputs safely
+
         general_tithe = moneyRound(toFloat(form_data.get("general_tithe_naira", 0)) + (toFloat(form_data.get("general_tithe_kobo", 0)) / 100))
         minister_tithe = moneyRound(toFloat(form_data.get("minister_tithe_naira", 0)) + (toFloat(form_data.get("minister_tithe_kobo", 0)) / 100))
         worship_offerings = moneyRound(toFloat(form_data.get("worship_offerings_naira", 0)) + (toFloat(form_data.get("worship_offerings_kobo", 0)) / 100))
@@ -488,8 +520,55 @@ async def post_church_report(
 
         outstanding_loan = moneyRound(toFloat(form_data.get("outstanding_loan_naira", 0)) + (toFloat(form_data.get("outstanding_loan_kobo", 0)) / 100))
 
+        # ── Feature 5 + 3: Post-Calculation Invariant Verification ───────────────
+        #    Verifies all calculated totals are consistent with their source formulas.
+        #    If any invariant fails the report is NOT saved — no false "success" response.
+        _other_receipts_sum = moneyRound(
+            missionary_offerings + midweek_offerings + sunday_school_offerings +
+            thanksgiving_offerings + love_welfare_offerings + building_pledge_offerings +
+            church_pioneering_receipts + donation_other_churches + other_pledges +
+            seed_faith + staff_loans_repayment + loan_cash_deposit + pastor_pension_5pct +
+            national_grant + convention_pledges + special_projects +
+            decade_multiplication_receipts + third_sunday_offering
+        )
+        _expected_total_receipts = moneyRound(subtotal_ac + _other_receipts_sum)
+        if abs(total_receipts - _expected_total_receipts) > 0.02:
+            raise CalculationValidationError(
+                f"Receipts invariant failed: total_receipts={total_receipts:.2f} "
+                f"!= subtotal_ac({subtotal_ac:.2f}) + other_receipts({_other_receipts_sum:.2f})"
+            )
+
+        _expected_payable = moneyRound(national_dues_total + regional_dues + district_dues + zonal_dues + life_dues)
+        if abs(payable - _expected_payable) > 0.02:
+            raise CalculationValidationError(
+                f"Payable invariant failed: payable={payable:.2f} "
+                f"!= national+regional+district+zonal+life = {_expected_payable:.2f}"
+            )
+
+        _expected_total_payment = moneyRound(payable + total_emoluments + general_expenses + fixed_assets_subtotal)
+        if abs(total_payment - _expected_total_payment) > 0.02:
+            raise CalculationValidationError(
+                f"Total payment invariant failed: {total_payment:.2f} "
+                f"!= payable+emoluments+expenses+fixed = {_expected_total_payment:.2f}"
+            )
+
+        _expected_surplus = moneyRound(total_receipts - total_payment)
+        if abs(balance_surplus_deficit - _expected_surplus) > 0.02:
+            raise CalculationValidationError(
+                f"Balance surplus/deficit invariant failed: {balance_surplus_deficit:.2f} "
+                f"!= total_receipts - total_payment = {_expected_surplus:.2f}"
+            )
+
+        _expected_balance_this_month = moneyRound(balance_surplus_deficit + balance_last_month)
+        if abs(balance_this_month - _expected_balance_this_month) > 0.02:
+            raise CalculationValidationError(
+                f"Balance this month invariant failed: {balance_this_month:.2f} "
+                f"!= surplus_deficit + balance_last_month = {_expected_balance_this_month:.2f}"
+            )
+
         # Status
         status = "submitted" if action == "submit" else "draft"
+
 
         # Update Financial report
         fin_report.general_tithe = general_tithe
@@ -672,9 +751,14 @@ async def post_church_report(
 
         return RedirectResponse(url=f"/church-report?month={r_month}&year={r_year}&church_id={cid}&msg=" + quote(successMsg), status_code=303)
 
+    except CalculationValidationError as ve:
+        db.rollback()
+        return RedirectResponse(url=f"/church-report?month={r_month}&year={r_year}&church_id={cid}&error=" + quote(f"Validation Error: {str(ve)}"), status_code=303)
+
     except Exception as e:
         db.rollback()
         return RedirectResponse(url=f"/church-report?month={r_month}&year={r_year}&church_id={cid}&error=" + quote(f"Error saving report: {str(e)}"), status_code=303)
+
 
 
 @router.get("/zonal-reports", response_class=HTMLResponse)

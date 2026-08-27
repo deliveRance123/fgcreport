@@ -299,6 +299,7 @@ async def post_profile(
                     
                     db.commit()
                     request.session["full_name"] = user.full_name
+                    request.session["profile_photo"] = user.profile_photo
                     successMsg = "Profile updated successfully!"
                 except Exception as e:
                     db.rollback()

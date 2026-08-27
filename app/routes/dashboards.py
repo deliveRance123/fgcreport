@@ -67,6 +67,12 @@ def get_church_dashboard(request: Request, error: str = "", msg: str = "", db: S
             latest_month_newcomers = sp.total_new_comers or 0
             latest_month_members = sp.intake_total or 0
 
+    # Stat card values for current/latest report period
+    total_receipts_current = float(latest_report.total_receipts or 0) if latest_report else 0.0
+    total_dues_current = float(latest_report.payable or 0) if latest_report else 0.0
+    newcomers_count_current = latest_month_newcomers
+    total_membership_count = latest_month_members
+
     error_msg = error or request.query_params.get("error", "")
     success_msg = msg or request.query_params.get("msg", "")
 
@@ -89,6 +95,10 @@ def get_church_dashboard(request: Request, error: str = "", msg: str = "", db: S
             "ytdReceipts": ytd_receipts,
             "latestMonthNewcomers": latest_month_newcomers,
             "latestMonthMembers": latest_month_members,
+            "total_receipts_current": total_receipts_current,
+            "total_dues_current": total_dues_current,
+            "newcomers_count_current": newcomers_count_current,
+            "total_membership_count": total_membership_count,
             "error": error_msg,
             "msg": success_msg,
         }
@@ -354,6 +364,9 @@ def get_admin_dashboard(
     success_msg = request.query_params.get("msg", "")
     error_msg = request.query_params.get("error", "")
 
+    active_hero_video = db.query(HeroVideo).filter_by(is_active=True).order_by(HeroVideo.id.desc()).first()
+    active_showcase_video = db.query(HeroShowcaseVideo).filter_by(is_active=True).order_by(HeroShowcaseVideo.id.desc()).first()
+
     return templates.TemplateResponse(
         request,
         "admin-dashboard.html",
@@ -377,6 +390,8 @@ def get_admin_dashboard(
             "audit_logs": audit_logs,
             "hero_vids": hero_vids,
             "showcase_vids": showcase_vids,
+            "active_hero_video": active_hero_video,
+            "active_showcase_video": active_showcase_video,
             "faqs": faqs,
             "site_settings": site_settings,
             "msg": success_msg,
@@ -411,8 +426,6 @@ async def post_admin_dashboard(
                 old_val = float(setting.percentage_value or 0)
                 current_lock = int(setting.is_locked or 0)
 
-                # lock submitted is checkbox: present means unlocked (0), absent means locked (1)
-                # or direct locks[id]
                 new_lock = 0 if form_data.get(f"locks[{sid}]") else 1
                 lock_changed = (current_lock != new_lock)
 
@@ -512,6 +525,38 @@ async def post_admin_dashboard(
 
             db.commit()
             msg = "Site settings updated successfully!"
+
+        elif action == "delete_hero_video":
+            redirect_page = "settings"
+            hero_vids = db.query(HeroVideo).all()
+            for hv in hero_vids:
+                if hv.video_path and os.path.exists(hv.video_path):
+                    try:
+                        os.remove(hv.video_path)
+                    except Exception:
+                        pass
+                db.delete(hv)
+            url_setting = db.query(SiteSetting).filter_by(setting_key="hero_video_url").first()
+            if url_setting:
+                url_setting.setting_value = ""
+            db.commit()
+            msg = "Hero background video removed successfully!"
+
+        elif action == "delete_showcase_video":
+            redirect_page = "settings"
+            showcase_vids = db.query(HeroShowcaseVideo).all()
+            for sv in showcase_vids:
+                if sv.video_path and os.path.exists(sv.video_path):
+                    try:
+                        os.remove(sv.video_path)
+                    except Exception:
+                        pass
+                db.delete(sv)
+            url_setting = db.query(SiteSetting).filter_by(setting_key="showcase_video_url").first()
+            if url_setting:
+                url_setting.setting_value = ""
+            db.commit()
+            msg = "Showcase video removed successfully! Default Foursquare logo fallback is now active."
 
         elif action == "update_user_status":
             redirect_page = "users"

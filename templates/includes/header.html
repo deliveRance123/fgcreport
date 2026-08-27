@@ -31,15 +31,25 @@
         <!-- User Profile Dropdown -->
         <div class="profile-dropdown">
           <button class="profile-trigger" id="profileTrigger" aria-label="User Profile">
-            <span class="profile-avatar">{{ initials }}</span>
+            {% if request.session.get('profile_photo') %}
+              <img src="/{{ request.session.get('profile_photo') }}" alt="{{ initials }}" class="profile-avatar" style="object-fit: cover; border-radius: 50%;">
+            {% else %}
+              <span class="profile-avatar">{{ initials }}</span>
+            {% endif %}
             <span class="profile-arrow">&#9662;</span>
           </button>
           <div class="profile-dropdown-menu" id="profileMenu">
             <div class="dropdown-user-info">
               <strong>{{ user_name }}</strong>
-              <span>{{ request.session.get("email", "") }}</span>
             </div>
             <hr>
+            {% if role == 'super_admin' %}
+              <a href="/admin-dashboard" class="dropdown-item">Dashboard</a>
+            {% elif role == 'zonal_admin' %}
+              <a href="/zone-dashboard" class="dropdown-item">Dashboard</a>
+            {% elif role == 'church_admin' %}
+              <a href="/church-dashboard" class="dropdown-item">Dashboard</a>
+            {% endif %}
             <a href="/profile" class="dropdown-item">Profile</a>
             <a href="/profile" class="dropdown-item">Settings</a>
             <hr>
@@ -71,10 +81,13 @@
     <nav class="nav-menu" id="navMenu">
       {% if is_logged %}
         <div class="mobile-user-profile">
-          <div class="mobile-avatar">{{ initials }}</div>
+          {% if request.session.get('profile_photo') %}
+            <img src="/{{ request.session.get('profile_photo') }}" alt="{{ initials }}" class="mobile-avatar" style="object-fit: cover; border-radius: 50%;">
+          {% else %}
+            <div class="mobile-avatar">{{ initials }}</div>
+          {% endif %}
           <div class="mobile-user-details">
             <strong>{{ user_name }}</strong>
-            <span>{{ request.session.get("email", "") }}</span>
           </div>
         </div>
         <hr>

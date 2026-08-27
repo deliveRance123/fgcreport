@@ -297,11 +297,11 @@
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#E31E24" stroke-width="2.2"><path d="M6 4v16M18 4v16M6 4l12 16M4 10h16M4 14h16"/></svg>
           </div>
           {% if latestReport %}
-            <span class="pill-status pill-{{ latestReport.status }}">{{ latestReport.status }}</span>
+            <span class="pill-status pill-{{ latestReport.status }}" id="stat-latest-status">{{ latestReport.status }}</span>
           {% endif %}
         </div>
-        <div class="stat-value">₦{{ total_receipts_current|format_naira }}</div>
-        <div class="stat-label">Total receipts {% if latestReport %}{{ latestReport.report_month|month_name }} {{ latestReport.report_year }}{% else %}this month{% endif %}</div>
+        <div class="stat-value" id="stat-receipts">₦{{ total_receipts_current|format_naira }}</div>
+        <div class="stat-label">Total receipts {% if latestReport %}<span id="stat-period">{{ latestReport.report_month|month_name }} {{ latestReport.report_year }}</span>{% else %}this month{% endif %}</div>
       </div>
 
       <div class="stat-card-item dues">
@@ -310,7 +310,7 @@
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#2E1B6A" stroke-width="2.2"><path d="M6 4v16M18 4v16M6 4l12 16M4 10h16M4 14h16"/></svg>
           </div>
         </div>
-        <div class="stat-value">₦{{ total_dues_current|format_naira }}</div>
+        <div class="stat-value" id="stat-dues">₦{{ total_dues_current|format_naira }}</div>
         <div class="stat-label">Total dues payable</div>
       </div>
 
@@ -320,7 +320,7 @@
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#D97706" stroke-width="2.2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="17" y1="11" x2="23" y2="11"/></svg>
           </div>
         </div>
-        <div class="stat-value">{{ newcomers_count_current }}</div>
+        <div class="stat-value" id="stat-newcomers">{{ newcomers_count_current }}</div>
         <div class="stat-label">New comers this month</div>
       </div>
 
@@ -330,7 +330,7 @@
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#8B5CF6" stroke-width="2.2"><path d="M17 21v-2a4 4 0 0 0-3-3.87"/><path d="M9 21v-2a4 4 0 0 0-4-4H3a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
           </div>
         </div>
-        <div class="stat-value">{{ total_membership_count }}</div>
+        <div class="stat-value" id="stat-members">{{ total_membership_count }}</div>
         <div class="stat-label">Total church membership</div>
       </div>
     </div>
@@ -399,6 +399,46 @@
   if (toggle) toggle.addEventListener('click', function() {
     document.body.classList.toggle('mobile-open');
   });
+
+  // ── REAL-TIME STATS POLLING ──────────────────────────────────────────────
+  function fmtNaira(n) {
+    if (n === null || n === undefined) return '₦0.00';
+    return '₦' + Number(n).toLocaleString('en-NG', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+  }
+
+  function pulse(el) {
+    if (!el) return;
+    el.style.transition = 'opacity 0.2s';
+    el.style.opacity = '0.4';
+    setTimeout(function() { el.style.opacity = '1'; }, 220);
+  }
+
+  function fetchChurchStats() {
+    fetch('/api/stats/church')
+      .then(function(r) { return r.json(); })
+      .then(function(d) {
+        if (d.error) return;
+
+        var elR = document.getElementById('stat-receipts');
+        var elD = document.getElementById('stat-dues');
+        var elN = document.getElementById('stat-newcomers');
+        var elM = document.getElementById('stat-members');
+        var elS = document.getElementById('stat-latest-status');
+
+        if (elR && elR.textContent !== fmtNaira(d.total_receipts)) { pulse(elR); elR.textContent = fmtNaira(d.total_receipts); }
+        if (elD && elD.textContent !== fmtNaira(d.total_dues))     { pulse(elD); elD.textContent = fmtNaira(d.total_dues); }
+        if (elN && elN.textContent != d.newcomers)                  { pulse(elN); elN.textContent = d.newcomers; }
+        if (elM && elM.textContent != d.total_members)              { pulse(elM); elM.textContent = d.total_members; }
+        if (elS && d.latest_status && elS.textContent.trim() !== d.latest_status) {
+          elS.textContent = d.latest_status;
+          elS.className = 'pill-status pill-' + d.latest_status;
+        }
+      })
+      .catch(function() {});
+  }
+
+  // Poll every 30 seconds
+  setInterval(fetchChurchStats, 30000);
 })();
 </script>
 </body>
