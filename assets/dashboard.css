@@ -297,22 +297,24 @@
   z-index: 500;
   background: #FAF9F6;
   border-bottom: 1px solid #E5E7EB;
-  padding: 14px 0;
-  margin-bottom: 24px;
+  padding-top: 32px !important;
+  padding-bottom: 18px !important;
+  padding-left: 40px !important;
+  padding-right: 40px !important;
+  margin-bottom: 30px !important;
   display: flex !important;
   align-items: center !important;
   justify-content: space-between !important;
   gap: 16px !important;
   flex-wrap: nowrap !important;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.03);
   /* Bleed to align with edges */
-  margin-left: -40px;
-  margin-right: -40px;
-  padding-left: 40px;
-  padding-right: 40px;
+  margin-left: -40px !important;
+  margin-right: -40px !important;
   width: calc(100% + 80px) !important;
   box-sizing: border-box;
 }
+
 .dash-topbar-left {
   display: flex;
   flex-direction: column;
@@ -645,12 +647,15 @@
     margin-right: -14px !important;
     padding-left: 14px !important;
     padding-right: 14px !important;
-    padding-top: 10px !important;
-    padding-bottom: 10px !important;
+    padding-top: 18px !important;
+    padding-bottom: 14px !important;
+    margin-bottom: 20px !important;
     z-index: 490;
     flex-wrap: nowrap !important;
     gap: 8px !important;
+    width: calc(100% + 28px) !important;
   }
+
   .dash-topbar-left h1 {
     font-size: 16px !important;
     white-space: nowrap;
