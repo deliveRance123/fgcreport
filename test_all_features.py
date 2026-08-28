@@ -26,6 +26,22 @@ def run_tests():
         assert r.status_code == 200, f"{path} failed: {r.status_code}"
         print(f"  [PASS] {path:<20} -> 200 OK")
 
+    # Test registration redirect to login
+    import time
+    ts = int(time.time())
+    r_reg_church = client.post("/register-church", data={
+        "church_name": f"Test Church {ts}",
+        "district": "Lagos",
+        "church_type": "chartered",
+        "full_name": f"Pastor Test {ts}",
+        "email": f"pastor_{ts}@test.org",
+        "password": "Password123!",
+        "confirm_password": "Password123!"
+    }, follow_redirects=False)
+    assert r_reg_church.status_code in [302, 303], f"Expected redirect on registration: {r_reg_church.status_code}"
+    assert "/login" in r_reg_church.headers.get("location", "")
+    print("  [PASS] /register-church (POST) -> 303 Redirect to /login")
+
     print("\n=== 4. Testing Zonal Admin Dashboard & Zonal Reports ===")
     # Login as zone_admin
     r_login = client.get("/login?preview=zonal_admin", follow_redirects=False)

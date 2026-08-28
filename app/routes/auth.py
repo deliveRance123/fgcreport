@@ -1,4 +1,5 @@
 import os
+from urllib.parse import quote
 from fastapi import APIRouter, Request, Depends, Form, File, UploadFile
 from fastapi.responses import RedirectResponse, HTMLResponse
 from sqlalchemy.orm import Session
@@ -16,7 +17,7 @@ router = APIRouter()
 from app.main import templates
 
 @router.get("/login", response_class=HTMLResponse)
-def get_login(request: Request, preview: str = None, db: Session = Depends(get_db)):
+def get_login(request: Request, preview: str = None, msg: str = "", error: str = "", db: Session = Depends(get_db)):
     # 1. Handle Preview Bypass
     if preview:
         try:
@@ -182,7 +183,14 @@ def get_login(request: Request, preview: str = None, db: Session = Depends(get_d
     if is_logged_in(request):
         return redirect_to_dashboard(current_role(request))
 
-    return templates.TemplateResponse(request, "login.html", {"error": ""})
+    error_msg = error or request.query_params.get("error", "")
+    success_msg = msg or request.query_params.get("msg", "") or request.query_params.get("success", "")
+
+    return templates.TemplateResponse(request, "login.html", {
+        "error": error_msg,
+        "msg": success_msg,
+        "success": success_msg
+    })
 
 
 @router.post("/login", response_class=HTMLResponse)
@@ -427,7 +435,8 @@ def post_register_church(
                 display_order=item["display_order"]
             ))
         db.commit()
-        return templates.TemplateResponse(request, "register_church.html", {"error": "", "success": "Church and admin account registered successfully! You can now log in.", "form_data": {}})
+        msg = "Church account registered successfully! Please log in with your email and password."
+        return RedirectResponse(url=f"/login?msg={quote(msg)}", status_code=303)
     except Exception as e:
         db.rollback()
         return templates.TemplateResponse(request, "register_church.html", {"error": f"Registration error: {str(e)}", "success": "", "form_data": form_data})
@@ -516,7 +525,8 @@ async def post_register_zone(
             ))
         
         db.commit()
-        return templates.TemplateResponse(request, "register_zone.html", {"error": "", "success": "Zone and Zonal Secretary account registered successfully! You can now log in.", "form_data": {}})
+        msg = "Zone account registered successfully! Please log in with your email and password."
+        return RedirectResponse(url=f"/login?msg={quote(msg)}", status_code=303)
     except Exception as e:
         db.rollback()
         return templates.TemplateResponse(request, "register_zone.html", {"error": f"Registration error: {str(e)}", "success": "", "form_data": form_data})
@@ -577,10 +587,8 @@ def post_admin_setup(
         )
         db.add(user)
         db.commit()
-        return templates.TemplateResponse(request, "setup.html", {"superAdminExists": True,
-            "error": "",
-            "success": "Super Admin account created successfully! You can now log in.",
-            "form_data": {}})
+        msg = "Super Admin account created successfully! Please log in to continue."
+        return RedirectResponse(url=f"/login?msg={quote(msg)}", status_code=303)
     except Exception as e:
         db.rollback()
         return templates.TemplateResponse(request, "setup.html", {"superAdminExists": False,
