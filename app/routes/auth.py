@@ -393,8 +393,6 @@ def post_register_church(
         return templates.TemplateResponse(request, "register_church.html", {"error": "Email address is already registered.", "success": "", "form_data": form_data})
 
     try:
-        db.begin_nested()
-        
         # 1. Create User
         user = User(
             full_name=full_name.strip(),
@@ -405,8 +403,7 @@ def post_register_church(
             status="active"
         )
         db.add(user)
-        db.commit()
-        db.refresh(user)
+        db.flush()
 
         # 2. Create Church
         church = Church(
@@ -419,8 +416,7 @@ def post_register_church(
             created_by=user.id
         )
         db.add(church)
-        db.commit()
-        db.refresh(church)
+        db.flush()
 
         # 3. Seed 29 Default Expense Items for this church
         defaults = defaultExpenseItems()
@@ -483,8 +479,6 @@ async def post_register_zone(
         return templates.TemplateResponse(request, "register_zone.html", {"error": "Email address is already registered.", "success": "", "form_data": form_data})
 
     try:
-        db.begin_nested()
-        
         # 1. Create User
         user = User(
             full_name=full_name.strip(),
@@ -495,8 +489,7 @@ async def post_register_zone(
             status="active"
         )
         db.add(user)
-        db.commit()
-        db.refresh(user)
+        db.flush()
 
         # 2. Create Zone
         zone = Zone(
@@ -504,8 +497,7 @@ async def post_register_zone(
             created_by=user.id
         )
         db.add(zone)
-        db.commit()
-        db.refresh(zone)
+        db.flush()
 
         # 3. Add churches to zone
         churches = []

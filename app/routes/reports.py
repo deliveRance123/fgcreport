@@ -43,20 +43,30 @@ def get_church_report(
     elif role in ["super_admin", "zonal_admin"]:
         cid = int(church_id) if (church_id and str(church_id).isdigit()) else current_church_id(request, db)
         
-    if not cid:
-        first_c = db.query(Church).first()
-        if first_c:
-            cid = first_c.id
-            request.session["church_id"] = cid
+    church = db.query(Church).filter(Church.id == cid).first() if cid else None
+    if not church:
+        church = db.query(Church).filter(Church.created_by == uid).first()
+        if not church:
+            church = db.query(Church).first()
+        if not church:
+            church = Church(
+                name="Foursquare Local Church",
+                district="Lagos District",
+                address="",
+                pastor_name="Lead Pastor",
+                pastor_address="",
+                church_type="unchartered",
+                created_by=uid
+            )
+            db.add(church)
+            db.commit()
+            db.refresh(church)
+        cid = church.id
+        request.session["church_id"] = cid
 
     # Access control
     if role == "church_admin" and not canUserCreateReport(db, uid):
         return RedirectResponse(url="/church-dashboard?error=" + quote("An active 1-Year Annual Subscription is required to access, create, or edit reports."), status_code=303)
-
-    # Fetch church
-    church = db.query(Church).filter(Church.id == cid).first()
-    if not church:
-        raise HTTPException(status_code=404, detail="Error: Church not found.")
 
     # Determine month and year
     import datetime as dt_mod

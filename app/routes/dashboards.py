@@ -30,7 +30,27 @@ from app.main import templates
 def get_church_dashboard(request: Request, error: str = "", msg: str = "", db: Session = Depends(get_db)):
     uid = ensure_role_session(request, "church_admin", db)
     cid = current_church_id(request, db)
-    church = db.query(Church).filter(Church.id == cid).first()
+    church = db.query(Church).filter(Church.id == cid).first() if cid else None
+
+    if not church:
+        church = db.query(Church).filter(Church.created_by == uid).first()
+        if not church:
+            church = db.query(Church).first()
+        if not church:
+            church = Church(
+                name="Foursquare Local Church",
+                district="Lagos District",
+                address="",
+                pastor_name="Lead Pastor",
+                pastor_address="",
+                church_type="unchartered",
+                created_by=uid
+            )
+            db.add(church)
+            db.commit()
+            db.refresh(church)
+        cid = church.id
+        request.session["church_id"] = cid
 
     sub_status = getUserTrialAndSubStatus(db, uid)
     pay_settings = getPaymentSettings(db)
@@ -45,7 +65,7 @@ def get_church_dashboard(request: Request, error: str = "", msg: str = "", db: S
     reports = db.query(ChurchFinancialReport).filter_by(church_id=cid).order_by(
         ChurchFinancialReport.report_year.desc(),
         ChurchFinancialReport.report_month.desc()
-    ).all()
+    ).all() if cid else []
     latest_report = reports[0] if reports else None
 
     # Calculate YTD receipts and attendance totals
@@ -119,17 +139,18 @@ def get_zone_dashboard(
 ):
     uid = ensure_role_session(request, "zonal_admin", db)
     zid = current_zone_id(request, db)
-    if not zid:
-        first_zone = db.query(Zone).first()
-        if not first_zone:
-            first_zone = Zone(zone_name="Central Zone", created_by=uid)
-            db.add(first_zone)
+    zone = db.query(Zone).filter(Zone.id == zid).first() if zid else None
+    if not zone:
+        zone = db.query(Zone).filter(Zone.created_by == uid).first()
+        if not zone:
+            zone = db.query(Zone).first()
+        if not zone:
+            zone = Zone(zone_name="Central Zone", created_by=uid)
+            db.add(zone)
             db.commit()
-            db.refresh(first_zone)
-        zid = first_zone.id
+            db.refresh(zone)
+        zid = zone.id
         request.session["zone_id"] = zid
-
-    zone = db.query(Zone).filter(Zone.id == zid).first()
     sub_status = getUserTrialAndSubStatus(db, uid)
     pay_settings = getPaymentSettings(db)
     sub_amount = float(pay_settings.get("monthly_sub_amount") or 5000)
