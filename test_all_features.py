@@ -191,6 +191,37 @@ def run_tests():
     assert "answer" in kb_json and len(kb_json["answer"]) > 0
     print("  [PASS] /chat-api (kb_query)   -> 200 OK (Matched KB knowledge base)")
 
+    # Live Chat: fetch_users
+    r_chat_users = client2.get("/chat-api?action=fetch_users")
+    assert r_chat_users.status_code == 200
+    users_json = r_chat_users.json()
+    assert users_json.get("success") is True
+    assert "users" in users_json
+    print("  [PASS] /chat-api (fetch_users) -> 200 OK (Loaded live contacts)")
+
+    if users_json["users"]:
+        target_id = users_json["users"][0]["id"]
+        # Live Chat: send_message
+        r_send = client2.post("/chat-api", data={"action": "send_message", "receiver_id": str(target_id), "message": "Hello from Church Pastor"})
+        assert r_send.status_code == 200
+        assert r_send.json().get("success") is True
+        print("  [PASS] /chat-api (send_message) -> 200 OK (Message sent)")
+
+        # Live Chat: fetch_messages
+        r_msgs = client3.get(f"/chat-api?action=fetch_messages&partner_id={target_id}")
+        assert r_msgs.status_code == 200
+        msgs_json = r_msgs.json()
+        assert msgs_json.get("success") is True
+        print("  [PASS] /chat-api (fetch_messages) -> 200 OK (Conversation retrieved)")
+
+    # Live Chat: fetch_unread_count
+    r_unread = client3.get("/chat-api?action=fetch_unread_count")
+    assert r_unread.status_code == 200
+    print("  [PASS] /chat-api (fetch_unread_count) -> 200 OK")
+
+
+
+
     print("\n=======================================================")
     print("ALL TESTS PASSED WITH 100% PARITY AND ZERO ERRORS!")
     print("=======================================================")

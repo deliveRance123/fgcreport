@@ -1,8 +1,10 @@
+import os
 import re
+import time
 import hashlib
 from datetime import datetime, timedelta
 from fastapi import APIRouter, Request, Depends, HTTPException
-from fastapi.responses import JSONResponse, HTMLResponse
+from fastapi.responses import JSONResponse, HTMLResponse, RedirectResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import or_, and_, func
 
@@ -13,6 +15,7 @@ from app.auth import is_logged_in, current_user_id
 router = APIRouter()
 
 from app.main import templates
+
 
 # Stop words list for chatbot queries
 STOP_WORDS = {
@@ -196,7 +199,8 @@ async def chat_api(request: Request, db: Session = Depends(get_db)):
                 # Check profile photo file exists
                 has_photo = False
                 if u.profile_photo:
-                    has_photo = os.path.exists(u.profile_photo)
+                    clean_path = u.profile_photo.lstrip("/")
+                    has_photo = os.path.exists(clean_path) or os.path.exists(u.profile_photo)
                 
                 user_list.append({
                     "id": u.id,
