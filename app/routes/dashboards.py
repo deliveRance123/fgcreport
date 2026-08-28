@@ -494,7 +494,7 @@ async def post_admin_dashboard(
                 'strip_item_1','strip_item_2','strip_item_3','strip_item_4',
                 'paths_title','paths_subtitle','footer_org_name',
                 'contact_email','contact_phone','how_title','hero_video_url','showcase_video_url',
-                'smtp_email','smtp_secret_key','smtp_sender_name',
+                'smtp_email','smtp_secret_key','smtp_sender_name','app_base_url',
                 'payment_mode','payment_test_public_key','payment_test_secret_key',
                 'payment_live_public_key','payment_live_secret_key',
                 'payment_public_key','payment_secret_key','monthly_sub_amount','report_unlock_fee','free_trial_months','free_trial_days'

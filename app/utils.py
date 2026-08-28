@@ -158,36 +158,58 @@ def getSiteSettings(db: Session) -> dict:
         pass
     return settings
 
+
 def sendAppEmail(db: Session, to_email: str, to_name: str, subject: str, message_html: str, action_url: str = "", action_text: str = "") -> bool:
     """
     Sends notification email via Gmail SMTP using credentials stored in site_settings.
+    All action button links are converted to absolute URLs using APP_BASE_URL env var
+    (defaults to https://fgcreport.onrender.com).
     """
     if not to_email or "@" not in to_email:
         return False
-        
+
     settings = getSiteSettings(db)
-    
+
     # Check if SMTP is enabled in admin settings
     smtp_enabled = settings.get("smtp_enabled", "1") == "1"
     if not smtp_enabled:
         return False
-        
+
     gmail_user = settings.get("smtp_email", "").strip()
     app_password = settings.get("smtp_secret_key", "").replace(" ", "").strip()
-    sender_name = settings.get("smtp_sender_name", "Foursquare Reports Admin").strip()
-    
+    sender_name = settings.get("smtp_sender_name", "Foursquare Reports").strip()
+
     if not gmail_user or not app_password:
         return False
 
+    # ── Resolve base URL: DB setting → env var → hard default ──
+    # Admin can update this from Site Settings → Website Base URL
+    base_url = (
+        settings.get("app_base_url", "").strip()
+        or os.environ.get("APP_BASE_URL", "").strip()
+        or "https://fgcreport.onrender.com"
+    ).rstrip("/")
+
+    # Ensure action_url is always absolute
+    full_action_url = ""
+    if action_url:
+        if action_url.startswith("http://") or action_url.startswith("https://"):
+            full_action_url = action_url
+        else:
+            full_action_url = f"{base_url}/{action_url.lstrip('/')}"
+
     # Construct button HTML if action details exist
     btn_html = ""
-    if action_url and action_text:
+    if full_action_url and action_text:
         btn_html = f"""
         <div style="margin:26px 0;text-align:center;">
-            <a href="{action_url}" style="background:#E31E24;color:#fff;padding:12px 26px;border-radius:8px;text-decoration:none;font-weight:700;font-size:14px;display:inline-block;">
+            <a href="{full_action_url}" style="background:#E31E24;color:#fff;padding:14px 30px;border-radius:8px;text-decoration:none;font-weight:700;font-size:14px;display:inline-block;letter-spacing:0.02em;">
                 {action_text} &rarr;
             </a>
         </div>
+        <p style="text-align:center;font-size:11px;color:#A1A1AA;margin-top:8px;">
+            Or copy this link: <a href="{full_action_url}" style="color:#E31E24;word-break:break-all;">{full_action_url}</a>
+        </p>
         """
 
     # Wrap email content in template layout
@@ -196,7 +218,8 @@ def sendAppEmail(db: Session, to_email: str, to_name: str, subject: str, message
 <div style="max-width:600px;margin:0 auto;background:#fff;border-radius:16px;border:1px solid #E4E4E7;overflow:hidden;box-shadow:0 10px 30px rgba(26,16,64,0.08);">
   <div style="background:linear-gradient(135deg,#1A1040 0%,#2A1A60 100%);padding:28px 30px;text-align:center;">
     <h2 style="color:#fff;margin:0;font-size:20px;font-weight:800;">Foursquare Reports</h2>
-    <p style="color:rgba(255,255,255,0.7);margin:4px 0 0;font-size:12px;text-transform:uppercase;letter-spacing:0.08em;">Church &amp; Zonal Portal</p>
+    <p style="color:rgba(255,255,255,0.7);margin:6px 0 0;font-size:12px;text-transform:uppercase;letter-spacing:0.08em;">Church &amp; Zonal Portal</p>
+    <a href="{base_url}" style="display:inline-block;margin-top:8px;font-size:11px;color:rgba(255,255,255,0.5);text-decoration:none;">{base_url.replace("https://","")}</a>
   </div>
   <div style="padding:32px 30px;font-size:15px;line-height:1.6;color:#3F3F46;">
     <p style="font-size:16px;font-weight:700;color:#1A1040;margin-top:0;">Hello {to_name or 'Pastor / Admin'},</p>
@@ -204,7 +227,7 @@ def sendAppEmail(db: Session, to_email: str, to_name: str, subject: str, message
     {btn_html}
     <hr style="border:none;border-top:1px solid #F4F4F5;margin:28px 0 20px;">
     <p style="font-size:12px;color:#A1A1AA;text-align:center;margin:0;">
-      Automated notification — Foursquare Reports Platform.<br>
+      Automated notification from <a href="{base_url}" style="color:#E31E24;text-decoration:none;">fgcreport.onrender.com</a><br>
       Questions? Contact your Zonal or National Administrator.
     </p>
   </div>
@@ -214,10 +237,10 @@ def sendAppEmail(db: Session, to_email: str, to_name: str, subject: str, message
     try:
         msg = MIMEText(full_html, "html", "utf-8")
         msg["Subject"] = Header(subject, "utf-8")
-        # Format sender as Name <email>
+        # Format sender as: "Foursquare Reports" <your-gmail@gmail.com>
         msg["From"] = f'"{sender_name}" <{gmail_user}>'
         msg["To"] = f'"{to_name or to_email}" <{to_email}>'
-        
+
         # Connect to Gmail SMTP (SSL Port 465)
         server = smtplib.SMTP_SSL("smtp.gmail.com", 465, timeout=15)
         server.login(gmail_user, app_password)
@@ -237,6 +260,8 @@ def sendAppEmail(db: Session, to_email: str, to_name: str, subject: str, message
         except Exception as ex:
             print(f"SMTP TLS Fallback Error: {ex}")
             return False
+
+
 
 def render_pdf(html_content: str) -> bytes | None:
     """

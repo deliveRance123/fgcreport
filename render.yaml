@@ -18,6 +18,8 @@ services:
         fromDatabase:
           name: fgcreport-db
           property: connectionString
+      - key: APP_BASE_URL
+        value: "https://fgcreport.onrender.com"
 
 databases:
   - name: fgcreport-db

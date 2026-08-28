@@ -632,9 +632,14 @@
               <label>App Password (16-char secret key)</label>
               <input type="password" name="smtp_secret_key" placeholder="•••• •••• •••• ••••" value="{{ site_settings.get('smtp_secret_key', '') }}">
             </div>
-            <div class="settings-group full">
+            <div class="settings-group">
               <label>Sender Display Name</label>
-              <input type="text" name="smtp_sender_name" value="{{ site_settings.get('smtp_sender_name', 'Foursquare Reports Admin') }}">
+              <input type="text" name="smtp_sender_name" value="{{ site_settings.get('smtp_sender_name', 'Foursquare Reports') }}">
+            </div>
+            <div class="settings-group">
+              <label>Website Base URL <span style="font-size:11px;color:#6B7280;">(used in all email links)</span></label>
+              <input type="url" name="app_base_url" placeholder="https://fgcreport.onrender.com" value="{{ site_settings.get('app_base_url', 'https://fgcreport.onrender.com') }}">
+              <small style="font-size:11px;color:#6B7280;margin-top:4px;display:block;">All email action buttons will link to this domain. Leave default for Render hosting.</small>
             </div>
           </div>
         </div>
