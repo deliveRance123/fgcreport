@@ -61,29 +61,144 @@ SITE_SETTINGS_DEFAULTS = {
 CHATBOT_KB_DEFAULTS = [
     (
         'How do I create or submit a monthly report?',
-        'To create a report, log into your Church or Zonal dashboard. Under "Start a New Report", select the Month and Year, then click "Create Report". Fill in your financial receipts, attendance, and spiritual entries, then click "Save Draft" to work on it later or "Submit Report" to finalize.',
-        'create,submit,new,report,how,financial,spiritual,draft'
+        'To create a report, log in to your Church or Zonal dashboard. Under "Start a New Report", select the Month and Year, then click "Create Report". Fill in all the financial receipts, attendance figures, and spiritual entries. Click "Save Draft" at any time to preserve your work, or "Submit Report" when it is ready to finalize.',
+        'create,submit,new,report,how,financial,spiritual,draft,monthly,start'
     ),
     (
         'How are dues calculated?',
-        'Dues (such as National Dues, Regional Dues, District Dues, and Zonal Dues) are automatically calculated based on subtotal receipts (a-c) and percentage settings set by the Admin for Chartered vs Unchartered churches.',
-        'dues,calculate,percentage,chartered,unchartered,subtotal'
+        'Dues such as National Dues, Regional Dues, District Dues, and Zonal Dues are automatically calculated based on your Subtotal Receipts (a-c) and the percentage rates set by the Admin. The rates differ for Chartered and Unchartered churches. You do not need to compute them manually — the system does it for you.',
+        'dues,calculate,percentage,chartered,unchartered,subtotal,national,regional,district,zonal,rate'
     ),
     (
         'Can I edit a report after submitting it?',
-        'Once a report is submitted, it becomes locked / view-only. If you need to make changes, click the "🔓 Pay to Unlock & Edit" button on the report page to unlock it back to draft status.',
-        'edit,submitted,unlock,change,locked,pay'
+        'Once a report is submitted it becomes locked and view-only. To make corrections, click the "🔓 Unlock & Edit" button on the report page. An unlock fee may apply. After unlocking, the report returns to Draft status and you can edit and re-submit it.',
+        'edit,submitted,unlock,change,locked,correction,modify,resubmit'
     ),
     (
-        'How does the free trial and monthly subscription work?',
-        'Every new Church Admin and Zonal Admin automatically receives 3 months of 100% free trial. After the trial ends, you can easily renew your monthly subscription directly via Paystack from your dashboard.',
-        'subscription,trial,free,paystack,pay,renewal,month'
+        'How do I contact the Admin or Zonal Superintendent?',
+        'Use the Live Chat tab inside this widget. Select the Admin or your Zonal Superintendent from the recipient list and type your message. They will receive it instantly on the platform.',
+        'contact,admin,superintendent,help,support,chat,message,live,reach,talk'
     ),
     (
-        'How do I contact the Admin or Zonal Superintendent directly?',
-        'You can use the Live Chat tab in this widget! Select the Admin or Zonal Superintendent from the recipient list to send a direct WhatsApp-style message on this platform.',
-        'contact,admin,superintendent,help,support,chat,message,live'
-    )
+        'What are the different types of financial receipts in the church report?',
+        'The Church Financial Report is divided into several receipt categories:\n• (a) Tithes\n• (b) Sunday Offerings\n• (c) Building / Welfare Fund\n• Subtotal (a-c) — used for due calculations\n• Sunday School Offerings\n• Missionary Offerings\n• Love / Welfare Offerings\n• 3rd Sunday Offerings\n• Other special offerings\n\nEach category is filled separately and the system totals them automatically.',
+        'receipts,financial,tithes,offerings,sunday,building,welfare,missionary,love,special,categories,income'
+    ),
+    (
+        'What is the difference between Chartered and Unchartered churches?',
+        'A Chartered Local Church is a fully established Foursquare church that has been officially chartered. An Unchartered Local Church is a new or developing church that has not yet received its charter. The distinction affects the due percentage rates applied to your receipts. Your church type is set at registration and can be updated by the Admin.',
+        'chartered,unchartered,type,difference,church,established,new,status'
+    ),
+    (
+        'How do I save a report as a draft?',
+        'While filling in your monthly report, click the "Save Draft" button at any point. Your entries will be saved and you can return to complete the report at a later time. A report in Draft status is not yet submitted and can still be edited freely.',
+        'draft,save,progress,incomplete,later,partial,continue'
+    ),
+    (
+        'How do I download or print my report as PDF?',
+        'After submitting or saving a report, open the report and click the "Download PDF" or "Print Report" button. The system will generate a formatted PDF of your complete monthly report which you can save or print for physical records.',
+        'pdf,download,print,export,paper,copy,generate,report'
+    ),
+    (
+        'What spiritual information do I fill in the church report?',
+        'The Spiritual Report section includes:\n• Total attendance (adults, youths, children)\n• New converts\n• Baptisms (Water and Holy Spirit)\n• Dedications\n• Weddings\n• Funerals / Burials\n• Home cells / Outreaches\n• Membership figures\n\nAll these figures help the zonal and national leadership track church growth.',
+        'spiritual,attendance,converts,baptism,dedication,wedding,funeral,membership,growth,cell,outreach'
+    ),
+    (
+        'How does the Zonal Report work?',
+        'The Zonal Admin collects monthly financial and spiritual summaries from all churches under the zone. The zonal report consolidates these figures: total receipts, total dues, attendance across all branches, and other aggregated statistics. The Zone dashboard shows a breakdown per church and allows the Zonal Superintendent to review and submit the combined zonal report.',
+        'zonal,zone,report,consolidate,summary,branches,superintendent,aggregate,churches'
+    ),
+    (
+        'How do I register a new church on the portal?',
+        'Go to the Register Church page from the homepage. Fill in the Church Name, District, Church Type (Chartered or Unchartered), Church Address, and Pastor details. Then provide the administrator credentials (name, email, password). Once submitted you will receive a confirmation and can log in to your church dashboard.',
+        'register,church,new,signup,setup,create account,pastor,district,address'
+    ),
+    (
+        'How do I register a new zone on the portal?',
+        'Go to the Register Zone page from the homepage. Enter the Zone Name, list the churches under the zone (one per line), and provide the Zonal Secretary credentials. Once submitted, the zone is created with its church list and the Zonal Admin can log in immediately.',
+        'register,zone,new,signup,setup,create,zonal,secretary,churches,list'
+    ),
+    (
+        'What happens if I enter wrong figures in my report?',
+        'If the report is still in Draft status, simply go back and correct the figures before submitting. If you have already submitted, you will need to unlock the report first using the "Unlock & Edit" button. After unlocking, edit the figures and re-submit.',
+        'wrong,mistake,error,incorrect,fix,figures,change,correction,submitted'
+    ),
+    (
+        'How do I view past reports?',
+        'From your Church or Zone dashboard, click on "Report History" or "View Past Reports". You can filter reports by month and year. Each report shows its status (Draft, Submitted, Locked) and can be opened for viewing or downloaded as PDF.',
+        'past,history,previous,old,view,records,archive,month,year'
+    ),
+    (
+        'What is the Pastor Welfare due and how is it calculated?',
+        'Pastor\'s Welfare is a due deducted from the Subtotal Receipts (a-c). The percentage rate is set by the Admin for both Chartered and Unchartered churches. It is automatically calculated when you fill in your receipts — you do not need to enter it manually.',
+        'pastor,welfare,due,percentage,calculated,automatically,subtotal'
+    ),
+    (
+        'What does Subtotal (a-c) mean in the financial report?',
+        'Subtotal (a-c) is the sum of the three main receipt categories:\n• (a) Tithes\n• (b) Sunday Offerings\n• (c) Building / Welfare Fund\n\nThis subtotal is the base amount used to calculate most of the church dues such as National Dues, District Dues, Zonal Dues, Pastor\'s Welfare, and others.',
+        'subtotal,a-c,tithes,sunday,building,welfare,base,due,calculation'
+    ),
+    (
+        'Can multiple users use the same church account?',
+        'Each church has one administrator account (the Church Admin). That account is used to fill and submit the monthly reports. If you need to change the registered administrator, please contact the Zonal Superintendent or the platform Admin to update the account details.',
+        'multiple,users,account,access,administrator,login,shared,church,change'
+    ),
+    (
+        'What is the 3rd Sunday Offering and how is it reported?',
+        'The 3rd Sunday Offering is a special offering collected specifically on the third Sunday of every month. It is reported separately in the financial receipts section of the Church Monthly Report. The full amount (100%) is remitted as due.',
+        '3rd,third,sunday,offering,special,remit,monthly,due,hundred'
+    ),
+    (
+        'How do I reset or change my password?',
+        'To change your password, log in and go to your Profile settings on the dashboard. If you have forgotten your password and cannot log in, please contact your Zonal Superintendent or the platform Admin via the Live Chat to have your credentials reset.',
+        'password,reset,change,forgot,credentials,login,access,profile'
+    ),
+    (
+        'What is the Macpherson University due?',
+        'Macpherson University due is a percentage deducted from the Subtotal Receipts (a-c). It is a contribution by all Foursquare churches toward the development and running of Macpherson University. The rate is set centrally by the Admin.',
+        'macpherson,university,due,percentage,contribution,foursquare'
+    ),
+    (
+        'What is the FFS Savings due?',
+        'FFS Savings (Foursquare Financial Services Savings) is a percentage deducted from the Subtotal Receipts (a-c). It is a savings contribution made by each church to the Foursquare Financial Services scheme. The rate is set by the Admin.',
+        'ffs,savings,foursquare,financial,services,due,percentage'
+    ),
+    (
+        'What is the Augmentation Fund?',
+        'The Augmentation Fund is a due deducted from the Subtotal Receipts (a-c). It is used to augment the welfare and remuneration of pastors within the district or zone. The percentage is set by the Admin.',
+        'augmentation,fund,due,pastor,welfare,remuneration,district'
+    ),
+    (
+        'What is the Foursquare TV due?',
+        'Foursquare TV is a percentage contribution from the Subtotal Receipts (a-c) dedicated to supporting the Foursquare Gospel Church television ministry and media outreach. The rate is centrally set by the Admin.',
+        'foursquare,tv,television,media,outreach,due,percentage,contribution'
+    ),
+    (
+        'How do I update my church or zone information?',
+        'Church and Zone information such as address, pastor name, district, and church type can be updated from your dashboard under Profile or Settings. If you need to change critical details like the church name or type, contact the platform Admin.',
+        'update,church,information,address,pastor,district,profile,settings,change'
+    ),
+    (
+        'Who can see my church reports?',
+        'Your submitted reports are visible to your Church Admin (you), your Zonal Superintendent, and the platform Super Admin. Reports are confidential and not shared outside the platform. The Zonal Admin sees an aggregated summary of all churches in the zone.',
+        'see,view,access,reports,visible,confidential,zone,admin,superintendent,privacy'
+    ),
+    (
+        'What is the Project Development Fund?',
+        'The Project Development Fund is a due deducted from the Subtotal Receipts (a-c). It is used to fund infrastructure, property, and development projects within the Foursquare church organization. The percentage rate is set by the Admin.',
+        'project,development,fund,due,infrastructure,property,percentage'
+    ),
+    (
+        'What is the Regional Fund due?',
+        'The Regional Fund due is a percentage deducted from the Subtotal Receipts (a-c) and remitted to the Regional office. It supports regional administration and activities. The rate is set by the Admin.',
+        'regional,fund,due,percentage,remit,administration,office'
+    ),
+    (
+        'How do I log out of the portal?',
+        'To log out, click on your profile name or avatar on the top right corner of your dashboard, then select "Log Out". Your session will be ended securely. Always log out when using a shared device.',
+        'logout,log out,sign out,end session,exit,close,account'
+    ),
 ]
 
 def init_db():
@@ -159,9 +274,21 @@ def init_db():
 
         # 3. Seed Chatbot KB
         print("Checking chatbot knowledge base...")
+        # Remove outdated subscription entry if it exists
+        old_sub = db.query(ChatbotKnowledgeBase).filter(
+            ChatbotKnowledgeBase.question.ilike("%subscription%")
+        ).all()
+        for row in old_sub:
+            db.delete(row)
+
         for q, a, keywords in CHATBOT_KB_DEFAULTS:
             existing = db.query(ChatbotKnowledgeBase).filter_by(question=q).first()
-            if not existing:
+            if existing:
+                # Update answer and keywords if they changed
+                if existing.answer != a or existing.keywords != keywords:
+                    existing.answer = a
+                    existing.keywords = keywords
+            else:
                 db.add(ChatbotKnowledgeBase(question=q, answer=a, keywords=keywords))
 
         db.commit()

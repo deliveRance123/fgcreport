@@ -21,14 +21,16 @@ STOP_WORDS = {
     'have','has','been','from','not','its','but','about','into','i'
 }
 
-# Synonyms dictionary for chatbot recall matching PHP
+# Synonyms dictionary for chatbot recall matching
 SYNONYMS = {
-    'trial': ['free', 'demo', 'period', 'month', 'test', '3'],
-    'subscription': ['sub', 'pay', 'payment', 'paystack', 'fee', 'charge', 'cost', 'renew', 'renewal', 'price', 'amount', 'money'],
-    'report': ['create', 'submit', 'financial', 'spiritual', 'fill', 'entry', 'monthly', 'file', 'form', 'make', 'start'],
-    'dues': ['due', 'percentage', 'calc', 'calculate', 'national', 'district', 'regional', 'zonal', 'rate'],
-    'unlock': ['edit', 'modify', 'change', 'submitted', 'locked', 'token', 'fee'],
-    'admin': ['contact', 'super', 'zonal', 'support', 'help', 'leader', 'pastor', 'user']
+    'report': ['create', 'submit', 'financial', 'spiritual', 'fill', 'entry', 'monthly', 'file', 'form', 'make', 'start', 'draft'],
+    'dues': ['due', 'percentage', 'calc', 'calculate', 'national', 'district', 'regional', 'zonal', 'rate', 'tithes', 'offerings'],
+    'unlock': ['edit', 'modify', 'change', 'submitted', 'locked', 'correction', 'resubmit'],
+    'admin': ['contact', 'super', 'zonal', 'support', 'help', 'leader', 'pastor', 'user', 'superintendent'],
+    'register': ['signup', 'new', 'church', 'zone', 'create', 'account', 'setup'],
+    'spiritual': ['attendance', 'convert', 'baptism', 'dedication', 'wedding', 'funeral', 'membership', 'growth', 'cell', 'outreach'],
+    'pdf': ['download', 'print', 'export', 'paper', 'copy'],
+    'chartered': ['unchartered', 'type', 'status', 'established'],
 }
 
 @router.api_route("/chat-api", methods=["GET", "POST"])
@@ -63,7 +65,7 @@ async def chat_api(request: Request, db: Session = Depends(get_db)):
             return JSONResponse({
                 "success": True,
                 "matched_question": "Greeting",
-                "answer": "Hello! 👋 How may I assist you today? You can ask me questions about creating monthly reports, calculating church dues, managing subscriptions, or unlocking submitted reports."
+                "answer": "Hello! 👋 How may I assist you today? You can ask me about creating monthly reports, calculating church dues, the difference between chartered and unchartered churches, downloading PDFs, how to register a church or zone, or anything else about using this portal."
             })
 
         try:
