@@ -3,25 +3,36 @@ import time
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import declarative_base, sessionmaker
 
+# Automatically load .env file if present in the project root
+env_file_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), ".env")
+if os.path.exists(env_file_path):
+    with open(env_file_path, "r", encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if line and not line.startswith("#") and "=" in line:
+                k, v = line.split("=", 1)
+                os.environ.setdefault(k.strip(), v.strip().strip("'\""))
+
 # Retrieve database URL from environment variable
 DATABASE_URL = os.getenv("DATABASE_URL", "").strip()
 
-# Render uses `postgres://` which is deprecated in SQLAlchemy — fix it.
+# Render / cloud providers use `postgres://` which is deprecated in SQLAlchemy — fix it.
 if DATABASE_URL.startswith("postgres://"):
     DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
 
-# Detect if running in cloud container (Render / Linux container) or local Windows XAMPP dev
+# Detect if running in cloud container or local dev
 is_cloud_container = os.getenv("RENDER") == "true" or not os.path.exists("c:\\xampp")
 
 if not DATABASE_URL:
     if is_cloud_container:
-        # In cloud without explicit DATABASE_URL, use SQLite (prevents crashing on container localhost)
+        # In cloud without explicit DATABASE_URL, use SQLite
         DATABASE_URL = "sqlite:///./foursquare_reports.db"
     else:
         # Local Windows dev default
         DATABASE_URL = "postgresql://postgres:2004@localhost:5432/foursquare_reports"
 
-IS_PRODUCTION = os.getenv("RENDER") == "true" or "render.com" in DATABASE_URL or is_cloud_container
+IS_PRODUCTION = os.getenv("RENDER") == "true" or "render.com" in DATABASE_URL or "neon.tech" in DATABASE_URL or "supabase.co" in DATABASE_URL or is_cloud_container
+
 
 def _make_pg_engine(url: str):
     """Create a PostgreSQL engine with safe SSL handling."""
