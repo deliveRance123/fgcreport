@@ -1,0 +1,119 @@
+<!-- Notification Bell Component -->
+<div class="notification-dropdown-wrapper" id="notifDropdownWrapper" style="position:relative;display:inline-block;z-index:999;">
+  <button type="button" class="notif-bell-btn" id="notifBellBtn" onclick="toggleNotifDropdown(event)" aria-label="Notifications" style="position:relative;background:#fff;border:1.5px solid #E4E4E7;width:40px;height:40px;border-radius:10px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;transition:all 0.15s;color:#1A1040;">
+    <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+      <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+    </svg>
+    <span class="notif-badge" id="notifBadge" style="display:none;position:absolute;top:-4px;right:-4px;background:#E31E24;color:#fff;font-size:10px;font-weight:800;border-radius:99px;padding:2px 6px;min-width:18px;text-align:center;box-shadow:0 2px 6px rgba(227,30,36,0.4);">0</span>
+  </button>
+
+  <div class="notif-dropdown-menu" id="notifDropdownMenu" style="display:none;position:absolute;right:0;top:48px;width:340px;max-width:calc(100vw - 32px);background:#ffffff;border-radius:14px;box-shadow:0 14px 45px rgba(0,0,0,0.18),0 2px 8px rgba(0,0,0,0.06);border:1px solid #E4E4E7;z-index:9999;overflow:hidden;">
+    <div style="padding:14px 18px;border-bottom:1px solid #F4F4F5;display:flex;align-items:center;justify-content:space-between;background:#FAF9FC;">
+      <span style="font-family:'Outfit',sans-serif;font-weight:700;font-size:14.5px;color:#1A1040;display:flex;align-items:center;gap:6px;">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#E31E24" stroke-width="2.5"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+        Notifications
+      </span>
+      <button type="button" onclick="markAllNotificationsRead()" style="background:none;border:none;color:#E31E24;font-size:11.5px;font-weight:600;cursor:pointer;padding:0;">Mark all read</button>
+    </div>
+    <div id="notifListContainer" style="max-height:360px;overflow-y:auto;padding:4px 0;">
+      <div style="padding:28px 20px;text-align:center;color:#A1A1AA;font-size:12.5px;">Loading notifications...</div>
+    </div>
+  </div>
+</div>
+
+<script>
+function toggleNotifDropdown(e) {
+  if (e) e.stopPropagation();
+  var menu = document.getElementById('notifDropdownMenu');
+  if (!menu) return;
+  var isHidden = (menu.style.display === 'none' || !menu.style.display);
+  menu.style.display = isHidden ? 'block' : 'none';
+  if (isHidden) fetchNotifications();
+}
+
+function fetchNotifications() {
+  fetch('/api/notifications')
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (!data.success) return;
+      var badge = document.getElementById('notifBadge');
+      if (badge) {
+        if (data.unread_count > 0) {
+          badge.textContent = data.unread_count > 99 ? '99+' : data.unread_count;
+          badge.style.display = 'inline-block';
+        } else {
+          badge.style.display = 'none';
+        }
+      }
+
+      var list = document.getElementById('notifListContainer');
+      if (!list) return;
+
+      if (!data.notifications || data.notifications.length === 0) {
+        list.innerHTML = '<div style="padding:28px 20px;text-align:center;color:#9CA3AF;font-size:12.5px;"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#D1D5DB" stroke-width="1.8" style="margin:0 auto 8px;display:block;"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path></svg>No notifications right now</div>';
+        return;
+      }
+
+      var html = '';
+      data.notifications.forEach(function(n) {
+        var unreadStyle = !n.is_read ? 'background:#FEF2F2;border-left:3px solid #E31E24;' : 'background:#fff;';
+        var catBg = '#EFF6FF';
+        var catColor = '#2563EB';
+        if (n.category === 'warning' || n.category === 'alert') { catBg = '#FEF2F2'; catColor = '#DC2626'; }
+        else if (n.category === 'success') { catBg = '#ECFDF5'; catColor = '#059669'; }
+
+        html += '<div onclick="markSingleNotifRead(' + n.id + ', '' + (n.link || '#') + '')" style="' + unreadStyle + 'padding:12px 16px;border-bottom:1px solid #F4F4F5;cursor:pointer;display:flex;gap:12px;align-items:flex-start;transition:background 0.15s;">' +
+                  '<div style="width:28px;height:28px;border-radius:8px;background:' + catBg + ';color:' + catColor + ';display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px;">' +
+                    '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path></svg>' +
+                  '</div>' +
+                  '<div style="flex:1;min-width:0;">' +
+                    '<div style="font-size:12.5px;font-weight:700;color:#1A1040;margin-bottom:2px;display:flex;justify-content:space-between;">' +
+                      '<span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:180px;">' + n.title + '</span>' +
+                      '<span style="font-size:10.5px;font-weight:500;color:#9CA3AF;margin-left:6px;">' + n.time_ago + '</span>' +
+                    '</div>' +
+                    '<div style="font-size:11.5px;color:#4B5563;line-height:1.45;word-break:break-word;">' + n.message + '</div>' +
+                  '</div>' +
+                '</div>';
+      });
+      list.innerHTML = html;
+    })
+    .catch(function() {});
+}
+
+function markSingleNotifRead(id, link) {
+  fetch('/api/notifications/' + id + '/read', { method: 'POST' })
+    .then(function() {
+      fetchNotifications();
+      if (link && link !== '#' && link !== '') {
+        window.location.href = link;
+      }
+    })
+    .catch(function() {
+      if (link && link !== '#' && link !== '') {
+        window.location.href = link;
+      }
+    });
+}
+
+function markAllNotificationsRead() {
+  fetch('/api/notifications/read-all', { method: 'POST' })
+    .then(function() { fetchNotifications(); })
+    .catch(function() {});
+}
+
+// Global click outside to close dropdown
+document.addEventListener('click', function(e) {
+  var wrapper = document.getElementById('notifDropdownWrapper');
+  var menu = document.getElementById('notifDropdownMenu');
+  if (wrapper && menu && !wrapper.contains(e.target)) {
+    menu.style.display = 'none';
+  }
+});
+
+// Auto-poll notifications on page load and every 30 seconds
+document.addEventListener('DOMContentLoaded', function() {
+  fetchNotifications();
+  setInterval(fetchNotifications, 30000);
+});
+</script>

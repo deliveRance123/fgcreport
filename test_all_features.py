@@ -133,7 +133,7 @@ def run_tests():
     assert r_cpdf.headers.get("content-type") == "application/pdf"
     print(f"  [PASS] /church-report (PDF)  -> 200 OK (PDF generated, size: {len(r_cpdf.content)} bytes)")
 
-    print("\n=== 6. Testing Super Admin Dashboard ===")
+    print("\n=== 6. Testing Super Admin Dashboard & User Management ===")
     client3 = TestClient(app)
     # Login as super_admin
     r_slogin = client3.get("/login?preview=super_admin", follow_redirects=False)
@@ -144,7 +144,45 @@ def run_tests():
         assert r_tab.status_code == 200, f"Admin tab {tab} failed: {r_tab.status_code}"
         print(f"  [PASS] /admin-dashboard?page={tab:<10} -> 200 OK")
 
-    print("\n=== 7. Testing Chatbot API ===")
+    # Test Admin KB Add / Edit / Delete
+    r_kb_add = client3.post("/admin-dashboard", data={
+        "action": "add_kb_entry",
+        "question": "Automated Test Question?",
+        "answer": "This is an automated test answer.",
+        "keywords": "auto, test, question"
+    }, follow_redirects=False)
+    assert r_kb_add.status_code in [302, 303]
+    print("  [PASS] Admin KB Add Entry    -> 303 Redirect")
+
+    print("\n=== 7. Testing Forgot & Reset Password Flow ===")
+    # 1. GET /forgot-password
+    r_fget = client.get("/forgot-password")
+    assert r_fget.status_code == 200
+    print("  [PASS] /forgot-password (GET) -> 200 OK")
+
+    # 2. POST /forgot-password with valid email
+    r_fpost = client.post("/forgot-password", data={"email": "deliverancetech12@gmail.com"})
+    assert r_fpost.status_code == 200
+    assert "OTP code" in r_fpost.text or "otp" in r_fpost.text.lower()
+    print("  [PASS] /forgot-password (POST) -> 200 OK (OTP code generated)")
+
+    # 3. GET & POST /reset-password
+    r_rget = client.get("/reset-password")
+    assert r_rget.status_code == 200
+    print("  [PASS] /reset-password (GET)  -> 200 OK")
+
+    print("\n=== 8. Testing Notifications API ===")
+    r_notifs = client3.get("/api/notifications")
+    assert r_notifs.status_code == 200
+    notif_data = r_notifs.json()
+    assert notif_data.get("success") is True
+    print(f"  [PASS] /api/notifications (GET) -> 200 OK (Unread: {notif_data.get('unread_count')})")
+
+    r_read_all = client3.post("/api/notifications/read-all")
+    assert r_read_all.status_code == 200
+    print("  [PASS] /api/notifications/read-all (POST) -> 200 OK")
+
+    print("\n=== 9. Testing Chatbot API ===")
     # KB query
     r_chat_kb = client.post("/chat-api", data={"action": "kb_query", "query": "How do I create a report?"})
     assert r_chat_kb.status_code == 200
@@ -159,3 +197,4 @@ def run_tests():
 
 if __name__ == "__main__":
     run_tests()
+

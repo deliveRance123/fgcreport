@@ -167,11 +167,13 @@
     </div>
   </aside>
 
-  <main class="main">
-    <div class="page-head">
+    <div class="page-head" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
       <div>
         <h1>Welcome back, {{ user.full_name.split()[0] if user and user.full_name else 'Superintendent' }}!</h1>
         <p class="sub">{{ zone.zone_name }} Zone &nbsp;•&nbsp; {{ church_count }} Churches Registered</p>
+      </div>
+      <div>
+        {% include 'includes/notifications_bell.html' %}
       </div>
     </div>
 

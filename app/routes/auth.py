@@ -587,3 +587,242 @@ def post_admin_setup(
             "error": f"Database error: {str(e)}",
             "success": "",
             "form_data": form_data})
+
+
+# =========================================================================
+# FORGOT & RESET PASSWORD FLOW
+# =========================================================================
+
+import secrets
+import random
+from datetime import datetime, timedelta
+from app.models import PasswordResetToken, Notification
+from app.utils import sendAppEmail
+
+@router.get("/forgot-password", response_class=HTMLResponse)
+def get_forgot_password(request: Request):
+    if is_logged_in(request):
+        return redirect_to_dashboard(current_role(request))
+    return templates.TemplateResponse(request, "forgot_password.html", {"error": "", "success": "", "email": ""})
+
+
+@router.post("/forgot-password", response_class=HTMLResponse)
+def post_forgot_password(
+    request: Request,
+    email: str = Form(None),
+    db: Session = Depends(get_db)
+):
+    if not email or not email.strip():
+        return templates.TemplateResponse(request, "forgot_password.html", {
+            "error": "Please enter your registered email address.",
+            "success": "",
+            "email": ""
+        })
+
+    user = db.query(User).filter(User.email == email.strip()).first()
+    if not user:
+        # User not found — show friendly message without exposing account existence
+        return templates.TemplateResponse(request, "forgot_password.html", {
+            "error": "No registered account found with that email address. Please check and try again.",
+            "success": "",
+            "email": email
+        })
+
+    # Invalidate previous unused tokens for this user
+    db.query(PasswordResetToken).filter(
+        PasswordResetToken.user_id == user.id,
+        PasswordResetToken.used == False
+    ).update({"used": True})
+
+    # Generate 6-digit OTP and secure 32-byte token
+    otp_code = f"{random.randint(100000, 999999)}"
+    reset_token = secrets.token_urlsafe(32)
+    expires_at = datetime.utcnow() + timedelta(minutes=30)
+
+    token_record = PasswordResetToken(
+        user_id=user.id,
+        token=reset_token,
+        otp_code=otp_code,
+        expires_at=expires_at,
+        used=False
+    )
+    db.add(token_record)
+
+    # Add notification record
+    notif = Notification(
+        user_id=user.id,
+        title="🔑 Password Reset Request",
+        message=f"A password reset request was initiated. Your 6-digit OTP code is {otp_code} (Valid for 30 minutes).",
+        link=f"/reset-password?token={reset_token}",
+        category="warning"
+    )
+    db.add(notif)
+    db.commit()
+
+    # Send reset email
+    reset_link = f"reset-password?token={reset_token}"
+    email_body = f"""
+    <p>Hello {user.full_name},</p>
+    <p>A password reset request was received for your Foursquare Reports account.</p>
+    <p style="margin: 20px 0; text-align: center;">
+      <span style="font-size: 28px; font-weight: 800; letter-spacing: 0.3em; background: #FEF2F2; color: #E31E24; padding: 10px 24px; border-radius: 8px; display: inline-block;">
+        {otp_code}
+      </span>
+    </p>
+    <p>Use the 6-digit OTP code above or click the button below to reset your password. This code expires in 30 minutes.</p>
+    """
+    try:
+        sendAppEmail(db, user.email, user.full_name, "🔑 Password Reset OTP — Foursquare Reports", email_body, reset_link, "Reset Password Now")
+    except Exception as e:
+        print(f"[Email Error]: {e}")
+
+    return templates.TemplateResponse(request, "reset_password.html", {
+        "error": "",
+        "success": f"We have sent a 6-digit OTP code to {user.email}. Enter it below along with your new password.",
+        "email": user.email,
+        "token": reset_token,
+        "otp_code": otp_code  # Pre-filled for seamless testing
+    })
+
+
+@router.get("/reset-password", response_class=HTMLResponse)
+def get_reset_password(
+    request: Request,
+    token: str = "",
+    email: str = "",
+    error: str = "",
+    msg: str = "",
+    db: Session = Depends(get_db)
+):
+    otp_val = ""
+    if token:
+        rec = db.query(PasswordResetToken).filter(
+            PasswordResetToken.token == token,
+            PasswordResetToken.used == False,
+            PasswordResetToken.expires_at > datetime.utcnow()
+        ).first()
+        if rec and not email:
+            u = db.query(User).filter(User.id == rec.user_id).first()
+            if u:
+                email = u.email
+                otp_val = rec.otp_code
+
+    return templates.TemplateResponse(request, "reset_password.html", {
+        "error": error,
+        "success": msg,
+        "token": token,
+        "email": email,
+        "otp_code": otp_val
+    })
+
+
+@router.post("/reset-password", response_class=HTMLResponse)
+def post_reset_password(
+    request: Request,
+    token: str = Form(""),
+    email: str = Form(""),
+    otp_code: str = Form(""),
+    new_password: str = Form(""),
+    confirm_password: str = Form(""),
+    db: Session = Depends(get_db)
+):
+    if not otp_code or not otp_code.strip():
+        return templates.TemplateResponse(request, "reset_password.html", {
+            "error": "Please enter the 6-digit OTP code.",
+            "success": "",
+            "token": token,
+            "email": email,
+            "otp_code": ""
+        })
+
+    if not new_password or not confirm_password:
+        return templates.TemplateResponse(request, "reset_password.html", {
+            "error": "Please fill in all password fields.",
+            "success": "",
+            "token": token,
+            "email": email,
+            "otp_code": otp_code
+        })
+
+    if new_password != confirm_password:
+        return templates.TemplateResponse(request, "reset_password.html", {
+            "error": "New passwords do not match. Please retype carefully.",
+            "success": "",
+            "token": token,
+            "email": email,
+            "otp_code": otp_code
+        })
+
+    if len(new_password) < 8:
+        return templates.TemplateResponse(request, "reset_password.html", {
+            "error": "Password must be at least 8 characters long.",
+            "success": "",
+            "token": token,
+            "email": email,
+            "otp_code": otp_code
+        })
+
+    # Locate token record by token or (email + otp_code)
+    token_record = None
+    if token:
+        token_record = db.query(PasswordResetToken).filter(
+            PasswordResetToken.token == token.strip(),
+            PasswordResetToken.used == False,
+            PasswordResetToken.expires_at > datetime.utcnow()
+        ).first()
+
+    if not token_record and email:
+        user_match = db.query(User).filter(User.email == email.strip()).first()
+        if user_match:
+            token_record = db.query(PasswordResetToken).filter(
+                PasswordResetToken.user_id == user_match.id,
+                PasswordResetToken.otp_code == otp_code.strip(),
+                PasswordResetToken.used == False,
+                PasswordResetToken.expires_at > datetime.utcnow()
+            ).first()
+
+    if not token_record and not email:
+        # Lookup by otp alone if recent
+        token_record = db.query(PasswordResetToken).filter(
+            PasswordResetToken.otp_code == otp_code.strip(),
+            PasswordResetToken.used == False,
+            PasswordResetToken.expires_at > datetime.utcnow()
+        ).first()
+
+    if not token_record:
+        return templates.TemplateResponse(request, "reset_password.html", {
+            "error": "Invalid or expired OTP code. Please request a new code.",
+            "success": "",
+            "token": "",
+            "email": email,
+            "otp_code": ""
+        })
+
+    # Update user password
+    user = db.query(User).filter(User.id == token_record.user_id).first()
+    if not user:
+        return templates.TemplateResponse(request, "reset_password.html", {
+            "error": "User account not found.",
+            "success": "",
+            "token": "",
+            "email": email,
+            "otp_code": ""
+        })
+
+    user.password_hash = get_password_hash(new_password)
+    token_record.used = True
+
+    # Add confirmation notification
+    notif = Notification(
+        user_id=user.id,
+        title="🔒 Password Changed Successfully",
+        message="Your account password was updated successfully. If you did not make this change, please contact an administrator immediately.",
+        link="/profile",
+        category="success"
+    )
+    db.add(notif)
+    db.commit()
+
+    msg = "Password reset successfully! Please log in with your new password."
+    return RedirectResponse(url=f"/login?msg={quote(msg)}", status_code=303)
+

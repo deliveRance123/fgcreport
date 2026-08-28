@@ -601,6 +601,60 @@ async def post_admin_dashboard(
                     db.commit()
                     msg = f"Password for '{u.full_name}' has been reset successfully."
 
+        elif action == "delete_user":
+            redirect_page = "users"
+            target_uid = int(form_data.get("user_id", 0))
+            if target_uid == uid:
+                error = "You cannot delete your own logged-in Super Admin account."
+            else:
+                u = db.query(User).filter(User.id == target_uid).first()
+                if u:
+                    uname = u.full_name
+                    # Nullify created_by or delete user cleanly
+                    db.query(Church).filter(Church.created_by == target_uid).update({"created_by": None})
+                    db.query(Zone).filter(Zone.created_by == target_uid).update({"created_by": None})
+                    db.delete(u)
+                    db.commit()
+                    msg = f"User account '{uname}' has been deleted successfully."
+
+        elif action == "add_kb_entry":
+            redirect_page = "chatbot"
+            q = form_data.get("question", "").strip()
+            a = form_data.get("answer", "").strip()
+            kw = form_data.get("keywords", "").strip()
+            if q and a:
+                new_kb = ChatbotKnowledgeBase(question=q, answer=a, keywords=kw)
+                db.add(new_kb)
+                db.commit()
+                msg = "New Chatbot Knowledge Base Q&A added successfully!"
+            else:
+                error = "Both Question and Answer are required."
+
+        elif action == "edit_kb_entry":
+            redirect_page = "chatbot"
+            kb_id = int(form_data.get("kb_id", 0))
+            q = form_data.get("question", "").strip()
+            a = form_data.get("answer", "").strip()
+            kw = form_data.get("keywords", "").strip()
+            kb = db.query(ChatbotKnowledgeBase).filter(ChatbotKnowledgeBase.id == kb_id).first()
+            if kb and q and a:
+                kb.question = q
+                kb.answer = a
+                kb.keywords = kw
+                db.commit()
+                msg = "Knowledge Base entry updated successfully!"
+            else:
+                error = "Failed to update Knowledge Base entry. Ensure fields are not empty."
+
+        elif action == "delete_kb_entry":
+            redirect_page = "chatbot"
+            kb_id = int(form_data.get("kb_id", 0))
+            kb = db.query(ChatbotKnowledgeBase).filter(ChatbotKnowledgeBase.id == kb_id).first()
+            if kb:
+                db.delete(kb)
+                db.commit()
+                msg = "Knowledge Base entry deleted successfully!"
+
         elif form_data.get("send_unsubmitted_reminders") == "1":
             msg = "Reminder emails dispatched to all churches with pending reports."
 

@@ -1,0 +1,125 @@
+from datetime import datetime
+from fastapi import APIRouter, Request, Depends, HTTPException
+from fastapi.responses import JSONResponse
+from sqlalchemy.orm import Session
+from sqlalchemy import or_, and_, desc
+
+from app.database import get_db
+from app.models import Notification, User
+from app.auth import is_logged_in, current_user_id, current_role
+
+router = APIRouter(prefix="/api/notifications", tags=["notifications"])
+
+def format_time_ago(dt: datetime) -> str:
+    if not dt:
+        return "recently"
+    now = datetime.utcnow()
+    diff = now - dt
+    secs = int(diff.total_seconds())
+    if secs < 60:
+        return "just now"
+    mins = secs // 60
+    if mins < 60:
+        return f"{mins}m ago"
+    hours = mins // 60
+    if hours < 24:
+        return f"{hours}h ago"
+    days = hours // 24
+    if days < 7:
+        return f"{days}d ago"
+    return dt.strftime("%b %d")
+
+@router.get("")
+def get_notifications(request: Request, db: Session = Depends(get_db)):
+    if not is_logged_in(request):
+        return JSONResponse({"success": True, "unread_count": 0, "notifications": []})
+
+    uid = current_user_id(request)
+    role = current_role(request)
+
+    # Fetch notifications targeted to this user or role broadcast
+    query = db.query(Notification).filter(
+        or_(
+            Notification.user_id == uid,
+            and_(
+                Notification.user_id == None,
+                or_(
+                    Notification.role_target == None,
+                    Notification.role_target == role
+                )
+            )
+        )
+    ).order_by(desc(Notification.created_at)).limit(25)
+
+    items = query.all()
+
+    # If no notifications exist yet, seed a welcome notification
+    if not items and uid:
+        welcome_notif = Notification(
+            user_id=uid,
+            title="🎉 Welcome to Foursquare Reports",
+            message="Your account is active. You can create monthly financial and spiritual reports, track dues, and manage church records.",
+            link="/church-dashboard" if role == "church_admin" else ("/zone-dashboard" if role == "zonal_admin" else "/admin-dashboard"),
+            category="info",
+            is_read=False
+        )
+        db.add(welcome_notif)
+        db.commit()
+        items = [welcome_notif]
+
+    unread_count = sum(1 for n in items if not n.is_read)
+
+    result = []
+    for n in items:
+        result.append({
+            "id": n.id,
+            "title": n.title,
+            "message": n.message,
+            "link": n.link or "#",
+            "category": n.category or "info",
+            "is_read": n.is_read,
+            "created_at": n.created_at.strftime("%Y-%m-%d %H:%M:%S") if n.created_at else "",
+            "time_ago": format_time_ago(n.created_at)
+        })
+
+    return JSONResponse({
+        "success": True,
+        "unread_count": unread_count,
+        "notifications": result
+    })
+
+@router.post("/{notif_id}/read")
+def mark_notification_read(notif_id: int, request: Request, db: Session = Depends(get_db)):
+    if not is_logged_in(request):
+        return JSONResponse({"success": False, "error": "Unauthorized"}, status_code=401)
+
+    notif = db.query(Notification).filter(Notification.id == notif_id).first()
+    if notif:
+        notif.is_read = True
+        db.commit()
+        return JSONResponse({"success": True})
+    return JSONResponse({"success": False, "error": "Notification not found"}, status_code=404)
+
+@router.post("/read-all")
+def mark_all_notifications_read(request: Request, db: Session = Depends(get_db)):
+    if not is_logged_in(request):
+        return JSONResponse({"success": False, "error": "Unauthorized"}, status_code=401)
+
+    uid = current_user_id(request)
+    role = current_role(request)
+
+    db.query(Notification).filter(
+        or_(
+            Notification.user_id == uid,
+            and_(
+                Notification.user_id == None,
+                or_(
+                    Notification.role_target == None,
+                    Notification.role_target == role
+                )
+            )
+        )
+    ).update({"is_read": True}, synchronize_session=False)
+    db.commit()
+
+    return JSONResponse({"success": True})
