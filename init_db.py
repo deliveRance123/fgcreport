@@ -106,6 +106,17 @@ def init_db():
                     _conn.execute(_text("ALTER TABLE due_percentage_audit_log ADD COLUMN note VARCHAR(255)"))
                     print("  Migration: Added column 'note' to due_percentage_audit_log")
                 _conn.commit()
+
+        if _insp.has_table("users"):
+            _u_cols = [c["name"] for c in _insp.get_columns("users")]
+            with engine.connect() as _conn:
+                if "google_id" not in _u_cols:
+                    _conn.execute(_text("ALTER TABLE users ADD COLUMN google_id VARCHAR(200)"))
+                    print("  Migration: Added column 'google_id' to users")
+                if "google_avatar" not in _u_cols:
+                    _conn.execute(_text("ALTER TABLE users ADD COLUMN google_avatar VARCHAR(500)"))
+                    print("  Migration: Added column 'google_avatar' to users")
+                _conn.commit()
         print("Schema migrations complete.")
     except Exception as e:
         print(f"[InitDB] Warning during table creation: {e}")

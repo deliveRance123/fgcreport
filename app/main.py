@@ -173,7 +173,7 @@ def startup_event():
         print(f"[Startup] Database setup warning: {e}")
 
 # Import routes
-from app.routes import auth, dashboards, reports, chat, payments, stats_api
+from app.routes import auth, dashboards, reports, chat, payments, stats_api, google_oauth
 
 app.include_router(auth.router)
 app.include_router(dashboards.router)
@@ -181,6 +181,7 @@ app.include_router(reports.router)
 app.include_router(chat.router)
 app.include_router(payments.router)
 app.include_router(stats_api.router)
+app.include_router(google_oauth.router)
 
 # ── Global Exception Handlers ─────────────────────────────────────────────────
 

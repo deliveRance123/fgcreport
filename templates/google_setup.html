@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Complete Your Setup — Foursquare Reports</title>
+<link rel="icon" type="image/jpeg" href="/assets/logo.jpg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Outfit:wght@600;700;800&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Inter', system-ui, sans-serif;
+    min-height: 100svh; background: #0D0826;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: 60px 16px; position: relative; color: #111827;
+  }
+  body::before {
+    content: ''; position: fixed; inset: 0;
+    background:
+      radial-gradient(ellipse 65% 50% at 15% 15%, rgba(227,30,36,0.18) 0%, transparent 60%),
+      radial-gradient(ellipse 55% 65% at 85% 85%, rgba(99,60,180,0.22) 0%, transparent 60%);
+    pointer-events: none;
+  }
+  .setup-card {
+    position: relative; z-index: 2;
+    width: 100%; max-width: 620px;
+    background: #FFFFFF; border-radius: 24px;
+    padding: 44px 40px; box-shadow: 0 32px 80px rgba(0,0,0,0.5);
+  }
+  .user-badge {
+    display: flex; align-items: center; gap: 14px;
+    background: #F8FAFC; border: 1.5px solid #E2E8F0;
+    padding: 12px 16px; border-radius: 14px; margin-bottom: 24px;
+  }
+  .user-badge img {
+    width: 44px; height: 44px; border-radius: 50%; object-fit: cover;
+  }
+  .user-badge .info h4 { font-size: 14px; font-weight: 700; color: #1E293B; margin-bottom: 2px; }
+  .user-badge .info p { font-size: 12px; color: #64748B; }
+  .auth-title { font-family: 'Outfit', sans-serif; font-size: 24px; font-weight: 800; color: #1A1040; margin-bottom: 6px; }
+  .auth-desc { font-size: 13.5px; color: #64748B; margin-bottom: 24px; line-height: 1.5; }
+  .role-selector {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 24px;
+  }
+  .role-option {
+    border: 2px solid #E2E8F0; border-radius: 12px; padding: 14px; cursor: pointer;
+    text-align: center; transition: all 0.15s; user-select: none;
+  }
+  .role-option:hover { border-color: #CBD5E1; background: #F8FAFC; }
+  .role-option.selected { border-color: #E31E24; background: #FEF2F2; color: #E31E24; }
+  .role-option h5 { font-size: 14px; font-weight: 700; margin-bottom: 2px; }
+  .role-option p { font-size: 11.5px; color: #64748B; }
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .field-group { display: flex; flex-direction: column; }
+  .field-group.full { grid-column: 1 / -1; }
+  .field-label { font-size: 12px; font-weight: 600; color: #374151; margin-bottom: 5px; }
+  .field-input, .field-select, .field-textarea {
+    width: 100%; padding: 10px 12px; border: 1.5px solid #E5E7EB; border-radius: 8px;
+    font-size: 13.5px; outline: none; background: #F9FAFB; font-family: inherit;
+  }
+  .field-input:focus, .field-select:focus, .field-textarea:focus {
+    border-color: #E31E24; background: #fff; box-shadow: 0 0 0 3px rgba(227,30,36,0.08);
+  }
+  .submit-btn {
+    width: 100%; padding: 13px; margin-top: 24px;
+    background: linear-gradient(135deg, #E31E24 0%, #B81018 100%);
+    color: #fff; border: none; border-radius: 9px; font-size: 14px; font-weight: 700;
+    cursor: pointer; font-family: inherit; box-shadow: 0 4px 16px rgba(227,30,36,0.35);
+  }
+  .submit-btn:hover { opacity: 0.94; }
+  .error-bar {
+    background: #FEF2F2; border: 1px solid #FECACA; color: #DC2626;
+    border-radius: 8px; padding: 10px 14px; font-size: 13px; margin-bottom: 18px;
+  }
+</style>
+</head>
+<body>
+
+<div class="setup-card">
+  <h1 class="auth-title">Complete Your Profile</h1>
+  <p class="auth-desc">Your Google account is verified. To generate and submit your official monthly reports, please provide your church or zonal details below.</p>
+
+  <div class="user-badge">
+    {% if pending.picture %}
+      <img src="{{ pending.picture }}" alt="Avatar">
+    {% else %}
+      <div style="width:44px;height:44px;border-radius:50%;background:#E2E8F0;display:flex;align-items:center;justify-content:center;font-weight:700;color:#64748B;">
+        {{ pending.full_name[0] | upper }}
+      </div>
+    {% endif %}
+    <div class="info">
+      <h4>{{ pending.full_name }}</h4>
+      <p>{{ pending.email }} &bull; Google Verified</p>
+    </div>
+  </div>
+
+  {% if error %}
+  <div class="error-bar">{{ error }}</div>
+  {% endif %}
+
+  <form method="POST" action="/auth/google/setup">
+    <label class="field-label" style="margin-bottom:8px;display:block;">Select Account Type <span style="color:#E31E24;">*</span></label>
+    <div class="role-selector">
+      <div class="role-option {% if prefill_role == 'church_admin' %}selected{% endif %}" id="role-church" onclick="chooseRole('church_admin')">
+        <h5>⛪ Local Church</h5>
+        <p>For Church Pastors & Secretaries</p>
+      </div>
+      <div class="role-option {% if prefill_role == 'zonal_admin' %}selected{% endif %}" id="role-zone" onclick="chooseRole('zonal_admin')">
+        <h5>🏛️ Zonal Office</h5>
+        <p>For Zonal Superintendents</p>
+      </div>
+    </div>
+    <input type="hidden" name="role" id="role-input" value="{{ prefill_role or 'church_admin' }}">
+
+    <div class="form-grid">
+      <div class="field-group">
+        <label class="field-label">Full Name</label>
+        <input type="text" name="full_name" class="field-input" value="{{ pending.full_name }}">
+      </div>
+      <div class="field-group">
+        <label class="field-label">Phone Number</label>
+        <input type="text" name="phone" class="field-input" placeholder="+234...">
+      </div>
+    </div>
+
+    <!-- Church Fields -->
+    <div id="church-fields" style="margin-top:16px; {% if prefill_role == 'zonal_admin' %}display:none;{% endif %}">
+      <div class="form-grid">
+        <div class="field-group full">
+          <label class="field-label">Church Name <span style="color:#E31E24;">*</span></label>
+          <input type="text" name="church_name" class="field-input" placeholder="e.g. FGC Grace Chapel">
+        </div>
+        <div class="field-group">
+          <label class="field-label">District <span style="color:#E31E24;">*</span></label>
+          <input type="text" name="district" class="field-input" placeholder="e.g. Lagos District">
+        </div>
+        <div class="field-group">
+          <label class="field-label">Church Type <span style="color:#E31E24;">*</span></label>
+          <select name="church_type" class="field-select">
+            <option value="unchartered">Unchartered Local Church</option>
+            <option value="chartered">Chartered Local Church</option>
+          </select>
+        </div>
+        <div class="field-group full">
+          <label class="field-label">Church Address</label>
+          <input type="text" name="church_address" class="field-input" placeholder="Physical Address">
+        </div>
+        <div class="field-group">
+          <label class="field-label">Pastor's Name</label>
+          <input type="text" name="pastor_name" class="field-input" placeholder="Lead Pastor" value="{{ pending.full_name }}">
+        </div>
+        <div class="field-group">
+          <label class="field-label">Pastor's Address</label>
+          <input type="text" name="pastor_address" class="field-input" placeholder="Pastor's Residence">
+        </div>
+      </div>
+    </div>
+
+    <!-- Zone Fields -->
+    <div id="zone-fields" style="margin-top:16px; {% if prefill_role != 'zonal_admin' %}display:none;{% endif %}">
+      <div class="form-grid">
+        <div class="field-group full">
+          <label class="field-label">Zone Name <span style="color:#E31E24;">*</span></label>
+          <input type="text" name="zone_name" class="field-input" placeholder="e.g. Central Zone">
+        </div>
+        <div class="field-group full">
+          <label class="field-label">Churches in this Zone (One per line)</label>
+          <textarea name="zone_churches" class="field-textarea" rows="4" placeholder="ZONAL HQTS&#10;BRANCH 1&#10;BRANCH 2"></textarea>
+        </div>
+      </div>
+    </div>
+
+    <button type="submit" class="submit-btn">Save & Access Dashboard &rarr;</button>
+  </form>
+</div>
+
+<script>
+function chooseRole(r) {
+  document.getElementById('role-input').value = r;
+  document.getElementById('role-church').classList.toggle('selected', r === 'church_admin');
+  document.getElementById('role-zone').classList.toggle('selected', r === 'zonal_admin');
+  document.getElementById('church-fields').style.display = (r === 'church_admin') ? 'block' : 'none';
+  document.getElementById('zone-fields').style.display = (r === 'zonal_admin') ? 'block' : 'none';
+}
+</script>
+</body>
+</html>

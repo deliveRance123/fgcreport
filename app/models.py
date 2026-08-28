@@ -10,12 +10,14 @@ class User(Base):
     full_name = Column(String(200), nullable=False)
     email = Column(String(200), nullable=False, unique=True, index=True)
     phone = Column(String(30), nullable=False, default="")
-    password_hash = Column(String(255), nullable=False)
+    password_hash = Column(String(255), nullable=False, default="")
     role = Column(String(50), nullable=False)  # 'super_admin', 'zonal_admin', 'church_admin'
     status = Column(String(50), nullable=False, default="pending")  # 'active', 'pending', 'suspended'
     profile_photo = Column(String(300), nullable=True)
     bio = Column(Text, nullable=True)
     last_active = Column(DateTime, nullable=True)
+    google_id = Column(String(200), nullable=True, unique=True, index=True)   # Google OAuth UID
+    google_avatar = Column(String(500), nullable=True)                         # Google profile photo URL
     created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
     updated_at = Column(DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
 

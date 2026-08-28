@@ -26,6 +26,12 @@ def run_tests():
         assert r.status_code == 200, f"{path} failed: {r.status_code}"
         print(f"  [PASS] {path:<20} -> 200 OK")
 
+    # Test Google OAuth initiate
+    r_glogin = client.get("/auth/google/login", follow_redirects=False)
+    assert r_glogin.status_code in [302, 303, 307], f"Expected redirect to Google: {r_glogin.status_code}"
+    assert "accounts.google.com" in r_glogin.headers.get("location", "")
+    print("  [PASS] /auth/google/login    -> 302 Redirect to accounts.google.com")
+
     # Test registration redirect to login
     import time
     ts = int(time.time())
