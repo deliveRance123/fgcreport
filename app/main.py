@@ -35,29 +35,15 @@ async def no_cache_html(request: Request, call_next):
     so changes always show immediately without a hard refresh.
     Static files (assets/, uploads/) are excluded and can still be cached.
     """
-    try:
-        response = await call_next(request)
-        path = request.url.path
-        is_static = path.startswith("/assets") or path.startswith("/uploads")
+    response = await call_next(request)
+    path = request.url.path
+    if not (path.startswith("/assets") or path.startswith("/uploads")):
         content_type = response.headers.get("content-type", "")
-        if not is_static and "text/html" in content_type:
+        if "text/html" in content_type:
             response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
             response.headers["Pragma"] = "no-cache"
             response.headers["Expires"] = "0"
-        return response
-    except Exception as e:
-        import traceback
-        print(f"[Middleware Error on {request.url.path}]: {traceback.format_exc()}")
-        return templates.TemplateResponse(
-            request,
-            "error.html",
-            {
-                "status_code": 500,
-                "title": "System Recovery",
-                "message": "A temporary processing error occurred. Please click below to return to your dashboard or continue."
-            },
-            status_code=500
-        )
+    return response
 
 
 @app.middleware("http")
@@ -132,11 +118,30 @@ def hero_title_formatter(key: str, default: str) -> str:
     formatted = re.sub(r'\[em\](.*?)\[/em\]', r'<em>\1</em>', escaped, flags=re.IGNORECASE)
     return formatted
 
-# Session helpers — named functions (not lambdas) to avoid closure issues
-def _is_logged_in(request): return "user_id" in request.session
-def _current_role(request): return request.session.get("role")
-def _current_user_name(request): return request.session.get("full_name")
-def _current_user_id(request): return request.session.get("user_id")
+# Session helpers — safely handle empty / missing request sessions
+def _is_logged_in(request):
+    try:
+        return "user_id" in request.session
+    except Exception:
+        return False
+
+def _current_role(request):
+    try:
+        return request.session.get("role")
+    except Exception:
+        return None
+
+def _current_user_name(request):
+    try:
+        return request.session.get("full_name")
+    except Exception:
+        return None
+
+def _current_user_id(request):
+    try:
+        return request.session.get("user_id")
+    except Exception:
+        return None
 
 def _current_year(): return datetime.utcnow().year
 
@@ -185,20 +190,22 @@ app.include_router(google_oauth.router)
 
 # ── Global Exception Handlers ─────────────────────────────────────────────────
 
-from fastapi import HTTPException
-from fastapi.responses import HTMLResponse as _HTMLResponse
+from fastapi.exceptions import HTTPException as FastAPIHTTPException
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
+@app.exception_handler(FastAPIHTTPException)
 @app.exception_handler(StarletteHTTPException)
 async def http_exception_handler(request: Request, exc: StarletteHTTPException):
-    """Catch 404, 403, 307, and other HTTP errors — never show blank pages."""
-    # Redirect-type responses: pass through
+    """Catch 404, 403, 303 redirects, and other HTTP errors — never show blank pages."""
+    # Pass redirects through cleanly
     if exc.status_code in (301, 302, 303, 307, 308):
-        return RedirectResponse(url=exc.headers.get("Location", "/"), status_code=exc.status_code)
+        headers = getattr(exc, "headers", None) or {}
+        location = headers.get("Location") or headers.get("location") or "/login"
+        return RedirectResponse(url=location, status_code=exc.status_code)
 
-    # If user is not logged in and hit a protected page → redirect to login
-    if exc.status_code in (401, 403) or (exc.status_code == 307):
-        return RedirectResponse(url="/login", status_code=303)
+    # If unauthenticated user hits 401 or 403, redirect to login
+    if exc.status_code in (401, 403):
+        return RedirectResponse(url="/login?error=Please+log+in+to+continue.", status_code=303)
 
     # 404 — Page not found
     if exc.status_code == 404:
@@ -207,7 +214,7 @@ async def http_exception_handler(request: Request, exc: StarletteHTTPException):
             {
                 "status_code": 404,
                 "title": "Page Not Found",
-                "message": "The page you're looking for doesn't exist or may have moved. Use the button below to go back."
+                "message": "The page you're looking for doesn't exist or may have moved. Please use the button below to go back."
             },
             status_code=404
         )
@@ -218,7 +225,7 @@ async def http_exception_handler(request: Request, exc: StarletteHTTPException):
         {
             "status_code": exc.status_code,
             "title": "System Notice",
-            "message": str(exc.detail) if exc.detail else "Something went wrong. Please go back to your dashboard and try again."
+            "message": str(exc.detail) if exc.detail else "Something went wrong. Please return to your dashboard."
         },
         status_code=exc.status_code
     )
@@ -233,7 +240,7 @@ async def unhandled_exception_handler(request: Request, exc: Exception):
         {
             "status_code": 500,
             "title": "System Recovery",
-            "message": "The server encountered a temporary error while loading this page. Your session is safe. Please click below to return to your dashboard."
+            "message": "The server encountered a temporary error while loading this page. Please click below to return to your dashboard."
         },
         status_code=500
     )
