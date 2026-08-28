@@ -103,36 +103,45 @@
     </div>
   </aside>
 
-  <main class="main">
-    <div class="page-head" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
-      <div>
+  <main class="main" style="padding-top:0;">
+    <div class="dash-topbar">
+      <div class="dash-topbar-left">
         {% if page == 'dues' %}
           <h1>Manage Dues &amp; Percentages</h1>
-          <p class="sub">Adjust calculation rates and toggle lock status for national, regional, district, and zonal dues.</p>
+          <p>Adjust calculation rates and lock status for dues.</p>
         {% elif page == 'users' %}
           <h1>Manage Users</h1>
-          <p class="sub">View, activate, suspend, or reset passwords for all registered users on the platform.</p>
+          <p>View, activate, suspend, or reset passwords for all users.</p>
         {% elif page == 'chatbot' %}
           <h1>Chatbot Knowledge Base</h1>
-          <p class="sub">Manage and add questions &amp; answers for the AI reporting assistant in real-time.</p>
+          <p>Manage questions &amp; answers for the AI reporting assistant.</p>
         {% elif page == 'settings' %}
           <h1>Site Settings</h1>
-          <p class="sub">Control the content displayed on the public landing page. Changes take effect immediately.</p>
+          <p>Control landing page content. Changes take effect immediately.</p>
+        {% elif page == 'churches' %}
+          <h1>Registered Churches</h1>
+          <p>View and manage all registered churches on the platform.</p>
+        {% elif page == 'zones' %}
+          <h1>Registered Zones</h1>
+          <p>View and manage all zones across the reporting network.</p>
+        {% elif page == 'payments' %}
+          <h1>Payment Records</h1>
+          <p>Review all subscription payments made on the platform.</p>
         {% else %}
           <h1>Platform overview</h1>
-          <p class="sub">View registered churches, zones, and submission status across the reporting network ({{ curMonth|month_name }} {{ curYear }}).</p>
+          <p>{{ curMonth|month_name }} {{ curYear }} · Registered churches, zones &amp; submission status</p>
         {% endif %}
       </div>
-      <div style="display:flex;align-items:center;gap:12px;">
+      <div class="dash-topbar-right">
         {% if not page or page == 'dashboard' %}
-        <form method="GET" action="/admin-dashboard" class="d-flex gap-2">
+        <form method="GET" action="/admin-dashboard" class="d-flex gap-2" style="flex-wrap:nowrap;">
           <input type="hidden" name="page" value="dashboard">
-          <select name="month" class="form-select form-select-sm" style="width:110px;" onchange="this.form.submit()">
+          <select name="month" class="form-select form-select-sm" style="width:100px;" onchange="this.form.submit()">
             {% for m in range(1, 13) %}
               <option value="{{ m }}" {{ 'selected' if m == curMonth else '' }}>{{ m|month_name }}</option>
             {% endfor %}
           </select>
-          <select name="year" class="form-select form-select-sm" style="width:90px;" onchange="this.form.submit()">
+          <select name="year" class="form-select form-select-sm" style="width:82px;" onchange="this.form.submit()">
             {% for y in range(curYear + 2, curYear - 6, -1) %}
               <option value="{{ y }}" {{ 'selected' if y == curYear else '' }}>{{ y }}</option>
             {% endfor %}
@@ -142,6 +151,7 @@
         {% include 'includes/notifications_bell.html' %}
       </div>
     </div>
+
 
     {% if msg %}
       <div class="alert alert-success p-2 small mb-3">{{ msg }}</div>

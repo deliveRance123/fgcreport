@@ -290,6 +290,56 @@
 }
 
 
+/* ══ STICKY DASHBOARD TOPBAR ═══════════════════════════ */
+.dash-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 500;
+  background: #FAF9F6;
+  border-bottom: 1px solid #E5E7EB;
+  padding: 14px 0 14px 0;
+  margin-bottom: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  /* Bleed to cover horizontal scroll */
+  margin-left: -40px;
+  margin-right: -40px;
+  padding-left: 40px;
+  padding-right: 40px;
+}
+.dash-topbar-left {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+.dash-topbar-left h1 {
+  font-size: 22px !important;
+  font-weight: 800 !important;
+  color: #1A1040 !important;
+  margin: 0 !important;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.dash-topbar-left p {
+  font-size: 12.5px !important;
+  color: #6B7280 !important;
+  margin: 0 !important;
+}
+.dash-topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
 /* ══ RESPONSIVE — MOBILE ════════════════════ */
 @media (max-width: 767px) {
   html, body { max-width: 100vw; overflow-x: hidden; }
@@ -577,7 +627,37 @@
 
   /* ─── Charts and canvas ─── */
   canvas { max-width: 100% !important; height: auto !important; }
+
+  /* ─── Sticky Topbar — mobile adjustments ─── */
+  .dash-topbar {
+    position: sticky;
+    top: 56px; /* height of fixed mobile-header */
+    margin-left: -14px !important;
+    margin-right: -14px !important;
+    padding-left: 14px !important;
+    padding-right: 14px !important;
+    padding-top: 10px !important;
+    padding-bottom: 10px !important;
+    z-index: 490;
+    flex-wrap: nowrap !important;
+    gap: 8px !important;
+  }
+  .dash-topbar-left h1 {
+    font-size: 16px !important;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: calc(100vw - 80px);
+  }
+  .dash-topbar-left p {
+    font-size: 11px !important;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: calc(100vw - 80px);
+  }
 }
+
 
 @media (max-width: 420px) {
   .stat-grid { grid-template-columns: 1fr; }

@@ -211,23 +211,19 @@
     </div>
   </aside>
 
-  <!-- ══ MAIN ══ -->
-  <main class="main">
+  <main class="main" style="padding-top:0;">
 
-    <!-- Welcome Back Top Greeting with Notification Bell -->
-    <div style="margin-bottom: 24px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
-      <div>
-        <h1 style="font-family: 'Outfit', sans-serif; font-size: 26px; font-weight: 800; color: #1A1040; margin-bottom: 4px;">
-          Welcome back, {{ (user.full_name.split()[0] if user.full_name else 'Pastor') | lower }}!
-        </h1>
-        <p style="font-size: 13.5px; color: #6B7280;">
-          {{ church.name }} &bull; {{ church.district or 'District' }} &bull; {{ church.church_type }} Church
-        </p>
+    <!-- Sticky Topbar with notification bell -->
+    <div class="dash-topbar">
+      <div class="dash-topbar-left">
+        <h1>Welcome back, {{ (user.full_name.split()[0] if user.full_name else 'Pastor') | lower }}!</h1>
+        <p>{{ church.name }} &bull; {{ church.district or 'District' }} &bull; {{ church.church_type }} Church</p>
       </div>
-      <div>
+      <div class="dash-topbar-right">
         {% include 'includes/notifications_bell.html' %}
       </div>
     </div>
+
 
     {% if error %}
     <div class="alert-bar alert-error">
