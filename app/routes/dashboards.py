@@ -610,9 +610,17 @@ async def post_admin_dashboard(
                 u = db.query(User).filter(User.id == target_uid).first()
                 if u:
                     uname = u.full_name
-                    # Nullify created_by or delete user cleanly
-                    db.query(Church).filter(Church.created_by == target_uid).update({"created_by": None})
-                    db.query(Zone).filter(Zone.created_by == target_uid).update({"created_by": None})
+                    # Reassign created_by on any churches and zones to the active super admin
+                    db.query(Church).filter(Church.created_by == target_uid).update({"created_by": uid})
+                    db.query(Zone).filter(Zone.created_by == target_uid).update({"created_by": uid})
+
+                    # Clean up foreign key references
+                    from app.models import Notification, PasswordResetToken, UserPayment, UserMessage
+                    db.query(Notification).filter(Notification.user_id == target_uid).delete()
+                    db.query(PasswordResetToken).filter(PasswordResetToken.user_id == target_uid).delete()
+                    db.query(UserPayment).filter(UserPayment.user_id == target_uid).delete()
+                    db.query(UserMessage).filter((UserMessage.sender_id == target_uid) | (UserMessage.receiver_id == target_uid)).delete()
+
                     db.delete(u)
                     db.commit()
                     msg = f"User account '{uname}' has been deleted successfully."

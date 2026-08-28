@@ -232,6 +232,18 @@ def init_db():
                     _conn.execute(_text("ALTER TABLE users ADD COLUMN google_avatar VARCHAR(500)"))
                     print("  Migration: Added column 'google_avatar' to users")
                 _conn.commit()
+
+        with engine.connect() as _conn:
+            try:
+                _conn.execute(_text("ALTER TABLE churches ALTER COLUMN created_by DROP NOT NULL;"))
+            except Exception:
+                pass
+            try:
+                _conn.execute(_text("ALTER TABLE zones ALTER COLUMN created_by DROP NOT NULL;"))
+            except Exception:
+                pass
+            _conn.commit()
+
         print("Schema migrations complete.")
     except Exception as e:
         print(f"[InitDB] Warning during table creation: {e}")

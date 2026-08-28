@@ -34,7 +34,7 @@ class Zone(Base):
     
     id = Column(Integer, primary_key=True, index=True)
     zone_name = Column(String(200), nullable=False)
-    created_by = Column(Integer, ForeignKey("users.id", ondelete="RESTRICT"), nullable=False)
+    created_by = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
     updated_at = Column(DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -56,7 +56,7 @@ class Church(Base):
     pastor_address = Column(Text, nullable=False, default="")
     church_type = Column(String(50), nullable=False)  # 'chartered', 'unchartered'
     zone_id = Column(Integer, ForeignKey("zones.id", ondelete="SET NULL"), nullable=True)
-    created_by = Column(Integer, ForeignKey("users.id", ondelete="RESTRICT"), nullable=False)
+    created_by = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
     updated_at = Column(DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
 
