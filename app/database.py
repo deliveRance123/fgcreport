@@ -36,19 +36,26 @@ IS_PRODUCTION = os.getenv("RENDER") == "true" or "render.com" in DATABASE_URL or
 
 def _make_pg_engine(url: str):
     """Create a PostgreSQL engine with safe SSL handling."""
+    # Strip unsupported libpq parameters like channel_binding that cause psycopg2 errors on Linux
+    if "channel_binding=" in url:
+        import re
+        url = re.sub(r'[?&]channel_binding=[^&]+', '', url)
+        if "?" not in url and "&" in url:
+            url = url.replace("&", "?", 1)
+
     connect_args = {}
     if IS_PRODUCTION and "localhost" not in url and "127.0.0.1" not in url:
         if "sslmode" not in url:
-            # Render PostgreSQL requires SSL — 'prefer' is insufficient and causes auth errors
             connect_args["sslmode"] = "require"
+
     return create_engine(
         url,
         connect_args=connect_args,
         pool_pre_ping=True,       # Automatically tests & reconnects stale/cold connections
-        pool_size=3,              # 3 is safe for Render free tier (max 25 connections shared)
-        max_overflow=5,           # Allow up to 8 total connections under burst load
-        pool_recycle=300,         # Recycle connections every 5 min (avoids stale TCP)
-        pool_timeout=30,          # Don't wait more than 30s for a connection slot
+        pool_size=3,              # Safe for Render / Neon free tier
+        max_overflow=5,           # Allow burst connections
+        pool_recycle=300,         # Recycle connections every 5 min
+        pool_timeout=30,          # Don't wait more than 30s
     )
 
 def _make_sqlite_engine():
@@ -59,19 +66,25 @@ def _make_sqlite_engine():
         pool_pre_ping=True,
     )
 
-# --- Engine initialization with connection verification ---
+# --- Engine initialization with connection verification (with retry for Neon/Cloud) ---
 engine = None
 if DATABASE_URL.startswith("postgresql://") or DATABASE_URL.startswith("postgres://"):
-    try:
-        engine = _make_pg_engine(DATABASE_URL)
-        # Test the connection immediately
-        with engine.connect() as conn:
-            conn.execute(text("SELECT 1"))
-        print("[DB] PostgreSQL connection successfully established and verified.")
-    except Exception as e:
-        print(f"[DB] PostgreSQL connection failed ({e}). Automatically switching to SQLite.")
-        DATABASE_URL = "sqlite:///./foursquare_reports.db"
-        engine = _make_sqlite_engine()
+    max_retries = 5
+    for attempt in range(1, max_retries + 1):
+        try:
+            engine = _make_pg_engine(DATABASE_URL)
+            with engine.connect() as conn:
+                conn.execute(text("SELECT 1"))
+            print("[DB] PostgreSQL connection successfully established and verified.")
+            break
+        except Exception as e:
+            if attempt < max_retries:
+                print(f"[DB] PostgreSQL connection attempt {attempt}/{max_retries} failed ({e}). Retrying in 2 seconds...")
+                time.sleep(2)
+            else:
+                print(f"[DB] PostgreSQL connection failed after {max_retries} attempts ({e}). Automatically switching to SQLite.")
+                DATABASE_URL = "sqlite:///./foursquare_reports.db"
+                engine = _make_sqlite_engine()
 else:
     engine = _make_sqlite_engine()
     print("[DB] SQLite database initialized.")
