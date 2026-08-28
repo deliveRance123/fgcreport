@@ -16,11 +16,16 @@ from app.auth import is_logged_in
 # Initialize FastAPI app
 app = FastAPI(title="Foursquare Gospel Church Reporting System")
 
-# Session Secret Key config (Render uses environment variable, fallback to default)
-SECRET_KEY = os.getenv("SESSION_SECRET", "super-secret-fgc-key-999")
-# On Render (HTTPS), cookies must be sent with Secure flag; locally use HTTP
-_https_only = os.getenv("RENDER") == "true"
-app.add_middleware(SessionMiddleware, secret_key=SECRET_KEY, same_site="lax", https_only=_https_only)
+# Session Secret Key config (Render uses environment variable, fallback to consistent default)
+SECRET_KEY = os.getenv("SESSION_SECRET", "super-secret-fgc-key-999-permanent-2026")
+app.add_middleware(
+    SessionMiddleware,
+    secret_key=SECRET_KEY,
+    session_cookie="fgc_session",
+    max_age=14 * 86400,
+    same_site="lax",
+    https_only=False
+)
 
 @app.middleware("http")
 async def no_cache_html(request: Request, call_next):
@@ -30,16 +35,29 @@ async def no_cache_html(request: Request, call_next):
     so changes always show immediately without a hard refresh.
     Static files (assets/, uploads/) are excluded and can still be cached.
     """
-    response = await call_next(request)
-    path = request.url.path
-    # Apply no-cache only to HTML page responses (not to static assets)
-    is_static = path.startswith("/assets") or path.startswith("/uploads")
-    content_type = response.headers.get("content-type", "")
-    if not is_static and "text/html" in content_type:
-        response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
-        response.headers["Pragma"] = "no-cache"
-        response.headers["Expires"] = "0"
-    return response
+    try:
+        response = await call_next(request)
+        path = request.url.path
+        is_static = path.startswith("/assets") or path.startswith("/uploads")
+        content_type = response.headers.get("content-type", "")
+        if not is_static and "text/html" in content_type:
+            response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+            response.headers["Pragma"] = "no-cache"
+            response.headers["Expires"] = "0"
+        return response
+    except Exception as e:
+        import traceback
+        print(f"[Middleware Error on {request.url.path}]: {traceback.format_exc()}")
+        return templates.TemplateResponse(
+            request,
+            "error.html",
+            {
+                "status_code": 500,
+                "title": "System Recovery",
+                "message": "A temporary processing error occurred. Please click below to return to your dashboard or continue."
+            },
+            status_code=500
+        )
 
 
 @app.middleware("http")
@@ -142,12 +160,19 @@ templates.env.globals.update({
 @app.on_event("startup")
 def startup_event():
     try:
+        from app.database import SessionLocal as _SL
         Base.metadata.create_all(bind=engine)
         print("[Startup] Database tables verified successfully.")
+        # Run safe schema migrations
+        try:
+            import app.init_schema as _schema
+            _schema.run_migrations(engine)
+        except Exception:
+            pass
     except Exception as e:
         print(f"[Startup] Database setup warning: {e}")
 
-# Import routes (we will create these routers in the next steps)
+# Import routes
 from app.routes import auth, dashboards, reports, chat, payments, stats_api
 
 app.include_router(auth.router)
@@ -156,6 +181,61 @@ app.include_router(reports.router)
 app.include_router(chat.router)
 app.include_router(payments.router)
 app.include_router(stats_api.router)
+
+# ── Global Exception Handlers ─────────────────────────────────────────────────
+
+from fastapi import HTTPException
+from fastapi.responses import HTMLResponse as _HTMLResponse
+from starlette.exceptions import HTTPException as StarletteHTTPException
+
+@app.exception_handler(StarletteHTTPException)
+async def http_exception_handler(request: Request, exc: StarletteHTTPException):
+    """Catch 404, 403, 307, and other HTTP errors — never show blank pages."""
+    # Redirect-type responses: pass through
+    if exc.status_code in (301, 302, 303, 307, 308):
+        return RedirectResponse(url=exc.headers.get("Location", "/"), status_code=exc.status_code)
+
+    # If user is not logged in and hit a protected page → redirect to login
+    if exc.status_code in (401, 403) or (exc.status_code == 307):
+        return RedirectResponse(url="/login", status_code=303)
+
+    # 404 — Page not found
+    if exc.status_code == 404:
+        return templates.TemplateResponse(
+            request, "error.html",
+            {
+                "status_code": 404,
+                "title": "Page Not Found",
+                "message": "The page you're looking for doesn't exist or may have moved. Use the button below to go back."
+            },
+            status_code=404
+        )
+
+    # All other HTTP errors
+    return templates.TemplateResponse(
+        request, "error.html",
+        {
+            "status_code": exc.status_code,
+            "title": "System Notice",
+            "message": str(exc.detail) if exc.detail else "Something went wrong. Please go back to your dashboard and try again."
+        },
+        status_code=exc.status_code
+    )
+
+@app.exception_handler(Exception)
+async def unhandled_exception_handler(request: Request, exc: Exception):
+    """Catch all unhandled Python exceptions — prevents blank white page on crash."""
+    import traceback
+    print(f"[UNHANDLED ERROR on {request.url.path}]: {traceback.format_exc()}")
+    return templates.TemplateResponse(
+        request, "error.html",
+        {
+            "status_code": 500,
+            "title": "System Recovery",
+            "message": "The server encountered a temporary error while loading this page. Your session is safe. Please click below to return to your dashboard."
+        },
+        status_code=500
+    )
 
 # Root landing page route
 @app.get("/")

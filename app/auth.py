@@ -158,91 +158,122 @@ def redirect_to_dashboard(role: str) -> RedirectResponse:
 def ensure_role_session(request: Request, role: str, db: Session) -> int:
     """
     Ensures the user session is active with the given role.
-    If not logged in, provisions/loads the corresponding role user and session.
+    - If a valid session exists: returns the user_id.
+    - If NOT logged in: redirects to /login (prevents blank page on reload).
+    - Preview mode (in test client): provisions/loads the corresponding role user.
     """
     if is_logged_in(request):
         c_role = current_role(request)
         if c_role == role or c_role == "super_admin":
-            return current_user_id(request)
-
-    from app.models import User, Zone, Church, ZoneChurch, ChurchExpenseItem
-    from app.utils import defaultExpenseItems
-
-    user = db.query(User).filter(User.role == role).first()
-    if not user:
-        pwd = get_password_hash("password")
-        email_map = {
-            "zonal_admin": "zone@fgc-report.org",
-            "church_admin": "church@fgc-report.org",
-            "super_admin": "admin@fgc-report.org"
-        }
-        user = User(
-            full_name=f"Sample {role.replace('_', ' ').title()}",
-            email=email_map.get(role, f"{role}@fgc-report.org"),
-            phone="08000000000",
-            password_hash=pwd,
-            role=role,
-            status="active"
-        )
-        db.add(user)
-        db.commit()
-        db.refresh(user)
-
-    login_user(request, user, db)
-
-    if role == "zonal_admin":
-        zone = db.query(Zone).filter(Zone.created_by == user.id).first()
-        if not zone:
-            zone = db.query(Zone).first()
-        if not zone:
-            zone = Zone(zone_name="Central Zone", created_by=user.id)
-            db.add(zone)
-            db.commit()
-            db.refresh(zone)
-        request.session["zone_id"] = zone.id
-
-        existing = db.query(ZoneChurch).filter_by(zone_id=zone.id).all()
-        if not existing:
-            churches_to_add = [
-                ("ZONAL HQTS", 1),
-                ("BRANCH 1", 2),
-                ("BRANCH 2", 3),
-                ("BRANCH 3", 4)
-            ]
-            for name, order in churches_to_add:
-                db.add(ZoneChurch(zone_id=zone.id, church_name=name, display_order=order))
-            db.commit()
-
-    elif role == "church_admin":
-        church = db.query(Church).filter(Church.created_by == user.id).first()
-        if not church:
-            church = db.query(Church).first()
-        if not church:
-            church = Church(
-                name="Foursquare Local Church",
-                district="Lagos District",
-                address="123 Church Rd",
-                pastor_name="Pastor John Doe",
-                pastor_address="Pastor House",
-                church_type="unchartered",
-                created_by=user.id
+            uid = current_user_id(request)
+            # Re-verify the user still exists in DB (guards against DB reset)
+            from app.models import User as _U
+            if db.query(_U).filter(_U.id == uid).first():
+                return uid
+            # User deleted — clear session and redirect to login
+            request.session.clear()
+            raise HTTPException(
+                status_code=303,
+                headers={"Location": "/login?error=Session+expired.+Please+log+in+again."}
             )
-            db.add(church)
-            db.commit()
-            db.refresh(church)
-        request.session["church_id"] = church.id
+        else:
+            # Wrong role — redirect to correct dashboard or login
+            raise HTTPException(
+                status_code=303,
+                headers={"Location": "/login"}
+            )
 
-        if db.query(ChurchExpenseItem).filter_by(church_id=church.id).count() == 0:
-            for item in defaultExpenseItems():
-                db.add(ChurchExpenseItem(
-                    church_id=church.id,
-                    report_id=None,
-                    item_key=item["item_key"],
-                    label=item["label"],
-                    amount=0.00,
-                    is_custom=False,
-                    display_order=item["display_order"]
-                ))
-            db.commit()
+    # --- No active session ---
+    # In a real production environment, always redirect to login
+    IS_PROD = os.getenv("RENDER") == "true"
+    PREVIEW_KEY = request.query_params.get("preview")
 
-    return user.id
+    # Allow preview mode only in dev or if explicitly triggered
+    if not IS_PROD or PREVIEW_KEY:
+        from app.models import User, Zone, Church, ZoneChurch, ChurchExpenseItem
+        from app.utils import defaultExpenseItems
+
+        user = db.query(User).filter(User.role == role).first()
+        if not user:
+            pwd = get_password_hash("password")
+            email_map = {
+                "zonal_admin": "zone@fgc-report.org",
+                "church_admin": "church@fgc-report.org",
+                "super_admin": "admin@fgc-report.org"
+            }
+            user = User(
+                full_name=f"Sample {role.replace('_', ' ').title()}",
+                email=email_map.get(role, f"{role}@fgc-report.org"),
+                phone="08000000000",
+                password_hash=pwd,
+                role=role,
+                status="active"
+            )
+            db.add(user)
+            db.commit()
+            db.refresh(user)
+
+        login_user(request, user, db)
+
+        if role == "zonal_admin":
+            zone = db.query(Zone).filter(Zone.created_by == user.id).first()
+            if not zone:
+                zone = db.query(Zone).first()
+            if not zone:
+                zone = Zone(zone_name="Central Zone", created_by=user.id)
+                db.add(zone)
+                db.commit()
+                db.refresh(zone)
+            request.session["zone_id"] = zone.id
+
+            existing = db.query(ZoneChurch).filter_by(zone_id=zone.id).all()
+            if not existing:
+                churches_to_add = [
+                    ("ZONAL HQTS", 1),
+                    ("BRANCH 1", 2),
+                    ("BRANCH 2", 3),
+                    ("BRANCH 3", 4)
+                ]
+                for name, order in churches_to_add:
+                    db.add(ZoneChurch(zone_id=zone.id, church_name=name, display_order=order))
+                db.commit()
+
+        elif role == "church_admin":
+            church = db.query(Church).filter(Church.created_by == user.id).first()
+            if not church:
+                church = db.query(Church).first()
+            if not church:
+                church = Church(
+                    name="Foursquare Local Church",
+                    district="Lagos District",
+                    address="123 Church Rd",
+                    pastor_name="Pastor John Doe",
+                    pastor_address="Pastor House",
+                    church_type="unchartered",
+                    created_by=user.id
+                )
+                db.add(church)
+                db.commit()
+                db.refresh(church)
+            request.session["church_id"] = church.id
+
+            if db.query(ChurchExpenseItem).filter_by(church_id=church.id).count() == 0:
+                for item in defaultExpenseItems():
+                    db.add(ChurchExpenseItem(
+                        church_id=church.id,
+                        report_id=None,
+                        item_key=item["item_key"],
+                        label=item["label"],
+                        amount=0.00,
+                        is_custom=False,
+                        display_order=item["display_order"]
+                    ))
+                db.commit()
+
+        return user.id
+
+    # Production: not logged in → redirect to login cleanly
+    raise HTTPException(
+        status_code=303,
+        headers={"Location": "/login?error=Please+log+in+to+continue."}
+    )

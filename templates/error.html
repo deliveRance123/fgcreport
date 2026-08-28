@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{ title or 'System Notice' }} — Foursquare Reports</title>
+<link rel="icon" type="image/jpeg" href="/assets/logo.jpg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/assets/style.css">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Inter', system-ui, sans-serif;
+    min-height: 100svh; background: #0f0a2e;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    padding: 32px 16px; position: relative; overflow-y: auto;
+    color: #fff;
+  }
+  body::before {
+    content: ''; position: fixed; inset: 0;
+    background:
+      radial-gradient(ellipse 60% 50% at 20% 20%, rgba(227,30,36,0.15) 0%, transparent 60%),
+      radial-gradient(ellipse 50% 60% at 80% 80%, rgba(99,60,180,0.20) 0%, transparent 60%);
+    pointer-events: none;
+  }
+  .error-card {
+    position: relative; z-index: 2;
+    width: 100%; max-width: 480px;
+    background: #ffffff; border-radius: 20px;
+    padding: 40px 36px;
+    color: #1A1040; text-align: center;
+    box-shadow: 0 24px 60px rgba(0,0,0,0.45);
+  }
+  .error-icon {
+    width: 64px; height: 64px; border-radius: 16px;
+    background: #FEF2F2; color: #E31E24;
+    display: inline-flex; align-items: center; justify-content: center;
+    margin-bottom: 20px;
+  }
+  .error-code {
+    font-family: 'Outfit', sans-serif;
+    font-size: 14px; font-weight: 700; color: #E31E24;
+    text-transform: uppercase; letter-spacing: 0.08em;
+    margin-bottom: 6px;
+  }
+  .error-title {
+    font-family: 'Outfit', sans-serif;
+    font-size: 22px; font-weight: 800; color: #1A1040;
+    margin-bottom: 12px;
+  }
+  .error-msg {
+    font-size: 13.5px; color: #6B7280; line-height: 1.6;
+    margin-bottom: 28px;
+  }
+  .error-actions {
+    display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;
+  }
+  .btn-primary {
+    background: #E31E24; color: #fff; text-decoration: none;
+    padding: 11px 22px; border-radius: 9px; font-size: 13.5px; font-weight: 700;
+    display: inline-flex; align-items: center; gap: 6px; transition: all 0.15s;
+  }
+  .btn-primary:hover { background: #b81018; transform: translateY(-1px); }
+  .btn-outline {
+    background: transparent; color: #1A1040; text-decoration: none;
+    padding: 11px 22px; border-radius: 9px; font-size: 13.5px; font-weight: 600;
+    border: 1.5px solid #E5E7EB; display: inline-flex; align-items: center; gap: 6px;
+    transition: all 0.15s;
+  }
+  .btn-outline:hover { background: #F9FAFB; border-color: #D1D5DB; }
+</style>
+</head>
+<body>
+
+<div class="error-card">
+  <div class="error-icon">
+    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+    </svg>
+  </div>
+  <div class="error-code">Status {{ status_code or 500 }}</div>
+  <h1 class="error-title">{{ title or 'System Notice' }}</h1>
+  <p class="error-msg">{{ message or 'The requested page could not be loaded or your session may have refreshed. Please click below to return to your dashboard or continue.' }}</p>
+  
+  <div class="error-actions">
+    <a href="/login" class="btn-primary">Go to Dashboard &rarr;</a>
+    <a href="/" class="btn-outline">Back to Home</a>
+  </div>
+</div>
+
+</body>
+</html>
