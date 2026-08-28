@@ -15,9 +15,7 @@ services:
       - key: SESSION_SECRET
         sync: false  # Set a fixed value in the Render dashboard — NEVER use generateValue (rotates every deploy → breaks sessions)
       - key: DATABASE_URL
-        fromDatabase:
-          name: fgcreport-db
-          property: connectionString
+        sync: false  # Allows connecting to Neon PostgreSQL cloud database seamlessly
       - key: APP_BASE_URL
         value: "https://fgcreport.onrender.com"
 
