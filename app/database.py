@@ -28,14 +28,16 @@ def _make_pg_engine(url: str):
     connect_args = {}
     if IS_PRODUCTION and "localhost" not in url and "127.0.0.1" not in url:
         if "sslmode" not in url:
-            connect_args["sslmode"] = "prefer"
+            # Render PostgreSQL requires SSL — 'prefer' is insufficient and causes auth errors
+            connect_args["sslmode"] = "require"
     return create_engine(
         url,
         connect_args=connect_args,
         pool_pre_ping=True,       # Automatically tests & reconnects stale/cold connections
-        pool_size=5,
-        max_overflow=10,
-        pool_recycle=300,        # Recycle connections every 5 min (avoids stale TCP)
+        pool_size=3,              # 3 is safe for Render free tier (max 25 connections shared)
+        max_overflow=5,           # Allow up to 8 total connections under burst load
+        pool_recycle=300,         # Recycle connections every 5 min (avoids stale TCP)
+        pool_timeout=30,          # Don't wait more than 30s for a connection slot
     )
 
 def _make_sqlite_engine():

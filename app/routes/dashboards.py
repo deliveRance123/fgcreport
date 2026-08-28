@@ -523,31 +523,69 @@ async def post_admin_dashboard(
 
 
             # Video file uploads
+            # NOTE: Render uses ephemeral storage — uploaded files are wiped on every deploy.
+            # On Render, admins should use the "External Video URL" field instead.
+            is_render = os.getenv("RENDER") == "true"
             upload_dir = "uploads/videos"
             os.makedirs(upload_dir, exist_ok=True)
+            video_upload_warnings = []
 
             hero_file = form_data.get("hero_video")
             if hero_file and hasattr(hero_file, "filename") and hero_file.filename:
                 ext = os.path.splitext(hero_file.filename)[1].lower()
                 if ext in [".mp4", ".mov", ".webm", ".ogg"]:
-                    dest = f"{upload_dir}/hero_{int(datetime.datetime.now().timestamp())}{ext}"
-                    with open(dest, "wb") as f:
-                        f.write(await hero_file.read())
-                    db.query(HeroVideo).update({HeroVideo.is_active: False})
-                    db.add(HeroVideo(video_path=dest, is_active=True))
+                    if is_render:
+                        video_upload_warnings.append(
+                            "⚠️ Hero video was uploaded but Render's free plan has ephemeral storage — "
+                            "the file will be lost on the next deploy. Please use the 'External Video URL' field instead."
+                        )
+                    else:
+                        dest = f"{upload_dir}/hero_{int(datetime.datetime.now().timestamp())}{ext}"
+                        with open(dest, "wb") as f:
+                            f.write(await hero_file.read())
+                        db.query(HeroVideo).update({HeroVideo.is_active: False})
+                        db.add(HeroVideo(video_path=dest, is_active=True))
+
+            # Save external hero video URL to site_settings if provided
+            hero_url = form_data.get("hero_video_url", "").strip() if hasattr(form_data, "get") else ""
+            if hero_url:
+                existing_hvurl = db.query(SiteSetting).filter_by(setting_key="hero_video_url").first()
+                if existing_hvurl:
+                    existing_hvurl.setting_value = hero_url
+                    existing_hvurl.updated_by = uid
+                else:
+                    db.add(SiteSetting(setting_key="hero_video_url", setting_value=hero_url, updated_by=uid))
 
             showcase_file = form_data.get("showcase_video")
             if showcase_file and hasattr(showcase_file, "filename") and showcase_file.filename:
                 ext = os.path.splitext(showcase_file.filename)[1].lower()
                 if ext in [".mp4", ".mov", ".webm", ".ogg"]:
-                    dest = f"{upload_dir}/showcase_{int(datetime.datetime.now().timestamp())}{ext}"
-                    with open(dest, "wb") as f:
-                        f.write(await showcase_file.read())
-                    db.query(HeroShowcaseVideo).update({HeroShowcaseVideo.is_active: False})
-                    db.add(HeroShowcaseVideo(video_path=dest, is_active=True))
+                    if is_render:
+                        video_upload_warnings.append(
+                            "⚠️ Showcase video was uploaded but Render's free plan has ephemeral storage — "
+                            "the file will be lost on the next deploy. Please use the 'External Video URL' field instead."
+                        )
+                    else:
+                        dest = f"{upload_dir}/showcase_{int(datetime.datetime.now().timestamp())}{ext}"
+                        with open(dest, "wb") as f:
+                            f.write(await showcase_file.read())
+                        db.query(HeroShowcaseVideo).update({HeroShowcaseVideo.is_active: False})
+                        db.add(HeroShowcaseVideo(video_path=dest, is_active=True))
+
+            # Save external showcase video URL to site_settings if provided
+            showcase_url = form_data.get("showcase_video_url", "").strip() if hasattr(form_data, "get") else ""
+            if showcase_url:
+                existing_svurl = db.query(SiteSetting).filter_by(setting_key="showcase_video_url").first()
+                if existing_svurl:
+                    existing_svurl.setting_value = showcase_url
+                    existing_svurl.updated_by = uid
+                else:
+                    db.add(SiteSetting(setting_key="showcase_video_url", setting_value=showcase_url, updated_by=uid))
 
             db.commit()
             msg = "Site settings updated successfully!"
+            if video_upload_warnings:
+                msg = " ".join(video_upload_warnings)
 
         elif action == "delete_hero_video":
             redirect_page = "settings"

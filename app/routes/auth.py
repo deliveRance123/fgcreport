@@ -2,8 +2,10 @@ import os
 from urllib.parse import quote
 from fastapi import APIRouter, Request, Depends, Form, File, UploadFile
 from fastapi.responses import RedirectResponse, HTMLResponse
+from sqlalchemy import func, or_, and_
 from sqlalchemy.orm import Session
 from app.database import get_db, SessionLocal
+
 from app.models import User, Church, Zone, ZoneChurch, ChurchExpenseItem
 from app.auth import (
     verify_password, get_password_hash, login_user, logout_user, 
@@ -180,8 +182,15 @@ def get_login(request: Request, preview: str = None, msg: str = "", error: str =
             return templates.TemplateResponse(request, "login.html", {"error": f"Error setting up preview session: {str(e)}"})
 
     # 2. Redirect if already logged in
-    if is_logged_in(request):
-        return redirect_to_dashboard(current_role(request))
+    try:
+        if is_logged_in(request):
+            return redirect_to_dashboard(current_role(request))
+    except Exception:
+        # Broken / undecodable session cookie (e.g., secret rotated on Render) — clear it and show login form
+        try:
+            request.session.clear()
+        except Exception:
+            pass
 
     error_msg = error or request.query_params.get("error", "")
     success_msg = msg or request.query_params.get("msg", "") or request.query_params.get("success", "")

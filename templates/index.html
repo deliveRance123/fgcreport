@@ -609,12 +609,17 @@
   <canvas id="heroNetworkCanvas" class="hero-canvas"></canvas>
 
   {% if hero_video %}
-    <video autoplay muted loop playsinline preload="metadata" class="hero-bg-video">
-      <source src="/{{ hero_video }}" type="video/mp4">
+    {% set _hero_ext = hero_video.split('.')[-1].lower() %}
+    {% set _hero_mime = 'video/webm' if _hero_ext == 'webm' else ('video/ogg' if _hero_ext == 'ogg' else 'video/mp4') %}
+    <video autoplay muted loop playsinline preload="metadata" class="hero-bg-video" crossorigin="anonymous">
+      <source src="/{{ hero_video }}" type="{{ _hero_mime }}">
     </video>
   {% elif ss('hero_video_url', '') %}
-    <video autoplay muted loop playsinline preload="metadata" class="hero-bg-video">
-      <source src="{{ ss('hero_video_url', '') }}" type="video/mp4">
+    {% set _hurl = ss('hero_video_url', '') %}
+    {% set _hurl_ext = _hurl.split('.')[-1].lower().split('?')[0] %}
+    {% set _hurl_mime = 'video/webm' if _hurl_ext == 'webm' else ('video/ogg' if _hurl_ext == 'ogg' else 'video/mp4') %}
+    <video autoplay muted loop playsinline preload="metadata" class="hero-bg-video" crossorigin="anonymous">
+      <source src="{{ _hurl }}" type="{{ _hurl_mime }}">
     </video>
   {% endif %}
 
@@ -808,12 +813,17 @@
     <div class="how-visual">
       <div class="showcase-video-card">
         {% if showcase_video %}
-          <video controls autoplay muted loop playsinline preload="metadata" class="showcase-video-player">
-            <source src="/{{ showcase_video }}" type="video/mp4">
+          {% set _sc_ext = showcase_video.split('.')[-1].lower() %}
+          {% set _sc_mime = 'video/webm' if _sc_ext == 'webm' else ('video/ogg' if _sc_ext == 'ogg' else 'video/mp4') %}
+          <video controls autoplay muted loop playsinline preload="metadata" class="showcase-video-player" crossorigin="anonymous">
+            <source src="/{{ showcase_video }}" type="{{ _sc_mime }}">
           </video>
         {% elif ss('showcase_video_url', '') %}
-          <video controls autoplay muted loop playsinline preload="metadata" class="showcase-video-player">
-            <source src="{{ ss('showcase_video_url', '') }}" type="video/mp4">
+          {% set _scurl = ss('showcase_video_url', '') %}
+          {% set _scurl_ext = _scurl.split('.')[-1].lower().split('?')[0] %}
+          {% set _scurl_mime = 'video/webm' if _scurl_ext == 'webm' else ('video/ogg' if _scurl_ext == 'ogg' else 'video/mp4') %}
+          <video controls autoplay muted loop playsinline preload="metadata" class="showcase-video-player" crossorigin="anonymous">
+            <source src="{{ _scurl }}" type="{{ _scurl_mime }}">
           </video>
         {% else %}
           <!-- Default Fallback: Foursquare Logo & Platform Feature Card -->
