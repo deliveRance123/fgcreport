@@ -193,12 +193,13 @@
   <form method="POST" action="/login" novalidate>
     <div class="field-group">
       <div class="field-row">
-        <label class="field-label" for="usr_id_val">Access ID</label>
+        <label class="field-label" for="usr_id_val">Email Address / Access ID</label>
       </div>
       <input type="text" id="usr_id_val" name="access_user" class="field-input" required
-             placeholder="Enter registered ID"
+             placeholder="e.g. yourname@gmail.com or phone"
              value="{{ access_user or '' }}">
     </div>
+
 
     <div class="field-group">
       <div class="field-row">

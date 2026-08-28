@@ -645,8 +645,38 @@
           </div>
         </div>
 
+        <!-- GOOGLE OAUTH 2.0 AUTHENTICATION -->
+        <div class="card section-card" style="border-left: 4px solid #EA4335;">
+          <div class="section-card-head d-flex justify-content-between align-items-center">
+            <div>
+              <h3>Google OAuth 2.0 Authentication</h3>
+              <p class="sub mb-0" style="font-size:12px;color:var(--ink-soft);">Enable seamless 1-click "Continue with Google" sign-in and registration for all users.</p>
+            </div>
+            <div class="form-check form-switch mb-0">
+              <input class="form-check-input" type="checkbox" name="google_oauth_enabled" value="1" id="googleOauthSwitch" {{ 'checked' if site_settings.get('google_oauth_enabled', '1') == '1' else '' }}>
+              <label class="form-check-label small fw-bold" for="googleOauthSwitch">Enable Google Sign-in</label>
+            </div>
+          </div>
+          <div class="settings-grid">
+            <div class="settings-group full">
+              <label>Google OAuth Client ID</label>
+              <input type="text" name="google_client_id" placeholder="e.g. 1234567890-abcdef.apps.googleusercontent.com" value="{{ site_settings.get('google_client_id', '') }}">
+            </div>
+            <div class="settings-group full">
+              <label>Google OAuth Client Secret</label>
+              <input type="password" name="google_client_secret" placeholder="e.g. GOCSPX-xxxxxxxxxxxxxxxx" value="{{ site_settings.get('google_client_secret', '') }}">
+            </div>
+            <div class="settings-group full" style="background:#FAF9FC;border:1px dashed #D1D5DB;border-radius:10px;padding:12px 14px;">
+              <span style="font-size:12px;font-weight:700;color:#1A1040;display:block;margin-bottom:6px;">Google Cloud Console Settings:</span>
+              <span style="font-size:11.5px;color:#4B5563;display:block;margin-bottom:4px;"><strong>Authorized Javascript Origin:</strong> <code style="background:#fff;padding:2px 6px;border-radius:4px;border:1px solid #E5E7EB;color:#E31E24;">https://fgcreport.onrender.com</code></span>
+              <span style="font-size:11.5px;color:#4B5563;display:block;"><strong>Authorized Redirect URI:</strong> <code style="background:#fff;padding:2px 6px;border-radius:4px;border:1px solid #E5E7EB;color:#E31E24;">https://fgcreport.onrender.com/auth/google/callback</code></span>
+            </div>
+          </div>
+        </div>
+
         <!-- PAYSTACK PAYMENT GATEWAY & SUBSCRIPTIONS -->
         <div class="card section-card" style="border-left: 4px solid #10B981;">
+
           <div class="section-card-head d-flex justify-content-between align-items-center">
             <div>
               <h3>Paystack Payment Gateway &amp; Subscriptions</h3>

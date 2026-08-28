@@ -202,25 +202,41 @@ def post_login(
     password: str = Form(None),   # fallback
     db: Session = Depends(get_db)
 ):
-    usr = access_user or email
-    pwd = access_pass or password
+    usr = (access_user or email or "").strip()
+    pwd = (access_pass or password or "").strip()
 
     if not usr or not pwd:
-        return templates.TemplateResponse(request, "login.html", {"error": "Email and password are required.",
-            "access_user": usr or ""})
+        return templates.TemplateResponse(request, "login.html", {
+            "error": "Email/Access ID and password are required.",
+            "access_user": usr
+        })
 
-    user = db.query(User).filter(User.email == usr.strip()).first()
+    # Search user by case-insensitive email or phone number
+    filters = [
+        func.lower(User.email) == usr.lower(),
+        User.phone == usr
+    ]
+    if usr.isdigit():
+        filters.append(User.id == int(usr))
+
+    user = db.query(User).filter(or_(*filters)).first()
+
     if user and verify_password(pwd, user.password_hash):
         if user.status != "active":
-            return templates.TemplateResponse(request, "login.html", {"error": "Your account is pending or suspended. Please contact the administrator.",
-                "access_user": usr})
-        
+            return templates.TemplateResponse(request, "login.html", {
+                "error": "Your account is pending or suspended. Please contact the administrator.",
+                "access_user": usr
+            })
+
         # Log in
         login_user(request, user, db)
         return redirect_to_dashboard(user.role)
     else:
-        return templates.TemplateResponse(request, "login.html", {"error": "Invalid email or password.",
-            "access_user": usr})
+        return templates.TemplateResponse(request, "login.html", {
+            "error": "Invalid email or password. Please verify your credentials and try again.",
+            "access_user": usr
+        })
+
 
 
 @router.get("/logout")

@@ -17,29 +17,33 @@ from app.utils import defaultExpenseItems
 router = APIRouter(prefix="/auth/google", tags=["google_oauth"])
 
 def get_google_credentials(db: Session = None):
-    """Retrieve Google OAuth Client ID and Secret from ENV or SiteSettings table."""
+    """Retrieve Google OAuth Client ID, Secret, and enabled flag from ENV or SiteSettings table."""
     client_id = os.getenv("GOOGLE_CLIENT_ID", "").strip()
     client_secret = os.getenv("GOOGLE_CLIENT_SECRET", "").strip()
+    oauth_enabled = True
 
-    if not client_id or not client_secret:
-        close_db = False
-        if not db:
-            db = SessionLocal()
-            close_db = True
-        try:
-            if not client_id:
-                row = db.query(SiteSetting).filter_by(setting_key="google_client_id").first()
-                if row and row.setting_value:
-                    client_id = row.setting_value.strip()
-            if not client_secret:
-                row = db.query(SiteSetting).filter_by(setting_key="google_client_secret").first()
-                if row and row.setting_value:
-                    client_secret = row.setting_value.strip()
-        finally:
-            if close_db:
-                db.close()
+    close_db = False
+    if not db:
+        db = SessionLocal()
+        close_db = True
+    try:
+        row_enabled = db.query(SiteSetting).filter_by(setting_key="google_oauth_enabled").first()
+        if row_enabled and row_enabled.setting_value is not None:
+            oauth_enabled = (row_enabled.setting_value == "1")
 
-    return client_id, client_secret
+        if not client_id:
+            row = db.query(SiteSetting).filter_by(setting_key="google_client_id").first()
+            if row and row.setting_value:
+                client_id = row.setting_value.strip()
+        if not client_secret:
+            row = db.query(SiteSetting).filter_by(setting_key="google_client_secret").first()
+            if row and row.setting_value:
+                client_secret = row.setting_value.strip()
+    finally:
+        if close_db:
+            db.close()
+
+    return client_id, client_secret, oauth_enabled
 
 GOOGLE_SCOPES = "openid email profile"
 
@@ -63,10 +67,15 @@ def _google_auth_url(redirect_uri: str, state: str, client_id: str) -> str:
 
 @router.get("/login")
 def google_login(request: Request, signup_role: str = "", db: Session = Depends(get_db)):
-    client_id, _ = get_google_credentials(db)
-    if not client_id:
+    client_id, client_secret, oauth_enabled = get_google_credentials(db)
+    if not oauth_enabled:
         return RedirectResponse(
-            url=f"/login?error={quote('Google sign-in is not configured yet. Please use email/password.')}",
+            url=f"/login?error={quote('Google sign-in is currently disabled by administrator. Please log in with your email and password.')}",
+            status_code=303
+        )
+    if not client_id or not client_secret:
+        return RedirectResponse(
+            url=f"/login?error={quote('Google sign-in is not configured yet. Please enter your email and password below to log in.')}",
             status_code=303
         )
     state = secrets.token_urlsafe(16)
@@ -93,9 +102,10 @@ async def google_callback(
     if not expected_state or state != expected_state:
         return RedirectResponse(url="/login?error=Invalid+OAuth+state.+Please+try+again.", status_code=303)
 
-    client_id, client_secret = get_google_credentials(db)
+    client_id, client_secret, oauth_enabled = get_google_credentials(db)
     if not client_id or not client_secret:
         return RedirectResponse(url="/login?error=Google+OAuth+credentials+missing.", status_code=303)
+
 
     redirect_uri = _get_redirect_uri(request)
 

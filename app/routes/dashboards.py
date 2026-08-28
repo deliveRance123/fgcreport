@@ -495,6 +495,7 @@ async def post_admin_dashboard(
                 'paths_title','paths_subtitle','footer_org_name',
                 'contact_email','contact_phone','how_title','hero_video_url','showcase_video_url',
                 'smtp_email','smtp_secret_key','smtp_sender_name','app_base_url',
+                'google_client_id','google_client_secret',
                 'payment_mode','payment_test_public_key','payment_test_secret_key',
                 'payment_live_public_key','payment_live_secret_key',
                 'payment_public_key','payment_secret_key','monthly_sub_amount','report_unlock_fee','free_trial_months','free_trial_days'
@@ -511,7 +512,7 @@ async def post_admin_dashboard(
                         db.add(SiteSetting(setting_key=k, setting_value=val, updated_by=uid))
 
             # Checkboxes:
-            for cb in ["smtp_enabled", "payment_enabled", "free_trial_enabled"]:
+            for cb in ["smtp_enabled", "google_oauth_enabled", "payment_enabled", "free_trial_enabled"]:
                 cb_val = "1" if form_data.get(cb) else "0"
                 existing = db.query(SiteSetting).filter_by(setting_key=cb).first()
                 if existing:
@@ -519,6 +520,7 @@ async def post_admin_dashboard(
                     existing.updated_by = uid
                 else:
                     db.add(SiteSetting(setting_key=cb, setting_value=cb_val, updated_by=uid))
+
 
             # Video file uploads
             upload_dir = "uploads/videos"

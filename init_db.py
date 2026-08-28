@@ -49,6 +49,10 @@ SITE_SETTINGS_DEFAULTS = {
     'contact_email':      'info@foursquarechurch.org',
     'contact_phone':      '',
     'how_title':          'From paper form to filed report.',
+    'app_base_url':       'https://fgcreport.onrender.com',
+    'google_oauth_enabled': '1',
+    'google_client_id':   '',
+    'google_client_secret': '',
     'payment_enabled':    '0',
     'payment_public_key': '',
     'payment_secret_key': '',
@@ -56,6 +60,7 @@ SITE_SETTINGS_DEFAULTS = {
     'report_unlock_fee':  '2000',
     'free_trial_months':  '3',
 }
+
 
 # Default chatbot knowledge base Q&As
 CHATBOT_KB_DEFAULTS = [
