@@ -470,7 +470,17 @@ def post_register_church(
                 link="/admin-dashboard?page=churches",
                 category="success"
             ))
+            # In-App Notification for the Newly Registered Church Admin
+            db.add(Notification(
+                user_id=user.id,
+                role_target="church_admin",
+                title="⛪ Welcome to Foursquare Reports!",
+                message=f"Your church '{church.name}' has been successfully registered. You can now prepare your monthly returns.",
+                link="/church-dashboard",
+                category="success"
+            ))
             db.commit()
+
 
             # Email Notification to Admin
             settings = getSiteSettings(db)
@@ -637,7 +647,17 @@ async def post_register_zone(
                 link="/admin-dashboard?page=zones",
                 category="success"
             ))
+            # In-App Notification for the Newly Registered Zonal Admin
+            db.add(Notification(
+                user_id=user.id,
+                role_target="zonal_admin",
+                title="🏛️ Welcome to Zonal Oversight Portal!",
+                message=f"Your zone '{zone.zone_name}' has been successfully created with {len(churches)} member churches. You can now monitor submissions and create zonal reports.",
+                link="/zone-dashboard",
+                category="success"
+            ))
             db.commit()
+
 
             # Email Notification to Admin
             settings = getSiteSettings(db)

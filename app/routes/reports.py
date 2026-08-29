@@ -809,14 +809,38 @@ async def post_church_report(
 
         db.commit()
 
-        # Send email on submit
+        # Send notifications & email on submit
         if action == "submit" and uid:
             user = db.query(User).filter(User.id == uid).first()
+            cname = church.name
+            mname = f"{monthName(r_month)} {r_year}"
+            
+            from app.models import Notification
+            # In-app notification for the Church Admin who submitted
+            db.add(Notification(
+                user_id=uid,
+                role_target="church_admin",
+                title="✅ Report Submitted Successfully",
+                message=f"Your monthly financial & spiritual report for {cname} ({mname}) has been submitted and sealed.",
+                link=f"/church-report?month={r_month}&year={r_year}",
+                category="success",
+                is_read=False
+            ))
+            # In-app notification for Super Admins
+            db.add(Notification(
+                role_target="super_admin",
+                title="📄 New Church Report Received",
+                message=f"'{cname}' ({church.district}) has submitted their monthly report for {mname}.",
+                link=f"/church-report?month={r_month}&year={r_year}&church_id={cid}",
+                category="info",
+                is_read=False
+            ))
+            db.commit()
+
             if user and user.email:
-                cname = church.name
-                mname = f"{monthName(r_month)} {r_year}"
                 msg = f"Congratulations! Your monthly report for <strong>{cname}</strong> ({mname}) has been officially <strong>submitted</strong> and locked for review."
                 sendAppEmail(db, user.email, user.full_name, f"🎉 Report Submitted — {cname} ({mname})", msg, f"church-report?month={r_month}&year={r_year}", "View Submitted Report")
+
 
         if not successMsg:
             successMsg = "Report submitted successfully! It is now locked." if action == "submit" else "Report draft saved successfully!"
@@ -1288,11 +1312,35 @@ async def post_zonal_reports(
         # Send email on submit
         if action == "submit" and uid:
             user = db.query(User).filter(User.id == uid).first()
+            zone = db.query(Zone).filter(Zone.id == zid).first()
+            zname = zone.zone_name if zone else "Zone"
+            mname = f"{monthName(r_month)} {r_year}"
+            
+            from app.models import Notification
+            # In-app notification for the Zonal Admin
+            db.add(Notification(
+                user_id=uid,
+                role_target="zonal_admin",
+                title="✅ Zonal Report Submitted",
+                message=f"Your consolidated monthly zonal report for {zname} ({mname}) has been officially submitted and sealed.",
+                link=f"/zonal-reports?month={r_month}&year={r_year}&zone_id={zid}",
+                category="success",
+                is_read=False
+            ))
+            # In-app notification for Super Admins
+            db.add(Notification(
+                role_target="super_admin",
+                title="🏛️ New Zonal Return Received",
+                message=f"'{zname}' has submitted their consolidated zonal report for {mname}.",
+                link=f"/zonal-reports?month={r_month}&year={r_year}&zone_id={zid}",
+                category="info",
+                is_read=False
+            ))
+            db.commit()
+
             if user and user.email:
-                zname = db.query(Zone).filter_by(id=zid).first().zone_name
-                mname = f"{monthName(r_month)} {r_year}"
-                msg = f"Congratulations! Your zonal monthly report for <strong>{zname} Zone</strong> ({mname}) has been successfully <strong>submitted</strong> and locked for review."
-                sendAppEmail(db, user.email, user.full_name, f"🎉 Zonal Report Submitted — {zname} ({mname})", msg, f"zonal-reports?month={r_month}&year={r_year}", "View Zonal Report")
+                msg = f"Congratulations! Your consolidated zonal report for <strong>{zname}</strong> ({mname}) has been officially <strong>submitted</strong>."
+                sendAppEmail(db, user.email, user.full_name, f"🎉 Zonal Report Submitted — {zname} ({mname})", msg, f"zonal-reports?month={r_month}&year={r_year}&zone_id={zid}", "View Zonal Report")
 
         successMsg = "Zonal report submitted successfully! It is now locked." if action == "submit" else "Zonal report draft saved successfully!"
         return RedirectResponse(url=f"/zonal-reports?month={r_month}&year={r_year}&zone_id={zid}&msg=" + quote(successMsg), status_code=303)

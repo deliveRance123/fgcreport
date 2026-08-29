@@ -98,7 +98,7 @@ def current_zone_id(request: Request, db: Session) -> int | None:
 
 def login_user(request: Request, user: User, db: Session) -> None:
     """
-    Initializes user session variables upon login.
+    Initializes user session variables upon login and logs a Welcome Back notification.
     """
     request.session["user_id"] = user.id
     request.session["role"] = user.role
@@ -111,6 +111,41 @@ def login_user(request: Request, user: User, db: Session) -> None:
         current_church_id(request, db)
     elif user.role == "zonal_admin":
         current_zone_id(request, db)
+
+    # Record Welcome Back in-app notification (rate-limited to once per hour)
+    try:
+        from datetime import datetime, timedelta
+        from app.models import Notification
+        recent = db.query(Notification).filter(
+            Notification.user_id == user.id,
+            Notification.title.like("👋 Welcome Back%"),
+            Notification.created_at >= datetime.utcnow() - timedelta(hours=1)
+        ).first()
+
+        if not recent:
+            if user.role == "church_admin":
+                msg = f"Welcome back, Pastor {user.full_name}. You can prepare and review your monthly church returns."
+                link = "/church-dashboard"
+            elif user.role == "zonal_admin":
+                msg = f"Welcome back, Superintendent {user.full_name}. Your zonal reporting dashboard is ready."
+                link = "/zone-dashboard"
+            else:
+                msg = f"Welcome back, Administrator {user.full_name}. National oversight panel active."
+                link = "/admin-dashboard"
+
+            db.add(Notification(
+                user_id=user.id,
+                role_target=user.role,
+                title="👋 Welcome Back",
+                message=msg,
+                link=link,
+                category="info",
+                is_read=False
+            ))
+            db.commit()
+    except Exception:
+        pass
+
 
 def logout_user(request: Request) -> None:
     """
