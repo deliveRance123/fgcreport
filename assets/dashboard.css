@@ -535,7 +535,7 @@
   .main {
     margin-top: 0; margin-left: 0 !important;
     width: 100% !important; max-width: 100vw !important;
-    padding: 20px 14px 40px;
+    padding: 12px 14px 40px !important;
     box-sizing: border-box;
     overflow-x: hidden;
   }
@@ -553,6 +553,7 @@
     max-width: 100% !important;
     overflow: hidden;
   }
+
 
   /* Page header — stack vertically, clip long text */
   .page-head { flex-direction: column; align-items: flex-start; gap: 12px; }
@@ -671,22 +672,22 @@
   /* ─── Charts and canvas ─── */
   canvas { max-width: 100% !important; height: auto !important; }
 
-  /* ─── Sticky Topbar — mobile adjustments ─── */
+  /* ─── Topbar — mobile adjustments ─── */
   .dash-topbar {
-    position: sticky;
-    top: 56px; /* Sits perfectly below fixed 56px mobile header */
-    margin-left: -14px !important;
-    margin-right: -14px !important;
-    padding: 12px 14px !important;
+    position: relative !important;
+    top: 0 !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    padding: 0 0 14px 0 !important;
     margin-bottom: 16px !important;
-    z-index: 100 !important;
+    z-index: 10 !important;
     display: flex !important;
     flex-direction: row !important;
     justify-content: space-between !important;
     align-items: flex-start !important;
     gap: 12px !important;
-    width: calc(100% + 28px) !important;
-    background: #FAF9FC !important;
+    width: 100% !important;
+    background: transparent !important;
     border-bottom: 1px solid var(--line) !important;
   }
 
@@ -698,7 +699,7 @@
     font-size: 20px !important;
     font-weight: 800 !important;
     line-height: 1.25 !important;
-    margin-bottom: 4px !important;
+    margin-bottom: 3px !important;
     letter-spacing: -0.01em !important;
     word-break: normal !important;
     overflow-wrap: normal !important;
@@ -707,7 +708,7 @@
   }
   .dash-topbar-left p {
     font-size: 12px !important;
-    line-height: 1.4 !important;
+    line-height: 1.35 !important;
     word-break: normal !important;
     overflow-wrap: normal !important;
     hyphens: none !important;
@@ -722,6 +723,7 @@
     margin-left: auto !important;
     margin-top: 0 !important;
   }
+
 
   /* Table cells — ensure horizontal flow with smooth horizontal scroll */
   .data-table {
