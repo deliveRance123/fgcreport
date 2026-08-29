@@ -378,6 +378,10 @@ def get_admin_dashboard(
     showcase_vids = db.query(HeroShowcaseVideo).order_by(HeroShowcaseVideo.id.desc()).all()
     faqs = db.query(ChatbotKnowledgeBase).order_by(ChatbotKnowledgeBase.id.asc()).all()
 
+    # User Payments
+    from app.models import UserPayment
+    payments = db.query(UserPayment).order_by(UserPayment.id.desc()).limit(100).all()
+
     # Fetch site settings as a dict
     site_settings_rows = db.query(SiteSetting).all()
     site_settings = {s.setting_key: s.setting_value for s in site_settings_rows}
@@ -414,12 +418,14 @@ def get_admin_dashboard(
             "active_hero_video": active_hero_video,
             "active_showcase_video": active_showcase_video,
             "faqs": faqs,
+            "payments": payments,
             "site_settings": site_settings,
             "msg": success_msg,
             "error": error_msg,
             "paymentSettings": getPaymentSettings(db)
         }
     )
+
 
 
 @router.post("/admin-dashboard")
@@ -628,6 +634,44 @@ async def post_admin_dashboard(
                 u.status = new_status
                 db.commit()
                 msg = f"User '{u.full_name}' status updated to {new_status}."
+
+        elif action == "toggle_user_instant_sub":
+            redirect_page = "users"
+            target_uid = int(form_data.get("user_id", 0))
+            desired_state = form_data.get("state", "on")  # 'on' to activate, 'off' to revoke
+            u = db.query(User).filter(User.id == target_uid).first()
+            if u:
+                from app.models import UserPayment
+                from datetime import datetime, timedelta
+                now = datetime.utcnow()
+                if desired_state == "on":
+                    # Expire old subs first
+                    db.query(UserPayment).filter(
+                        UserPayment.user_id == target_uid,
+                        UserPayment.payment_type == "subscription"
+                    ).update({"status": "expired"})
+                    # Grant new 1-year instant subscription
+                    new_sub = UserPayment(
+                        user_id=target_uid,
+                        payment_type="subscription",
+                        amount=0.00,
+                        reference=f"ADMIN_GRANT_{target_uid}_{int(now.timestamp())}",
+                        status="success",
+                        expires_at=now + timedelta(days=365),
+                        created_at=now
+                    )
+                    db.add(new_sub)
+                    db.commit()
+                    msg = f"Instant 1-Year Subscription ACTIVATED for '{u.full_name}'."
+                else:
+                    # Revoke subscription
+                    db.query(UserPayment).filter(
+                        UserPayment.user_id == target_uid,
+                        UserPayment.payment_type == "subscription",
+                        UserPayment.status == "success"
+                    ).update({"status": "expired", "expires_at": now})
+                    db.commit()
+                    msg = f"Subscription DEACTIVATED for '{u.full_name}'."
 
         elif action == "reset_user_password":
             redirect_page = "users"

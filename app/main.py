@@ -152,18 +152,28 @@ from app.utils import normalize_video_url
 templates.env.filters["normalize_video"] = normalize_video_url
 templates.env.globals["normalize_video"] = normalize_video_url
 
+def _get_user_sub(user_id):
+    from app.utils import getUserTrialAndSubStatus
+    db = SessionLocal()
+    try:
+        return getUserTrialAndSubStatus(db, user_id)
+    finally:
+        db.close()
+
 # Register global helpers
 templates.env.globals.update({
     "is_logged_in": _is_logged_in,
     "current_role": _current_role,
     "current_user_name": _current_user_name,
     "current_user_id": _current_user_id,
+    "get_user_sub": _get_user_sub,
     "ss": get_ss,
     "ss_raw": get_ss,
     "hero_title": hero_title_formatter,
     "current_year": _current_year,
     "csrf_token": "fixed-csrf-token-for-python",
 })
+
 
 # Database setup on startup (checks & creates tables if missing)
 @app.on_event("startup")
