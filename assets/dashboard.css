@@ -138,10 +138,10 @@
 .dash-topbar {
   position: sticky;
   top: 0;
-  z-index: 95;
+  z-index: 100;
   background: var(--paper, #FAF9FC);
   padding: 24px 0 16px 0;
-  margin-bottom: 20px;
+  margin-bottom: 24px;
   border-bottom: 1px solid var(--line, #ECEAEF);
   display: flex;
   align-items: center;
@@ -149,14 +149,13 @@
   gap: 16px;
   width: 100%;
   box-sizing: border-box;
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
 }
 .dash-topbar h1 {
   font-size: 24px;
   font-weight: 700;
   margin: 0 0 4px 0;
   color: var(--navy);
+  letter-spacing: -0.01em;
 }
 .dash-topbar p {
   font-size: 13px;
@@ -164,6 +163,7 @@
   margin: 0;
   font-weight: 450;
 }
+
 
 .page-head {
   display: flex; align-items: flex-start;
