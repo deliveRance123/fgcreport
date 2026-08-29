@@ -148,6 +148,10 @@ def _current_year(): return datetime.utcnow().year
 # Disable Jinja2 bytecode cache to prevent Python 3.14 TypeError with unhashable globals
 templates.env.cache = None  # type: ignore[assignment]
 
+from app.utils import normalize_video_url
+templates.env.filters["normalize_video"] = normalize_video_url
+templates.env.globals["normalize_video"] = normalize_video_url
+
 # Register global helpers
 templates.env.globals.update({
     "is_logged_in": _is_logged_in,

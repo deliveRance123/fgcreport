@@ -611,16 +611,18 @@
   {% if hero_video %}
     {% set _hero_ext = hero_video.split('.')[-1].lower() %}
     {% set _hero_mime = 'video/webm' if _hero_ext == 'webm' else ('video/ogg' if _hero_ext == 'ogg' else 'video/mp4') %}
-    <video autoplay muted loop playsinline preload="metadata" class="hero-bg-video" crossorigin="anonymous">
+    <video autoplay muted loop playsinline preload="auto" class="hero-bg-video" crossorigin="anonymous">
       <source src="/{{ hero_video }}" type="{{ _hero_mime }}">
     </video>
   {% elif ss('hero_video_url', '') %}
-    {% set _hurl = ss('hero_video_url', '') %}
-    {% set _hurl_ext = _hurl.split('.')[-1].lower().split('?')[0] %}
-    {% set _hurl_mime = 'video/webm' if _hurl_ext == 'webm' else ('video/ogg' if _hurl_ext == 'ogg' else 'video/mp4') %}
-    <video autoplay muted loop playsinline preload="metadata" class="hero-bg-video" crossorigin="anonymous">
-      <source src="{{ _hurl }}" type="{{ _hurl_mime }}">
-    </video>
+    {% set _hinfo = normalize_video(ss('hero_video_url', '')) %}
+    {% if _hinfo.type == 'gdrive' %}
+      <iframe src="{{ _hinfo.embed_url }}" class="hero-bg-video" style="border:none;pointer-events:none;transform:scale(1.25);transform-origin:center;" allow="autoplay" loading="eager"></iframe>
+    {% else %}
+      <video autoplay muted loop playsinline preload="auto" class="hero-bg-video" crossorigin="anonymous">
+        <source src="{{ _hinfo.src }}" type="{{ _hinfo.mime }}">
+      </video>
+    {% endif %}
   {% endif %}
 
   <div class="hero-inner">
@@ -815,16 +817,18 @@
         {% if showcase_video %}
           {% set _sc_ext = showcase_video.split('.')[-1].lower() %}
           {% set _sc_mime = 'video/webm' if _sc_ext == 'webm' else ('video/ogg' if _sc_ext == 'ogg' else 'video/mp4') %}
-          <video controls autoplay muted loop playsinline preload="metadata" class="showcase-video-player" crossorigin="anonymous">
+          <video controls autoplay muted loop playsinline preload="auto" class="showcase-video-player" crossorigin="anonymous">
             <source src="/{{ showcase_video }}" type="{{ _sc_mime }}">
           </video>
         {% elif ss('showcase_video_url', '') %}
-          {% set _scurl = ss('showcase_video_url', '') %}
-          {% set _scurl_ext = _scurl.split('.')[-1].lower().split('?')[0] %}
-          {% set _scurl_mime = 'video/webm' if _scurl_ext == 'webm' else ('video/ogg' if _scurl_ext == 'ogg' else 'video/mp4') %}
-          <video controls autoplay muted loop playsinline preload="metadata" class="showcase-video-player" crossorigin="anonymous">
-            <source src="{{ _scurl }}" type="{{ _scurl_mime }}">
-          </video>
+          {% set _scinfo = normalize_video(ss('showcase_video_url', '')) %}
+          {% if _scinfo.type == 'gdrive' %}
+            <iframe src="{{ _scinfo.embed_url }}" class="showcase-video-player" style="border:none;width:100%;height:100%;min-height:340px;display:block;" allow="autoplay" loading="eager"></iframe>
+          {% else %}
+            <video controls autoplay muted loop playsinline preload="auto" class="showcase-video-player" crossorigin="anonymous">
+              <source src="{{ _scinfo.src }}" type="{{ _scinfo.mime }}">
+            </video>
+          {% endif %}
         {% else %}
           <!-- Default Fallback: Foursquare Logo & Platform Feature Card -->
           <div class="showcase-fallback-card">

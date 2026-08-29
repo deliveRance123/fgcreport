@@ -44,11 +44,58 @@ def toFloat(v) -> float:
     if not v_str:
         return 0.0
     try:
-        # Strip commas or formatting if present
         v_str = v_str.replace(",", "")
         return float(v_str)
     except (ValueError, TypeError):
         return 0.0
+
+def normalize_video_url(url: str) -> dict:
+    """
+    Converts various video URLs (Google Drive, Dropbox, direct MP4/WebM) into
+    direct playable streaming sources and embed links.
+    Returns: {'type': 'direct'|'gdrive'|'none', 'src': str, 'embed_url': str, 'mime': str}
+    """
+    if not url:
+        return {"type": "none", "src": "", "embed_url": "", "mime": ""}
+    
+    url = url.strip()
+    
+    # 1. Google Drive Links: https://drive.google.com/file/d/FILE_ID/view...
+    gdrive_match = re.search(r'drive\.google\.com/file/d/([a-zA-Z0-9_-]+)', url)
+    if not gdrive_match:
+        gdrive_match = re.search(r'drive\.google\.com/open\?id=([a-zA-Z0-9_-]+)', url)
+    
+    if gdrive_match:
+        file_id = gdrive_match.group(1)
+        return {
+            "type": "gdrive",
+            "file_id": file_id,
+            "embed_url": f"https://drive.google.com/file/d/{file_id}/preview",
+            "src": f"https://drive.google.com/file/d/{file_id}/preview",
+            "mime": "video/mp4"
+        }
+    
+    # 2. Dropbox Links: https://www.dropbox.com/s/...?dl=0 -> ?raw=1
+    if "dropbox.com" in url:
+        clean_url = re.sub(r'\?dl=\d', '?raw=1', url)
+        if "?raw=1" not in clean_url:
+            clean_url += ("&raw=1" if "?" in clean_url else "?raw=1")
+        return {
+            "type": "direct",
+            "src": clean_url,
+            "embed_url": clean_url,
+            "mime": "video/mp4"
+        }
+        
+    # 3. Direct video URLs (Cloudinary, AWS, S3, custom domain)
+    ext = url.split("?")[0].split(".")[-1].lower()
+    mime = "video/webm" if ext == "webm" else ("video/ogg" if ext == "ogg" else "video/mp4")
+    return {
+        "type": "direct",
+        "src": url,
+        "embed_url": url,
+        "mime": mime
+    }
 
 def toInt(v, default: int = 0) -> int:
     """
