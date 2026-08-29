@@ -260,19 +260,23 @@
     .back-btn-container { width: 210mm; margin: 0 auto; text-align: left; display: flex; justify-content: space-between; align-items: center; }
 
     @media print {
-      @page { size: A4 portrait; margin: 6mm 8mm; }
+      @page { 
+        size: A4 portrait; 
+        margin: 0 !important; 
+      }
       *, *::before, *::after {
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
         color-adjust: exact !important;
       }
       .back-btn-container { display: none !important; }
-      body { background: #fff; padding: 0; margin: 0; }
+      body { background: #fff; padding: 6mm 8mm !important; margin: 0 !important; }
       .page {
         box-shadow: none !important;
-        margin: 0 !important;
+        margin: 0 auto 0 auto !important;
         width: 194mm !important;
         height: 285mm !important;
+
         min-height: 0 !important;
         padding: 2mm 3mm !important;
         overflow: hidden !important;
@@ -358,9 +362,16 @@
         </button>
         {% endif %}
         {% endif %}
+        {% if ss('ai_voice_enabled', '1') == '1' and not viewOnly %}
+        <button type="button" id="voiceAssistantBtn" class="btn btn-sm btn-outline-primary d-inline-flex align-items-center gap-1" onclick="toggleVoiceAssistant()" style="font-weight:600;">
+          <span id="voiceMicIcon">🎙️</span>
+          <span id="voiceBtnText">Voice Assistant</span>
+        </button>
+        {% endif %}
         <button type="button" class="btn btn-sm btn-dark" onclick="printReport()">🖨️ Print / Save as PDF</button>
     </div>
   </div>
+
 
   {% if successMsg %}
       <div class="container my-2 no-print" style="max-width: 210mm;"><div class="alert alert-success p-2 small">{{ successMsg }}</div></div>
@@ -1209,10 +1220,204 @@
   function payToUnlockReport() {
       openFgcCheckoutModal('report_unlock', 'Unlock Submitted Report for Editing', 2000, {{ finReport.id }}, 'church');
   }
+
+  // ================= AI VOICE REPORT ASSISTANT =================
+  let recognition = null;
+  let isListening = false;
+
+  const FIELD_MAP = {
+      'general tithe': 'general_tithe_naira',
+      'minister tithe': 'minister_tithe_naira',
+      "minister's tithe": 'minister_tithe_naira',
+      'worship offering': 'worship_offerings_naira',
+      'worship offerings': 'worship_offerings_naira',
+      'missionary offering': 'missionary_offerings_naira',
+      'missionary offerings': 'missionary_offerings_naira',
+      'midweek offering': 'midweek_offerings_naira',
+      'midweek offerings': 'midweek_offerings_naira',
+      'sunday school offering': 'sunday_school_offerings_naira',
+      'sunday school offerings': 'sunday_school_offerings_naira',
+      'thanksgiving offering': 'thanksgiving_offerings_naira',
+      'thanksgiving offerings': 'thanksgiving_offerings_naira',
+      'love offering': 'love_welfare_offerings_naira',
+      'love welfare': 'love_welfare_offerings_naira',
+      'welfare offering': 'love_welfare_offerings_naira',
+      'building pledge': 'building_pledge_offerings_naira',
+      'church pioneering': 'church_pioneering_receipts_naira',
+      'seed faith': 'seed_faith_naira',
+      'staff loan': 'staff_loans_repayment_naira',
+      'staff loans repayment': 'staff_loans_repayment_naira',
+      '3rd sunday': 'third_sunday_offering_naira',
+      'third sunday': 'third_sunday_offering_naira',
+      'minister basic': 'ministers_basic',
+      "minister's basic": 'ministers_basic',
+      'minister allowance': 'ministers_allowances',
+      "minister's allowance": 'ministers_allowances',
+      "minister's allowances": 'ministers_allowances',
+      'other worker basic': 'other_workers_basic',
+      'other workers basic': 'other_workers_basic',
+      'other worker allowance': 'other_workers_allowances',
+      'other workers allowance': 'other_workers_allowances',
+      'other workers allowances': 'other_workers_allowances',
+      'entertainment': 'entertainment_refreshments',
+      'refreshment': 'entertainment_refreshments',
+      'electricity': 'electricity',
+      'transport': 'transportation',
+      'transportation': 'transportation',
+      'bank charges': 'bank_charges',
+      'land acquisition': 'land_acquisition',
+      'church building': 'church_building',
+      'motor vehicle': 'purchase_motor_vehicles',
+      'new equipment': 'purchase_new_equipment',
+      'balance last month': 'balance_last_month_naira',
+      'cash in hand': 'cash_in_hand_bank_naira',
+      'investment': 'investment_naira',
+      'outstanding loan': 'outstanding_loan_naira',
+      'new comers': 'total_new_comers',
+      'decision for christ': 'total_decision_christ',
+      'water baptism': 'total_water_baptism',
+      'holy spirit': 'total_holy_spirit_baptism',
+      'healings': 'total_healings',
+      'fellowship centres': 'total_house_fellowship_centres'
+  };
+
+  function parseSpokenNumber(text) {
+      let clean = text.toLowerCase().replace(/naira/g, '').replace(/kobo/g, '').replace(/,/g, '').trim();
+      const numWords = {
+          'zero': 0, 'one': 1, 'two': 2, 'three': 3, 'four': 4, 'five': 5, 'six': 6, 'seven': 7,
+          'eight': 8, 'nine': 9, 'ten': 10, 'eleven': 11, 'twelve': 12, 'thirteen': 13, 'fourteen': 14,
+          'fifteen': 15, 'sixteen': 16, 'seventeen': 17, 'eighteen': 18, 'nineteen': 19, 'twenty': 20,
+          'thirty': 30, 'forty': 40, 'fifty': 50, 'sixty': 60, 'seventy': 70, 'eighty': 80, 'ninety': 90,
+          'hundred': 100, 'thousand': 1000, 'million': 1000000
+      };
+      
+      let directMatch = clean.match(/\b\d+(\.\d+)?\b/);
+      if (directMatch) return parseFloat(directMatch[0]);
+
+      let total = 0;
+      let current = 0;
+      let words = clean.split(/\s+/);
+      let foundWord = false;
+
+      for (let w of words) {
+          if (numWords[w] !== undefined) {
+              foundWord = true;
+              let val = numWords[w];
+              if (val === 100) {
+                  current = (current === 0 ? 1 : current) * 100;
+              } else if (val === 1000 || val === 1000000) {
+                  current = (current === 0 ? 1 : current) * val;
+                  total += current;
+                  current = 0;
+              } else {
+                  current += val;
+              }
+          }
+      }
+      total += current;
+      return foundWord ? total : null;
+  }
+
+  function handleVoiceCommand(transcript) {
+      let lower = transcript.toLowerCase();
+      let matchedTarget = null;
+      let numVal = parseSpokenNumber(lower);
+
+      for (let key in FIELD_MAP) {
+          if (lower.includes(key)) {
+              matchedTarget = FIELD_MAP[key];
+              break;
+          }
+      }
+
+      if (matchedTarget && numVal !== null) {
+          let inputEl = document.querySelector(`[name="${matchedTarget}"]`);
+          if (!inputEl) {
+              let row = document.querySelector(`[data-expense-item="true"][data-item-key="${matchedTarget}"]`);
+              if (row) {
+                  inputEl = row.querySelector('input[name*="expense_amount"][name$="_naira"]');
+              }
+          }
+
+          if (inputEl && !inputEl.disabled) {
+              inputEl.value = Math.round(numVal);
+              inputEl.focus();
+              inputEl.dispatchEvent(new Event('input', { bubbles: true }));
+              showVoiceToast(`✅ Filled ${inputEl.name || matchedTarget}: ₦${Math.round(numVal).toLocaleString()}`);
+              return;
+          }
+      }
+
+      showVoiceToast(`🗣️ Heard: "${transcript}" — Say e.g. "General Tithe 50000"`);
+  }
+
+  function showVoiceToast(msg) {
+      let toast = document.getElementById('voiceToast');
+      if (!toast) {
+          toast = document.createElement('div');
+          toast.id = 'voiceToast';
+          toast.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1A1040;color:#fff;padding:10px 20px;border-radius:30px;font-size:13px;font-weight:600;box-shadow:0 6px 20px rgba(0,0,0,0.3);z-index:999999;transition:all 0.3s ease;pointer-events:none;';
+          document.body.appendChild(toast);
+      }
+      toast.innerText = msg;
+      toast.style.opacity = '1';
+      clearTimeout(window.voiceToastTimer);
+      window.voiceToastTimer = setTimeout(() => { toast.style.opacity = '0'; }, 4000);
+  }
+
+  function toggleVoiceAssistant() {
+      const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SpeechRec) {
+          alert('Voice Recognition is not supported on this browser. Please use Google Chrome or Microsoft Edge.');
+          return;
+      }
+
+      const btn = document.getElementById('voiceAssistantBtn');
+      const mic = document.getElementById('voiceMicIcon');
+      const txt = document.getElementById('voiceBtnText');
+
+      if (isListening) {
+          recognition.stop();
+          isListening = false;
+          if (btn) { btn.className = 'btn btn-sm btn-outline-primary d-inline-flex align-items-center gap-1'; }
+          if (txt) { txt.innerText = 'Voice Assistant'; }
+          showVoiceToast('🎙️ Voice Assistant Paused.');
+      } else {
+          recognition = new SpeechRec();
+          recognition.continuous = true;
+          recognition.interimResults = false;
+          recognition.lang = 'en-NG'; // Nigerian / British English
+
+          recognition.onstart = function() {
+              isListening = true;
+              if (btn) { btn.className = 'btn btn-sm btn-danger d-inline-flex align-items-center gap-1 pulse-anim'; }
+              if (txt) { txt.innerText = 'Listening... (Speak)'; }
+              showVoiceToast('🎙️ Listening... Say e.g. "General Tithe 50000" or "Minister Allowance 35000"');
+          };
+
+          recognition.onresult = function(event) {
+              let last = event.results.length - 1;
+              let transcript = event.results[last][0].transcript;
+              handleVoiceCommand(transcript);
+          };
+
+          recognition.onerror = function(e) {
+              console.log('Voice error:', e);
+              showVoiceToast('⚠️ Voice recognition error or microphone permission required.');
+          };
+
+          recognition.onend = function() {
+              if (isListening) { recognition.start(); }
+          };
+
+          recognition.start();
+      }
+  }
   </script>
   <script src="/assets/js/church_calc.js?v=20260829_06"></script>
 
 </body>
 </html>
+
 
 

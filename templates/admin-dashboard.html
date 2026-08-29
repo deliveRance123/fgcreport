@@ -844,6 +844,26 @@
           </div>
         </div>
 
+        <!-- AI VOICE REPORT ASSISTANT CONFIGURATION -->
+        <div class="card section-card" style="border-left: 4px solid #8B5CF6;">
+          <div class="section-card-head d-flex justify-content-between align-items-center">
+            <div>
+              <h3>🎙️ AI Voice Report Assistant</h3>
+              <p class="sub mb-0" style="font-size:12px;color:var(--ink-soft);">Allow church reporters to speak amounts and categories (e.g., "General Tithe 50000", "Minister Basic 70000") to automatically populate input fields.</p>
+            </div>
+            <div class="form-check form-switch mb-0">
+              <input class="form-check-input" type="checkbox" name="ai_voice_enabled" value="1" id="aiVoiceSwitch" {{ 'checked' if site_settings.get('ai_voice_enabled', '1') == '1' else '' }}>
+              <label class="form-check-label small fw-bold" for="aiVoiceSwitch">Enable Voice Assistant</label>
+            </div>
+          </div>
+          <div class="settings-grid">
+            <div class="settings-group full" style="background:#FAF9FC;border:1px dashed #D1D5DB;border-radius:10px;padding:12px 14px;">
+              <span style="font-size:12px;font-weight:700;color:#1A1040;display:block;margin-bottom:4px;">How Voice Dictation Works:</span>
+              <p style="font-size:11.5px;color:#4B5563;margin:0;line-height:1.5;">When enabled, a floating <strong>🎙️ Voice Assistant</strong> button appears on the Church Report edit page. Reporters simply speak phrases like <em>"General Tithe fifty thousand naira"</em> or <em>"Minister Allowance thirty-five thousand"</em>, and the AI automatically focuses and fills the exact input box without typing.</p>
+            </div>
+          </div>
+        </div>
+
         <div class="card section-card">
           <div class="section-card-head"><h3>Feature Strip (4 items)</h3></div>
           <div class="settings-grid">
@@ -852,6 +872,7 @@
             {% endfor %}
           </div>
         </div>
+
 
         <div style="display:flex;justify-content:flex-end;gap:12px;margin-top:4px;margin-bottom:40px;">
           <a href="/" target="_blank" class="btn btn-outline btn-sm">Preview Public Site &#8599;</a>

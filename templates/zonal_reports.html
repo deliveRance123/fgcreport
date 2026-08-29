@@ -188,17 +188,21 @@
   .zonal-page1-bottom-flex { display: flex; gap: 20px; align-items: flex-start; }
 
   @media print {
-    @page { size: A4 landscape; margin: 6mm 8mm; }
+    @page { 
+      size: A4 landscape; 
+      margin: 0 !important; 
+    }
     *, *::before, *::after {
       -webkit-print-color-adjust: exact !important;
       print-color-adjust: exact !important;
       color-adjust: exact !important;
     }
-    body { background: #fff !important; padding: 0; margin: 0; }
+    body { background: #fff !important; padding: 6mm 8mm !important; margin: 0 !important; }
     .no-print, .back-btn-container, .action-bar { display: none !important; }
     .page {
-      box-shadow: none !important; margin: 0 !important;
+      box-shadow: none !important; margin: 0 auto 0 auto !important;
       width: 281mm !important; height: 194mm !important;
+
       min-height: 0 !important;
       padding: 3mm 4mm !important; box-sizing: border-box !important;
       page-break-after: always !important; overflow: hidden !important;

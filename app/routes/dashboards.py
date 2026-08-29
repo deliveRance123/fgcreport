@@ -584,7 +584,7 @@ async def post_admin_dashboard(
                         db.add(SiteSetting(setting_key=k, setting_value=val, updated_by=uid))
 
             # Checkboxes:
-            for cb in ["smtp_enabled", "google_oauth_enabled", "payment_enabled", "free_trial_enabled"]:
+            for cb in ["smtp_enabled", "google_oauth_enabled", "payment_enabled", "free_trial_enabled", "ai_voice_enabled"]:
                 cb_val = "1" if form_data.get(cb) else "0"
                 existing = db.query(SiteSetting).filter_by(setting_key=cb).first()
                 if existing:
@@ -592,6 +592,7 @@ async def post_admin_dashboard(
                     existing.updated_by = uid
                 else:
                     db.add(SiteSetting(setting_key=cb, setting_value=cb_val, updated_by=uid))
+
 
 
             # Video file uploads
