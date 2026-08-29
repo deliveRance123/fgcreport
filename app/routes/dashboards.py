@@ -645,7 +645,7 @@ async def post_admin_dashboard(
                 from datetime import datetime, timedelta
                 now = datetime.utcnow()
                 if desired_state == "on":
-                    # Expire old subs first
+                    # Expire/clean old subs
                     db.query(UserPayment).filter(
                         UserPayment.user_id == target_uid,
                         UserPayment.payment_type == "subscription"
@@ -664,14 +664,30 @@ async def post_admin_dashboard(
                     db.commit()
                     msg = f"Instant 1-Year Subscription ACTIVATED for '{u.full_name}'."
                 else:
-                    # Revoke subscription
+                    # Revoke subscription and mark expired
                     db.query(UserPayment).filter(
                         UserPayment.user_id == target_uid,
-                        UserPayment.payment_type == "subscription",
-                        UserPayment.status == "success"
+                        UserPayment.payment_type == "subscription"
                     ).update({"status": "expired", "expires_at": now})
+                    
+                    # Ensure an expired record exists so trial logic doesn't override manual OFF
+                    has_sub = db.query(UserPayment).filter(
+                        UserPayment.user_id == target_uid,
+                        UserPayment.payment_type == "subscription"
+                    ).first()
+                    if not has_sub:
+                        db.add(UserPayment(
+                            user_id=target_uid,
+                            payment_type="subscription",
+                            amount=0.00,
+                            reference=f"ADMIN_REVOKED_{target_uid}_{int(now.timestamp())}",
+                            status="expired",
+                            expires_at=now,
+                            created_at=now
+                        ))
                     db.commit()
                     msg = f"Subscription DEACTIVATED for '{u.full_name}'."
+
 
         elif action == "reset_user_password":
             redirect_page = "users"

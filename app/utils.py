@@ -416,19 +416,7 @@ def getUserTrialAndSubStatus(db: Session, user_id: int) -> dict:
         # rough month add (30 days per month)
         trial_ends_at = created_at + timedelta(days=trial_months * 30)
 
-    now = datetime.utcnow()
-    if free_trial_enabled and now < trial_ends_at:
-        days_left = max(1, math.ceil((trial_ends_at - now).total_seconds() / 86400))
-        return {
-            'is_active': True,
-            'in_trial': True,
-            'trial_title': trial_title,
-            'trial_days_left': days_left,
-            'status_label': f"Free Trial ({days_left} days remaining)",
-            'expires_at': trial_ends_at.strftime('%Y-%m-%d %H:%M:%S')
-        }
-
-    # Check paid annual subscription in user_payments table
+    # 1. First check for active paid / admin-granted subscription in user_payments table
     try:
         active_sub = db.query(UserPayment).filter(
             UserPayment.user_id == user_id,
@@ -447,8 +435,38 @@ def getUserTrialAndSubStatus(db: Session, user_id: int) -> dict:
                 'status_label': f"Full 1-Year Portal Access active (Valid through {exp_formatted})",
                 'expires_at': active_sub.expires_at.strftime('%Y-%m-%d %H:%M:%S')
             }
+        
+        # Check if subscription was explicitly turned OFF by Admin (revoked/expired)
+        has_revoked_sub = db.query(UserPayment).filter(
+            UserPayment.user_id == user_id,
+            UserPayment.payment_type == 'subscription',
+            UserPayment.status == 'expired'
+        ).first()
+        if has_revoked_sub:
+            sub_amount_fmt = formatNaira(float(settings.get('monthly_sub_amount', 5000)))
+            return {
+                'is_active': False,
+                'in_trial': False,
+                'trial_title': 'Annual Portal Subscription Required',
+                'trial_days_left': 0,
+                'status_label': f"Your portal subscription is expired / turned off. Please renew for ₦{sub_amount_fmt} to create and submit reports.",
+                'expires_at': now.strftime('%Y-%m-%d %H:%M:%S')
+            }
     except Exception:
         pass
+
+    # 2. Check if eligible for Free Trial
+    if free_trial_enabled and now < trial_ends_at:
+        days_left = max(1, math.ceil((trial_ends_at - now).total_seconds() / 86400))
+        return {
+            'is_active': True,
+            'in_trial': True,
+            'trial_title': trial_title,
+            'trial_days_left': days_left,
+            'status_label': f"Free Trial ({days_left} days remaining)",
+            'expires_at': trial_ends_at.strftime('%Y-%m-%d %H:%M:%S')
+        }
+
 
     sub_amount_fmt = formatNaira(float(settings.get('monthly_sub_amount', 5000)))
     return {
