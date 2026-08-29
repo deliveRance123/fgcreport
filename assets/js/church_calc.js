@@ -220,8 +220,40 @@ document.addEventListener('DOMContentLoaded', function () {
             // find the naira and kobo inputs inside this row
             const nEl = row.querySelector('input[name*="expense_amount"][name$="_naira"]');
             const kEl = row.querySelector('input[name*="expense_amount"][name$="_kobo"]');
-            const n = nEl ? (parseFloat(nEl.value) || 0) : 0;
-            const k = kEl ? (parseFloat(kEl.value) || 0) : 0;
+            if (!nEl || !kEl) return;
+
+            // Check if label indicates a percentage calculation e.g. "Music 10% (a - c)", "5% a", "2.5% c"
+            const labelEl = row.querySelector('td:first-child');
+            const labelText = labelEl ? labelEl.textContent.trim() : '';
+            const pctMatch = labelText.match(/(\d+(?:\.\d+)?)\s*%\s*(a\s*-\s*c|a\b|b\b|c\b|total\s*receipts)?/i);
+
+            if (pctMatch && nEl.dataset.manual !== 'true' && kEl.dataset.manual !== 'true') {
+                const rate = parseFloat(pctMatch[1]);
+                const baseScope = pctMatch[2] ? pctMatch[2].toLowerCase().replace(/\s+/g, '') : 'a-c';
+                
+                let baseVal = subtotalAc; // Default: (a - c)
+                if (baseScope === 'a') {
+                    baseVal = getVal('general_tithe');
+                } else if (baseScope === 'b') {
+                    baseVal = getVal('minister_tithe');
+                } else if (baseScope === 'c') {
+                    baseVal = getVal('worship_offerings');
+                } else if (baseScope === 'totalreceipts') {
+                    baseVal = totalReceipts;
+                }
+
+                if (!isNaN(rate) && rate > 0) {
+                    const calcAmount = roundHalfUp(baseVal * (rate / 100), 2);
+                    const naira = Math.floor(Math.abs(calcAmount));
+                    const kobo = Math.round((Math.abs(calcAmount) - naira) * 100);
+                    const sign = calcAmount < 0 ? '-' : '';
+                    nEl.value = sign + naira;
+                    kEl.value = kobo.toString().padStart(2, '0');
+                }
+            }
+
+            const n = parseFloat(nEl.value) || 0;
+            const k = parseFloat(kEl.value) || 0;
             generalExpensesTotal += roundHalfUp(n + k / 100, 2);
         });
         generalExpensesTotal = roundHalfUp(generalExpensesTotal, 2);
@@ -233,6 +265,7 @@ document.addEventListener('DOMContentLoaded', function () {
         // TOTAL PAYMENTS = All Payments from Staff to Fixed Assets + All Dues Summary (Payables)
         const totalPayment = roundHalfUp(allPaymentsAboveDues + payable, 2);
         setVal('total_payment', totalPayment);
+
 
 
 

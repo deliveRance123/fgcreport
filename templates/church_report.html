@@ -1148,13 +1148,38 @@
 
   <!-- Rename Modal -->
   <div id="renameModal" class="modal" style="display:none; position:fixed; z-index:1000; left:0; top:0; width:100%; height:100%; background:rgba(0,0,0,0.5); align-items:center; justify-content:center;">
-    <div style="background:#fff; padding:20px; border-radius:8px; width:340px; box-shadow:0 4px 15px rgba(0,0,0,0.2);">
-      <h5 class="fw-bold mb-3">Rename Expense Category</h5>
+    <div style="background:#fff; padding:22px; border-radius:12px; width:380px; max-width:calc(100vw - 32px); box-shadow:0 8px 30px rgba(0,0,0,0.25);">
+      <h5 class="fw-bold mb-3" style="font-size:16px;">Rename Expense Category</h5>
       <input type="hidden" id="renameItemId">
       <div class="mb-3">
-          <label class="form-label small fw-semibold">New Label Description</label>
-          <input type="text" id="renameLabelInput" class="form-control form-control-sm" required>
+          <label class="form-label small fw-semibold">Expense Name / Label Description</label>
+          <input type="text" id="renameLabelInput" class="form-control form-control-sm" required placeholder="e.g. Music / Choir Equipment">
       </div>
+      
+      <!-- Optional Percentage Calculation Helper -->
+      <div class="mb-3 p-2 border rounded bg-light">
+          <div class="form-check form-switch mb-2">
+            <input class="form-check-input" type="checkbox" id="renameCalcSwitch" onchange="togglePctInputs('rename')">
+            <label class="form-check-label small fw-bold" for="renameCalcSwitch">Calculate as percentage (%)</label>
+          </div>
+          <div id="renamePctGroup" style="display:none;" class="row g-2">
+            <div class="col-6">
+              <label class="small text-muted" style="font-size:11px;">Percentage Rate %</label>
+              <input type="number" step="0.01" min="0" max="100" id="renamePctRate" class="form-control form-control-sm" placeholder="e.g. 5">
+            </div>
+            <div class="col-6">
+              <label class="small text-muted" style="font-size:11px;">Calculate on</label>
+              <select id="renamePctBase" class="form-select form-select-sm">
+                <option value="subtotal_ac">Tithe &amp; Offerings (a - c)</option>
+                <option value="general_tithe">General Tithe (a) only</option>
+                <option value="minister_tithe">Minister's Tithe (b) only</option>
+                <option value="worship_offerings">Worship Offerings (c) only</option>
+                <option value="total_receipts">Total Receipts</option>
+              </select>
+            </div>
+          </div>
+      </div>
+
       <div class="d-flex justify-content-end gap-2">
         <button type="button" class="btn btn-secondary btn-sm" onclick="closeRenameModal()">Cancel</button>
         <button type="button" class="btn btn-primary btn-sm" onclick="submitRenameItem()">Save Label</button>
@@ -1164,18 +1189,44 @@
 
   <!-- Add Custom Expense Modal -->
   <div id="addCustomModal" class="modal" style="display:none; position:fixed; z-index:1000; left:0; top:0; width:100%; height:100%; background:rgba(0,0,0,0.5); align-items:center; justify-content:center;">
-    <div style="background:#fff; padding:20px; border-radius:8px; width:340px; box-shadow:0 4px 15px rgba(0,0,0,0.2);">
-      <h5 class="fw-bold mb-3">Add Custom Expense</h5>
+    <div style="background:#fff; padding:22px; border-radius:12px; width:380px; max-width:calc(100vw - 32px); box-shadow:0 8px 30px rgba(0,0,0,0.25);">
+      <h5 class="fw-bold mb-3" style="font-size:16px;">Add Custom Expense</h5>
       <div class="mb-3">
           <label class="form-label small fw-semibold">Expense Name / Label</label>
-          <input type="text" id="customLabelInput" class="form-control form-control-sm" required placeholder="e.g. Youth Day Expenses">
+          <input type="text" id="customLabelInput" class="form-control form-control-sm" required placeholder="e.g. Music on Church of God">
       </div>
+
+      <!-- Optional Percentage Calculation Helper -->
+      <div class="mb-3 p-2 border rounded bg-light">
+          <div class="form-check form-switch mb-2">
+            <input class="form-check-input" type="checkbox" id="addCalcSwitch" onchange="togglePctInputs('add')">
+            <label class="form-check-label small fw-bold" for="addCalcSwitch">Calculate as percentage (%)</label>
+          </div>
+          <div id="addPctGroup" style="display:none;" class="row g-2">
+            <div class="col-6">
+              <label class="small text-muted" style="font-size:11px;">Percentage Rate %</label>
+              <input type="number" step="0.01" min="0" max="100" id="addPctRate" class="form-control form-control-sm" placeholder="e.g. 10">
+            </div>
+            <div class="col-6">
+              <label class="small text-muted" style="font-size:11px;">Calculate on</label>
+              <select id="addPctBase" class="form-select form-select-sm">
+                <option value="subtotal_ac">Tithe &amp; Offerings (a - c)</option>
+                <option value="general_tithe">General Tithe (a) only</option>
+                <option value="minister_tithe">Minister's Tithe (b) only</option>
+                <option value="worship_offerings">Worship Offerings (c) only</option>
+                <option value="total_receipts">Total Receipts</option>
+              </select>
+            </div>
+          </div>
+      </div>
+
       <div class="d-flex justify-content-end gap-2">
         <button type="button" class="btn btn-secondary btn-sm" onclick="closeAddCustomModal()">Cancel</button>
         <button type="button" class="btn btn-primary btn-sm" onclick="submitCustomItem()">Add Item</button>
       </div>
     </div>
   </div>
+
 
   <script>
     window.FGC_RATES = {{ rates|tojson|safe }};
@@ -1192,33 +1243,68 @@
     function openAddCustomModal() { document.getElementById('addCustomModal').style.display = 'flex'; }
     function closeAddCustomModal() { document.getElementById('addCustomModal').style.display = 'none'; }
 
+    function togglePctInputs(mode) {
+        var isChecked = document.getElementById(mode + 'CalcSwitch').checked;
+        var group = document.getElementById(mode + 'PctGroup');
+        if (group) group.style.display = isChecked ? 'flex' : 'none';
+    }
+
     function submitCustomItem() {
-        const label = document.getElementById('customLabelInput').value.trim();
+        var label = document.getElementById('customLabelInput').value.trim();
         if (!label) { alert('Please enter an expense name.'); return; }
-        const mainForm = document.getElementById('reportForm');
-        let act = mainForm.querySelector('input[name="action"]');
+        
+        var isCalc = document.getElementById('addCalcSwitch').checked;
+        if (isCalc) {
+            var rate = parseFloat(document.getElementById('addPctRate').value);
+            var base = document.getElementById('addPctBase').value;
+            if (!isNaN(rate) && rate > 0) {
+                var baseTag = (base === 'general_tithe') ? 'a' :
+                              (base === 'minister_tithe') ? 'b' :
+                              (base === 'worship_offerings') ? 'c' :
+                              (base === 'total_receipts') ? 'Total Receipts' : '(a - c)';
+                label = label + ' ' + rate + '% ' + baseTag;
+            }
+        }
+
+        var mainForm = document.getElementById('reportForm');
+        var act = mainForm.querySelector('input[name="action"]');
         act.value = 'add_custom_item';
-        let lbl = document.createElement('input');
+        var lbl = document.createElement('input');
         lbl.type = 'hidden'; lbl.name = 'custom_label'; lbl.value = label;
         mainForm.appendChild(lbl);
         mainForm.submit();
     }
 
     function submitRenameItem() {
-        const itemId = document.getElementById('renameItemId').value;
-        const label = document.getElementById('renameLabelInput').value.trim();
+        var itemId = document.getElementById('renameItemId').value;
+        var label = document.getElementById('renameLabelInput').value.trim();
         if (!label || !itemId) { alert('Please enter a new label.'); return; }
-        const mainForm = document.getElementById('reportForm');
-        let act = mainForm.querySelector('input[name="action"]');
+
+        var isCalc = document.getElementById('renameCalcSwitch').checked;
+        if (isCalc) {
+            var rate = parseFloat(document.getElementById('renamePctRate').value);
+            var base = document.getElementById('renamePctBase').value;
+            if (!isNaN(rate) && rate > 0) {
+                var baseTag = (base === 'general_tithe') ? 'a' :
+                              (base === 'minister_tithe') ? 'b' :
+                              (base === 'worship_offerings') ? 'c' :
+                              (base === 'total_receipts') ? 'Total Receipts' : '(a - c)';
+                label = label + ' ' + rate + '% ' + baseTag;
+            }
+        }
+
+        var mainForm = document.getElementById('reportForm');
+        var act = mainForm.querySelector('input[name="action"]');
         act.value = 'rename_item';
-        let idVal = document.createElement('input');
+        var idVal = document.createElement('input');
         idVal.type = 'hidden'; idVal.name = 'rename_id'; idVal.value = itemId;
-        let lbl = document.createElement('input');
+        var lbl = document.createElement('input');
         lbl.type = 'hidden'; lbl.name = 'rename_label'; lbl.value = label;
         mainForm.appendChild(idVal);
         mainForm.appendChild(lbl);
         mainForm.submit();
     }
+
 
     function printReport() {
         fetch('/church-report?format=pdf&month={{ month }}&year={{ year }}&church_id={{ church.id }}').catch(()=>{});
@@ -1548,7 +1634,8 @@
 
 
   </script>
-  <script src="/assets/js/church_calc.js?v=20260829_07"></script>
+  <script src="/assets/js/church_calc.js?v=20260829_08"></script>
+
 
 
 </body>
