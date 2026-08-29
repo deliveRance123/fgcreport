@@ -57,7 +57,8 @@ def get_church_dashboard(request: Request, error: str = "", msg: str = "", db: S
     sub_amount = float(pay_settings.get("monthly_sub_amount") or 5000)
     can_create_report = bool(sub_status.get("is_active", True)) or pay_settings.get("payment_enabled") != "1"
 
-    now = datetime.datetime.now()
+    now = datetime.now()
+
     default_month = now.month
     default_year = now.year
 
@@ -156,9 +157,10 @@ def get_zone_dashboard(
     sub_amount = float(pay_settings.get("monthly_sub_amount") or 5000)
     can_create_report = bool(sub_status.get("is_active", True)) or pay_settings.get("payment_enabled") != "1"
 
-    now = datetime.datetime.now()
+    now = datetime.now()
     selected_month = month or int(request.query_params.get("month", now.month))
     selected_year = year or int(request.query_params.get("year", now.year))
+
 
     # Fetch zonal churches - ensure at least default churches exist
     zone_churches = db.query(ZoneChurch).filter(ZoneChurch.zone_id == zid).order_by(ZoneChurch.display_order.asc()).all()
@@ -286,8 +288,8 @@ async def post_zone_dashboard(
 
     try:
         if form_data.get("new_zonal_report") == "1":
-            new_month = int(form_data.get("report_month", 1))
-            new_year = int(form_data.get("report_year", datetime.datetime.now().year))
+            new_month = int(form_data.get("report_month", datetime.now().month))
+            new_year = int(form_data.get("report_year", datetime.now().year))
             return RedirectResponse(url=f"/zonal-reports?month={new_month}&year={new_year}", status_code=303)
 
         elif action == "add_church":
@@ -311,12 +313,13 @@ async def post_zone_dashboard(
 
         elif action == "delete_zonal_report":
             z_id = int(form_data.get("zonal_report_id", 0))
-            if z_id > 0:
-                zrep = db.query(ZonalReport).filter(ZonalReport.id == z_id, ZonalReport.zone_id == zid).first()
-                if zrep and zrep.status == "draft":
-                    db.delete(zrep)
+            report_id = int(form_data.get("report_id", 0))
+            if report_id:
+                r = db.query(ZonalReport).filter(ZonalReport.id == report_id, ZonalReport.zone_id == zid).first()
+                if r and r.status == "draft":
+                    db.delete(r)
                     db.commit()
-                    msg = "Zonal draft report deleted successfully!"
+                    msg = "Draft report deleted successfully."
                 else:
                     error = "Only draft reports can be deleted."
 
@@ -344,7 +347,7 @@ def get_admin_dashboard(
     uid = current_user_id(request)
     admin_user = db.query(User).filter(User.id == uid).first()
 
-    now = datetime.datetime.now()
+    now = datetime.now()
     cur_month = month or int(request.query_params.get("month", now.month))
     cur_year = year or int(request.query_params.get("year", now.year))
 
