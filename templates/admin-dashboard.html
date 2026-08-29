@@ -104,8 +104,8 @@
   </aside>
 
   <main class="main">
-    <div class="dash-topbar" style="display:flex;align-items:center;justify-content:space-between;width:100%;flex-wrap:nowrap;gap:16px;">
-      <div class="dash-topbar-left" style="min-width:0;flex:1;overflow:hidden;">
+    <div class="dash-topbar">
+      <div class="dash-topbar-left">
         {% if page == 'dues' %}
           <h1>Manage Dues &amp; Percentages</h1>
           <p>Adjust calculation rates and lock status for dues.</p>
@@ -132,7 +132,7 @@
           <p>{{ curMonth|month_name }} {{ curYear }} · Registered churches, zones &amp; submission status</p>
         {% endif %}
       </div>
-      <div class="dash-topbar-right" style="display:flex;align-items:center;justify-content:flex-end;margin-left:auto;gap:10px;flex-shrink:0;">
+      <div class="dash-topbar-right">
 
         {% if not page or page == 'dashboard' %}
         <form method="GET" action="/admin-dashboard" class="d-flex gap-2" style="flex-wrap:nowrap;">

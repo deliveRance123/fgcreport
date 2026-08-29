@@ -545,8 +545,6 @@
   .main * {
     max-width: 100%;
     box-sizing: border-box;
-    word-break: break-word;
-    overflow-wrap: break-word;
   }
 
   /* Cards — never exceed screen width */
@@ -632,9 +630,11 @@
   td .btn { font-size: 11px; padding: 4px 8px; white-space: nowrap; }
 
   /* Long text wrapping */
-  h1, h2, h3, h4, h5, h6, p, td, th, label, span, a, div {
-    word-break: break-word;
-    overflow-wrap: break-word;
+  .main h1, .main h2, .main h3, .main h4, .main h5, .main h6, .main p {
+    word-break: normal !important;
+    overflow-wrap: normal !important;
+    white-space: normal !important;
+    hyphens: none !important;
   }
 
   /* Subscription / payment card */
