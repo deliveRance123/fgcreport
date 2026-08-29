@@ -260,9 +260,16 @@
         </button>
         {% endif %}
         {% endif %}
+        {% if ss('ai_voice_enabled', '1') == '1' and not viewOnly %}
+        <button type="button" id="voiceAssistantBtn" class="btn btn-sm btn-outline-primary d-inline-flex align-items-center gap-1" onclick="toggleZonalVoiceAssistant()" style="font-weight:600;">
+          <span id="voiceMicIcon">🎙️</span>
+          <span id="voiceBtnText">Voice Assistant</span>
+        </button>
+        {% endif %}
         <button type="button" class="btn btn-sm btn-dark" onclick="printReport()">🖨️ Print / Save as PDF</button>
     </div>
   </div>
+
 
   {% if successMsg %}
       <div class="container my-2" style="max-width: 297mm;"><div class="alert alert-success p-2 small">{{ successMsg }}</div></div>
@@ -574,7 +581,194 @@
   function payToUnlockZonalReport() {
       openFgcCheckoutModal('report_unlock', 'Unlock Submitted Zonal Report for Editing', 2000, {{ zReport.id }}, 'zonal');
   }
+
+  // ================= UPGRADED ZONAL AI VOICE ASSISTANT =================
+  let zonalRecognition = null;
+  let isZonalListening = false;
+
+  function parseSpokenZonalNumber(text) {
+      if (!text) return null;
+      let clean = text.toLowerCase()
+          .replace(/naira/g, '')
+          .replace(/kobo/g, '')
+          .replace(/,/g, '')
+          .replace(/thousand/g, '000')
+          .replace(/million/g, '000000')
+          .trim();
+      
+      let digitsOnly = clean.replace(/[^0-9.]/g, ' ').trim().split(/\s+/).filter(Boolean);
+      if (digitsOnly.length > 0) {
+          let candidate = parseFloat(digitsOnly[digitsOnly.length - 1]);
+          if (!isNaN(candidate)) return candidate;
+      }
+
+      const wordMap = {
+          'zero': 0, 'one': 1, 'two': 2, 'three': 3, 'four': 4, 'five': 5, 'six': 6, 'seven': 7,
+          'eight': 8, 'nine': 9, 'ten': 10, 'eleven': 11, 'twelve': 12, 'thirteen': 13, 'fourteen': 14,
+          'fifteen': 15, 'sixteen': 16, 'seventeen': 17, 'eighteen': 18, 'nineteen': 19, 'twenty': 20,
+          'thirty': 30, 'forty': 40, 'fifty': 50, 'sixty': 60, 'seventy': 70, 'eighty': 80, 'ninety': 90,
+          'hundred': 100
+      };
+
+      let words = text.toLowerCase().split(/\s+/);
+      let total = 0, current = 0, hasNum = false;
+
+      for (let w of words) {
+          if (wordMap[w] !== undefined) {
+              hasNum = true;
+              let val = wordMap[w];
+              if (val === 100) {
+                  current = (current === 0 ? 1 : current) * 100;
+              } else {
+                  current += val;
+              }
+          } else if (w === 'thousand') {
+              hasNum = true;
+              current = (current === 0 ? 1 : current) * 1000;
+              total += current;
+              current = 0;
+          } else if (w === 'million') {
+              hasNum = true;
+              current = (current === 0 ? 1 : current) * 1000000;
+              total += current;
+              current = 0;
+          }
+      }
+      total += current;
+      return hasNum ? total : null;
+  }
+
+  function handleZonalVoiceCommand(transcript) {
+      if (!transcript || !transcript.trim()) return;
+      let lower = transcript.toLowerCase();
+      let numVal = parseSpokenZonalNumber(transcript);
+
+      // Search all table rows (church rows, spiritual summary rows, remittance rows)
+      let allRows = document.querySelectorAll('tr, .planting-form .line');
+      let bestInput = null;
+      let highestScore = 0;
+
+      for (let row of allRows) {
+          let labelText = row.innerText.toLowerCase().replace(/[\r\n\t]/g, ' ').replace(/\s+/g, ' ');
+          let candidateInputs = row.querySelectorAll('input:not([disabled]):not([type="hidden"])');
+          if (!candidateInputs || candidateInputs.length === 0) continue;
+
+          let words = labelText.split(/[^a-zA-Z0-9]+/).filter(w => w.length > 2);
+          let score = 0;
+          for (let w of words) {
+              if (lower.includes(w)) score++;
+          }
+
+          if (score > 0 && score > highestScore) {
+              highestScore = score;
+              // If user specifies financial vs spiritual vs ministers
+              if (lower.includes('financial') || lower.includes('remittance') || lower.includes('naira') || lower.includes('money')) {
+                  let finInput = row.querySelector('.p1-fin-tm, input[name*="fin_tm"]');
+                  bestInput = finInput || candidateInputs[0];
+              } else if (lower.includes('spiritual') || lower.includes('attendance') || lower.includes('members')) {
+                  let spInput = row.querySelector('.p1-sp-tm, input[name*="sp_tm"]');
+                  bestInput = spInput || candidateInputs[0];
+              } else {
+                  bestInput = candidateInputs[0];
+              }
+          }
+      }
+
+      if (bestInput && numVal !== null) {
+          bestInput.value = Math.round(numVal);
+          bestInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          bestInput.focus();
+          
+          bestInput.style.transition = 'all 0.3s';
+          bestInput.style.backgroundColor = '#FEF3C7';
+          bestInput.style.outline = '2px solid #E31E24';
+          setTimeout(() => {
+              bestInput.style.backgroundColor = '';
+              bestInput.style.outline = '';
+          }, 1500);
+
+          bestInput.dispatchEvent(new Event('input', { bubbles: true }));
+          bestInput.dispatchEvent(new Event('change', { bubbles: true }));
+          showZonalVoiceToast(`✅ Auto-Filled: ${Math.round(numVal).toLocaleString()}`);
+          return;
+      }
+
+      showZonalVoiceToast(`🗣️ Heard: "${transcript}" — (Say e.g. "Branch 1 spiritual 75" or "Imeko 45000")`);
+  }
+
+  function showZonalVoiceToast(msg) {
+      let toast = document.getElementById('zonalVoiceToast');
+      if (!toast) {
+          toast = document.createElement('div');
+          toast.id = 'zonalVoiceToast';
+          toast.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1A1040;color:#fff;padding:12px 24px;border-radius:30px;font-size:13.5px;font-weight:600;box-shadow:0 8px 24px rgba(0,0,0,0.35);z-index:999999;transition:all 0.3s ease;pointer-events:none;display:flex;align-items:center;gap:8px;';
+          document.body.appendChild(toast);
+      }
+      toast.innerText = msg;
+      toast.style.opacity = '1';
+      clearTimeout(window.zonalVoiceTimer);
+      window.zonalVoiceTimer = setTimeout(() => { toast.style.opacity = '0'; }, 4500);
+  }
+
+  function toggleZonalVoiceAssistant() {
+      const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SpeechRec) {
+          alert('Speech Recognition is not supported on this browser. Please use Google Chrome or Microsoft Edge.');
+          return;
+      }
+
+      const btn = document.getElementById('voiceAssistantBtn');
+      const mic = document.getElementById('voiceMicIcon');
+      const txt = document.getElementById('voiceBtnText');
+
+      if (isZonalListening) {
+          if (zonalRecognition) { zonalRecognition.stop(); }
+          isZonalListening = false;
+          if (btn) { btn.className = 'btn btn-sm btn-outline-primary d-inline-flex align-items-center gap-1'; }
+          if (txt) { txt.innerText = 'Voice Assistant'; }
+          showZonalVoiceToast('🎙️ Voice Assistant Paused.');
+      } else {
+          zonalRecognition = new SpeechRec();
+          zonalRecognition.continuous = true;
+          zonalRecognition.interimResults = false;
+          zonalRecognition.lang = 'en-NG';
+
+          zonalRecognition.onstart = function() {
+              isZonalListening = true;
+              if (btn) { btn.className = 'btn btn-sm btn-danger d-inline-flex align-items-center gap-1 pulse-anim'; }
+              if (txt) { txt.innerText = 'Listening... (Speak)'; }
+              showZonalVoiceToast('🎙️ Listening... Say church name & figure (e.g. "Imeko financial 50000")');
+          };
+
+          zonalRecognition.onresult = function(event) {
+              for (let i = event.resultIndex; i < event.results.length; ++i) {
+                  if (event.results[i].isFinal) {
+                      let spoken = event.results[i][0].transcript;
+                      handleZonalVoiceCommand(spoken);
+                  }
+              }
+          };
+
+          zonalRecognition.onerror = function(e) {
+              console.log('Voice zonal error:', e);
+              showZonalVoiceToast('⚠️ Microphone active. Say church name & amount.');
+          };
+
+          zonalRecognition.onend = function() {
+              if (isZonalListening) {
+                  try { zonalRecognition.start(); } catch(err){}
+              }
+          };
+
+          try {
+              zonalRecognition.start();
+          } catch(e) {
+              console.log('Zonal recognition start error:', e);
+          }
+      }
+  }
   </script>
 
 </body>
 </html>
+
