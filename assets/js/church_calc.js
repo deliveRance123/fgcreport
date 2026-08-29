@@ -235,6 +235,7 @@ document.addEventListener('DOMContentLoaded', function () {
         setVal('total_payment', totalPayment);
 
 
+
         // ─── LEFT COLUMN BOTTOM ───────────────────────────────────────────
         setVal('less_total_payment', totalPayment);
         const balanceSurplusDeficit = roundHalfUp(totalReceipts - totalPayment, 2);
@@ -319,6 +320,9 @@ document.addEventListener('DOMContentLoaded', function () {
     });
     // Bind inputs to trigger calculations
     form.addEventListener('input', calculateForm);
+    form.addEventListener('change', calculateForm);
+    form.addEventListener('keyup', calculateForm);
     // Initial calculation on load
     calculateForm();
 });
+
