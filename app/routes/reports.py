@@ -805,7 +805,15 @@ async def post_church_report(
                 item = db.query(ChurchExpenseItem).filter_by(id=rename_id, church_id=cid).first()
                 if item and (item.report_id == report_id or item.report_id is None):
                     item.label = rename_label.strip()
-                    successMsg = "Report saved and expense item renamed successfully!"
+                    successMsg = "Report saved and expense item updated successfully!"
+
+        elif action == "delete_custom_item":
+            delete_item_id = form_data.get("delete_item_id")
+            if delete_item_id:
+                item = db.query(ChurchExpenseItem).filter_by(id=delete_item_id, church_id=cid).first()
+                if item and item.is_custom and (item.report_id == report_id or item.report_id is None):
+                    db.delete(item)
+                    successMsg = "Custom expense item removed successfully!"
 
         db.commit()
 

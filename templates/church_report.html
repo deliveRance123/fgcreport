@@ -30,15 +30,21 @@
   {% set label = item.label if item else fallbackLabel %}
   {% set item_id = item.id if item else (fallbackKey or 'def') %}
   {% set item_key = item.item_key if item else fallbackKey %}
+  {% set is_custom = item.is_custom if item else false %}
   {% set amount = item.amount if item else 0.0 %}
   {% if label %}
     <tr data-expense-item="true" data-item-key="{{ item_key }}">
       <td>
-        {% if item and not view_only_flag and not is_pdf %}
-          <span class="editable-label text-decoration-underline" onclick="openRenameModal({{ item.id }}, '{{ label }}')" style="cursor:pointer;" title="Click to rename">{{ label }}</span>
-        {% else %}
-          {{ label }}
-        {% endif %}
+        <div class="d-flex align-items-center justify-content-between">
+          {% if item and not view_only_flag and not is_pdf %}
+            <span class="editable-label text-decoration-underline" onclick="openRenameModal({{ item.id }}, '{{ label }}', {{ 'true' if is_custom else 'false' }})" style="cursor:pointer;" title="Click to rename or edit percentage">{{ label }}</span>
+            {% if is_custom %}
+              <span class="no-print text-danger ms-1" onclick="deleteCustomExpenseItem({{ item.id }}, '{{ label }}')" style="cursor:pointer; font-size:12px; opacity:0.65;" title="Remove this item">✕</span>
+            {% endif %}
+          {% else %}
+            <span>{{ label }}</span>
+          {% endif %}
+        </div>
       </td>
       {{ renderInput('expense_amount[' ~ item_id ~ ']', amount, view_only_flag) }}
     </tr>
@@ -1234,13 +1240,45 @@
     window.FGC_BASE_FIELDS = {{ baseFields|tojson|safe }};
     window.FGC_VIEW_ONLY = {{ 'true' if viewOnly else 'false' }};
 
-    function openRenameModal(itemId, label) {
+    function openRenameModal(itemId, label, isCustom) {
         document.getElementById('renameItemId').value = itemId;
-        document.getElementById('renameLabelInput').value = label;
+        
+        // Parse existing percentage formula if present
+        var cleanLabel = label;
+        var pctMatch = label.match(/^(.*?)\s*(\d+(?:\.\d+)?)\s*%\s*(a\s*-\s*c|a\b|b\b|c\b|total\s*receipts)?$/i);
+        
+        if (pctMatch) {
+            cleanLabel = pctMatch[1].trim();
+            var rate = pctMatch[2];
+            var baseRaw = pctMatch[3] ? pctMatch[3].toLowerCase().replace(/\s+/g, '') : 'a-c';
+            var baseVal = (baseRaw === 'a') ? 'general_tithe' :
+                          (baseRaw === 'b') ? 'minister_tithe' :
+                          (baseRaw === 'c') ? 'worship_offerings' :
+                          (baseRaw === 'totalreceipts') ? 'total_receipts' : 'subtotal_ac';
+
+            document.getElementById('renameCalcSwitch').checked = true;
+            document.getElementById('renamePctRate').value = rate;
+            document.getElementById('renamePctBase').value = baseVal;
+            document.getElementById('renamePctGroup').style.display = 'flex';
+        } else {
+            document.getElementById('renameCalcSwitch').checked = false;
+            document.getElementById('renamePctRate').value = '';
+            document.getElementById('renamePctBase').value = 'subtotal_ac';
+            document.getElementById('renamePctGroup').style.display = 'none';
+        }
+
+        document.getElementById('renameLabelInput').value = cleanLabel;
         document.getElementById('renameModal').style.display = 'flex';
     }
     function closeRenameModal() { document.getElementById('renameModal').style.display = 'none'; }
-    function openAddCustomModal() { document.getElementById('addCustomModal').style.display = 'flex'; }
+    function openAddCustomModal() { 
+        document.getElementById('customLabelInput').value = '';
+        document.getElementById('addCalcSwitch').checked = false;
+        document.getElementById('addPctRate').value = '';
+        document.getElementById('addPctBase').value = 'subtotal_ac';
+        document.getElementById('addPctGroup').style.display = 'none';
+        document.getElementById('addCustomModal').style.display = 'flex'; 
+    }
     function closeAddCustomModal() { document.getElementById('addCustomModal').style.display = 'none'; }
 
     function togglePctInputs(mode) {
@@ -1304,6 +1342,18 @@
         mainForm.appendChild(lbl);
         mainForm.submit();
     }
+
+    function deleteCustomExpenseItem(itemId, label) {
+        if (!confirm('Are you sure you want to remove "' + label + '"?')) return;
+        var mainForm = document.getElementById('reportForm');
+        var act = mainForm.querySelector('input[name="action"]');
+        act.value = 'delete_custom_item';
+        var idVal = document.createElement('input');
+        idVal.type = 'hidden'; idVal.name = 'delete_item_id'; idVal.value = itemId;
+        mainForm.appendChild(idVal);
+        mainForm.submit();
+    }
+
 
 
     function printReport() {
@@ -1634,7 +1684,8 @@
 
 
   </script>
-  <script src="/assets/js/church_calc.js?v=20260829_08"></script>
+  <script src="/assets/js/church_calc.js?v=20260829_09"></script>
+
 
 
 
