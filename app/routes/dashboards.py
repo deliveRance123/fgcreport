@@ -1,7 +1,7 @@
 import os
 import shutil
 import json
-import datetime
+from datetime import datetime, timedelta
 from urllib.parse import quote
 from fastapi import APIRouter, Request, Depends, Form, File, UploadFile
 from fastapi.responses import RedirectResponse, HTMLResponse
@@ -480,11 +480,11 @@ async def post_admin_dashboard(
                     except ValueError:
                         pass
 
-                if val_changed or lock_changed:
+                    if val_changed or lock_changed:
                     setting.percentage_value = new_val if val_changed else old_val
                     setting.is_locked = new_lock
                     setting.updated_by = uid
-                    setting.updated_at = datetime.datetime.utcnow()
+                    setting.updated_at = datetime.utcnow()
 
                     if val_changed:
                         db.add(DuePercentageAuditLog(
@@ -526,7 +526,7 @@ async def post_admin_dashboard(
                     if existing:
                         existing.setting_value = val
                         existing.updated_by = uid
-                        existing.updated_at = datetime.datetime.utcnow()
+                        existing.updated_at = datetime.utcnow()
                     else:
                         db.add(SiteSetting(setting_key=k, setting_value=val, updated_by=uid))
 
@@ -559,7 +559,7 @@ async def post_admin_dashboard(
                             "the file will be lost on the next deploy. Please use the 'External Video URL' field instead."
                         )
                     else:
-                        dest = f"{upload_dir}/hero_{int(datetime.datetime.now().timestamp())}{ext}"
+                        dest = f"{upload_dir}/hero_{int(datetime.utcnow().timestamp())}{ext}"
                         with open(dest, "wb") as f:
                             f.write(await hero_file.read())
                         db.query(HeroVideo).update({HeroVideo.is_active: False})
@@ -585,11 +585,12 @@ async def post_admin_dashboard(
                             "the file will be lost on the next deploy. Please use the 'External Video URL' field instead."
                         )
                     else:
-                        dest = f"{upload_dir}/showcase_{int(datetime.datetime.now().timestamp())}{ext}"
+                        dest = f"{upload_dir}/showcase_{int(datetime.utcnow().timestamp())}{ext}"
                         with open(dest, "wb") as f:
                             f.write(await showcase_file.read())
                         db.query(HeroShowcaseVideo).update({HeroShowcaseVideo.is_active: False})
                         db.add(HeroShowcaseVideo(video_path=dest, is_active=True))
+_active=True))
 
             # Save external showcase video URL to site_settings if provided
             showcase_url = form_data.get("showcase_video_url", "").strip() if hasattr(form_data, "get") else ""
@@ -655,9 +656,9 @@ async def post_admin_dashboard(
             u = db.query(User).filter(User.id == target_uid).first()
             if u:
                 from app.models import UserPayment
-                from datetime import datetime, timedelta
                 now = datetime.utcnow()
                 if desired_state == "on":
+
                     # Expire/clean old subs
                     db.query(UserPayment).filter(
                         UserPayment.user_id == target_uid,
