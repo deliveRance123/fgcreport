@@ -10,6 +10,18 @@
   background: var(--paper);
 }
 
+/* Default desktop hiding for mobile headers */
+.mobile-header {
+  display: none !important;
+}
+.sidebar-overlay {
+  display: none !important;
+}
+.sidebar-close-btn {
+  display: none !important;
+}
+
+
 /* ══ NAVY SIDEBAR ══════════════════════════════ */
 .sidebar {
   width: 240px;
@@ -395,7 +407,6 @@
 
   .shell { flex-direction: column; }
 
-  /* Sidebar → fixed top bar */
   /* Mobile Header Bar & Sliding Right Drawer */
   .mobile-header {
     position: fixed !important;
@@ -442,28 +453,32 @@
     margin-top: -2px;
   }
 
-  /* Hamburger & Close button fixed at top-right */
+  /* Hamburger button in mobile header */
   .mobile-nav-toggle {
     position: fixed !important;
     top: 8px; right: 16px;
     width: 40px; height: 40px;
-    background: rgba(255,255,255,0.10);
-    border: 1px solid rgba(255,255,255,0.20);
+    background: rgba(255,255,255,0.12) !important;
+    border: 1px solid rgba(255,255,255,0.22) !important;
     border-radius: 8px; cursor: pointer; padding: 0;
     display: flex !important; flex-direction: column;
-    align-items: center; justify-content: center; gap: 4px;
-    z-index: 2500; transition: var(--transition);
+    align-items: center; justify-content: center; gap: 4.5px;
+    z-index: 3000 !important; transition: all 0.2s ease;
   }
   .mobile-nav-toggle span {
-    display: block; width: 17px; height: 2px;
-    background: #fff; border-radius: 1px;
-    transition: transform 0.2s ease, opacity 0.2s ease;
+    display: block; width: 18px; height: 2px;
+    background: #ffffff !important; border-radius: 2px;
+    transition: transform 0.25s ease, opacity 0.25s ease;
   }
   /* Morphing animation to X in place when menu is open */
-  body.mobile-open .mobile-nav-toggle span:nth-child(1) { transform: translateY(6px) rotate(45deg); }
+  body.mobile-open .mobile-nav-toggle {
+    background: #E31E24 !important;
+    border-color: #E31E24 !important;
+  }
+  body.mobile-open .mobile-nav-toggle span:nth-child(1) { transform: translateY(6.5px) rotate(45deg); }
   body.mobile-open .mobile-nav-toggle span:nth-child(2) { opacity: 0; }
-  body.mobile-open .mobile-nav-toggle span:nth-child(3) { transform: translateY(-6px) rotate(-45deg); }
-  .mobile-nav-toggle:hover { background: rgba(255,255,255,0.15); }
+  body.mobile-open .mobile-nav-toggle span:nth-child(3) { transform: translateY(-6.5px) rotate(-45deg); }
+  .mobile-nav-toggle:hover { background: rgba(255,255,255,0.20) !important; }
 
   /* Close (X) button inside the sidebar drawer — mobile only */
   .sidebar-close-btn {
@@ -471,37 +486,46 @@
     align-items: center;
     justify-content: center;
     position: absolute;
-    top: 12px;
-    right: 12px;
+    top: 14px;
+    right: 14px;
     width: 36px;
     height: 36px;
-    background: rgba(255,255,255,0.10);
-    border: 1px solid rgba(255,255,255,0.20);
+    background: rgba(255,255,255,0.12) !important;
+    border: 1px solid rgba(255,255,255,0.22) !important;
     border-radius: 8px;
     cursor: pointer;
     color: #fff;
-    font-size: 20px;
+    font-size: 22px;
     line-height: 1;
     transition: background 0.2s ease;
     z-index: 2600;
   }
-  .sidebar-close-btn:hover { background: rgba(255,255,255,0.20); }
+  .sidebar-close-btn:hover { background: rgba(255,255,255,0.25) !important; }
 
   /* Sliding Drawer Sidebar from the Right */
-  .sidebar {
+  .sidebar, aside.sidebar {
     position: fixed !important;
-    top: 0; right: -280px; bottom: 0; left: auto !important;
-    width: 280px !important; min-width: 280px !important; max-width: 280px !important;
+    top: 0 !important;
+    right: -300px !important;
+    bottom: 0 !important;
+    left: auto !important;
+    width: 280px !important;
+    min-width: 280px !important;
+    max-width: 280px !important;
     height: 100vh !important;
     background: #1A1040 !important;
-    z-index: 2000 !important;
-    transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
-    display: flex !important; flex-direction: column !important;
-    align-items: stretch !important; justify-content: flex-start !important;
+    z-index: 2500 !important;
+    box-shadow: -6px 0 25px rgba(0,0,0,0.4) !important;
+    transition: right 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    justify-content: flex-start !important;
     padding: 70px 16px 28px !important;
     border-right: none !important;
-    border-left: 1px solid rgba(255,255,255,0.08) !important;
+    border-left: 1px solid rgba(255,255,255,0.10) !important;
     overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch;
   }
   .sidebar .brand { display: none !important; }
   .sidebar .portal-tag, .sidebar .nav-section, .sidebar .sidebar-footer {
@@ -515,26 +539,30 @@
   }
 
   /* Slide in sidebar when body has .mobile-open */
-  body.mobile-open .sidebar {
+  body.mobile-open .sidebar, body.mobile-open aside.sidebar {
     right: 0 !important;
   }
 
   /* Dimmed Blur Backdrop Overlay */
   .sidebar-overlay {
-    position: fixed;
-    top: 0; left: 0; right: 0; bottom: 0;
-    background: rgba(13, 13, 18, 0.6);
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    background: rgba(13, 13, 18, 0.65) !important;
     backdrop-filter: blur(4px);
     -webkit-backdrop-filter: blur(4px);
-    z-index: 1990;
-    display: none;
+    z-index: 2200 !important;
+    display: none !important;
     opacity: 0;
     transition: opacity 0.3s ease;
   }
   body.mobile-open .sidebar-overlay {
-    display: block;
-    opacity: 1;
+    display: block !important;
+    opacity: 1 !important;
   }
+
 
   /* Main content pushed below fixed header */
   .shell { padding-top: 56px; }

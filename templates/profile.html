@@ -364,20 +364,35 @@
     color: #047857;
   }
   @media (max-width: 768px) {
-    .shell { flex-direction: column; }
-    aside.sidebar { width: 100%; position: relative; min-height: auto; height: auto; }
-    main.main { margin-left: 0; width: 100%; padding: 24px 16px; }
+    .shell { flex-direction: column; padding-top: 56px; }
+    main.main { margin-left: 0; width: 100%; padding: 20px 16px; }
     .form-grid-2 { grid-template-columns: 1fr; }
     .form-field-group.full { grid-column: 1; }
   }
 </style>
 </head>
-<body>
+<body class="has-sidebar">
+
+<!-- Mobile navigation header & backdrop overlay -->
+<div class="mobile-header">
+  <a href="/profile" class="mobile-brand">
+    <img src="/assets/logo.jpg" alt="Logo">
+    <div>
+      <span>Foursquare</span>
+      <small>Reports</small>
+    </div>
+  </a>
+  <button class="mobile-nav-toggle" aria-label="Toggle navigation" onclick="document.body.classList.toggle('mobile-open');">
+    <span></span><span></span><span></span>
+  </button>
+</div>
+<div class="sidebar-overlay" onclick="document.body.classList.remove('mobile-open');"></div>
 
 <div class="shell">
 
   <!-- ═══ SIDEBAR ═══════════════════════════════════════════ -->
   <aside class="sidebar">
+    <button class="sidebar-close-btn" aria-label="Close navigation" onclick="document.body.classList.remove('mobile-open');">&times;</button>
     <div class="sidebar-brand">
       <img src="/assets/logo.jpg" alt="Logo">
       <div class="sidebar-brand-text">
@@ -385,6 +400,7 @@
         <span class="sub">REPORTS</span>
       </div>
     </div>
+
 
     <div class="sidebar-nav-label">Navigation</div>
     
