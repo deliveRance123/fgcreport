@@ -504,11 +504,41 @@ def post_register_church(
                     action_url="/admin-dashboard?page=churches",
                     action_text="View in Admin Dashboard"
                 )
+
+            # Send Official Welcome & Report Guidelines Email to New Church User
+            user_welcome_body = f"""
+            <p>Dear <strong>{user.full_name}</strong>,</p>
+            <p>Welcome to the <strong>Foursquare Gospel Church Monthly Reporting Portal</strong>! Your church account for <strong>{church.name}</strong> ({church.church_type.capitalize()}) has been successfully created.</p>
+            
+            <div style="background:#FAF9FC;border-left:4px solid #E31E24;padding:14px 18px;border-radius:6px;margin:18px 0;">
+                <h4 style="margin:0 0 8px 0;color:#1A1040;">📋 Official Monthly Reporting Guidelines &amp; Rules:</h4>
+                <ul style="margin:0;padding-left:20px;font-size:13px;color:#374151;line-height:1.6;">
+                    <li><strong>Subtotal (a–c) Foundation:</strong> Tithes &amp; Worship Offerings (General Tithe A + Minister's Tithe B + Worship Offerings C) form the base for calculating percentage dues.</li>
+                    <li><strong>Dues &amp; Percentage Calculations:</strong> Percentages for National, Regional, District, Zonal, and Life Seminary dues are set according to your church charter type ({church.church_type.capitalize()}). Locked items (0.00) are excluded from totals unless unlocked by Admin.</li>
+                    <li><strong>Draft Saving:</strong> You can save your progress at any time with <em>'Save Draft'</em> before finalizing.</li>
+                    <li><strong>Emoluments &amp; Operating Expenses:</strong> Staff basic + allowances auto-sum into emoluments and combine with operating expenses and fixed assets into SUB TOTAL (Fixed Assets).</li>
+                    <li><strong>Total Payments &amp; Balances:</strong> Total Payments = SUB TOTAL (Fixed Assets) + Dues Summary. Surplus/Deficit balance and monthly forward balance compute automatically.</li>
+                    <li><strong>Submission is Final:</strong> Once submitted, the report is locked with an immutable snapshot of all rates.</li>
+                </ul>
+            </div>
+            
+            <p>You can now log in to start or manage your monthly returns.</p>
+            """
+            sendAppEmail(
+                db=db,
+                to_email=user.email,
+                to_name=user.full_name,
+                subject=f"🎉 Welcome to FGC Reports — {church.name}",
+                message_html=user_welcome_body,
+                action_url="/login",
+                action_text="Log In to Portal"
+            )
         except Exception:
             pass
 
         msg = "Church account registered successfully! Please log in with your email and password."
         return RedirectResponse(url=f"/login?msg={quote(msg)}", status_code=303)
+
     except Exception as e:
         db.rollback()
         return templates.TemplateResponse(request, "register_church.html", {"error": f"Registration error: {str(e)}", "success": "", "form_data": form_data})
@@ -641,11 +671,40 @@ async def post_register_zone(
                     action_url="/admin-dashboard?page=zones",
                     action_text="View in Admin Dashboard"
                 )
+
+            # Send Official Welcome & Zonal Reporting Guidelines to New Zonal Admin
+            churches_count = len(churches)
+            user_welcome_body = f"""
+            <p>Dear <strong>{user.full_name}</strong>,</p>
+            <p>Welcome to the <strong>Foursquare Gospel Church Monthly Reporting Portal</strong>! Your zonal administration account for <strong>{zone.zone_name}</strong> ({churches_count} registered churches) has been successfully created.</p>
+            
+            <div style="background:#FAF9FC;border-left:4px solid #1A1040;padding:14px 18px;border-radius:6px;margin:18px 0;">
+                <h4 style="margin:0 0 8px 0;color:#1A1040;">📋 Official Zonal Reporting Guidelines &amp; Rules:</h4>
+                <ul style="margin:0;padding-left:20px;font-size:13px;color:#374151;line-height:1.6;">
+                    <li><strong>Zonal Assemblies Consolidation:</strong> The Zonal Report compiles financial returns, remittances, and spiritual totals for all member churches under your zone.</li>
+                    <li><strong>Numerical Entries:</strong> Enter exact remittances and spiritual attendance returned by each branch.</li>
+                    <li><strong>Draft Saving &amp; Reconciliations:</strong> Save drafts as branch figures come in, and review totals before final submission.</li>
+                    <li><strong>Submission:</strong> Once submitted, the zonal return is forwarded to the District and National records.</li>
+                </ul>
+            </div>
+            
+            <p>You can now log in to manage your zonal roster and monthly returns.</p>
+            """
+            sendAppEmail(
+                db=db,
+                to_email=user.email,
+                to_name=user.full_name,
+                subject=f"🎉 Welcome to FGC Reports — {zone.zone_name}",
+                message_html=user_welcome_body,
+                action_url="/login",
+                action_text="Log In to Zonal Portal"
+            )
         except Exception:
             pass
 
         msg = "Zone account registered successfully! Please log in with your email and password."
         return RedirectResponse(url=f"/login?msg={quote(msg)}", status_code=303)
+
     except Exception as e:
         db.rollback()
         return templates.TemplateResponse(request, "register_zone.html", {"error": f"Registration error: {str(e)}", "success": "", "form_data": form_data})
