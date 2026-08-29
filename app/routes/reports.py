@@ -163,12 +163,14 @@ def get_church_report(
         report_id=fin_report.id
     ).order_by(ChurchExpenseItem.display_order.asc()).all()
 
-    # Load rates from snapshot or settings
+    # Load rates:
+    # - Submitted reports load from immutable due_rates_snapshot
+    # - New and draft (unsaved) reports load directly from DuePercentageSettings so Admin rate/lock edits take immediate effect
     rates_source = {}
     locked_keys = []
     base_fields = {}
     
-    if fin_report.due_rates_snapshot:
+    if fin_report.status == "submitted" and fin_report.due_rates_snapshot:
         snap = fin_report.due_rates_snapshot
         for dkey, dval in snap.items():
             rates_source[dkey] = dval["percentage_value"]
@@ -182,6 +184,7 @@ def get_church_report(
             if d.is_locked:
                 locked_keys.append(d.due_key)
             base_fields[d.due_key] = d.base_field
+
 
     # Trigger export notifier emails if format=pdf is requested
     is_pdf = (format == "pdf")
@@ -323,12 +326,14 @@ async def post_church_report(
     try:
         db.begin_nested()
 
-        # Load percentage settings rates
+        # Load percentage settings rates:
+        # - Submitted reports validate against their original snapshot
+        # - Draft/unsaved reports use live DuePercentageSettings
         rates_source = {}
         base_fields = {}
         locked_keys = []
         
-        if fin_report.due_rates_snapshot:
+        if fin_report.status == "submitted" and fin_report.due_rates_snapshot:
             snap = fin_report.due_rates_snapshot
             for dkey, dval in snap.items():
                 rates_source[dkey] = float(dval["percentage_value"])
@@ -342,6 +347,7 @@ async def post_church_report(
                 if d.is_locked:
                     locked_keys.append(d.due_key)
                 base_fields[d.due_key] = d.base_field
+
 
         # ── Feature 5: Pre-Calculation Input Validation ──────────────────────────
         #    Runs BEFORE any formula calculation. Any CalculationValidationError
@@ -632,7 +638,19 @@ async def post_church_report(
         fin_report.special_projects_details = form_data.get("special_projects_details", "")
         fin_report.status = status
 
+        if action == "submit":
+            snap_raw = db.query(DuePercentageSettings).filter_by(church_type=church.church_type).all()
+            snap_data = {}
+            for sr in snap_raw:
+                snap_data[sr.due_key] = {
+                    "percentage_value": float(sr.percentage_value),
+                    "is_locked": int(sr.is_locked),
+                    "base_field": sr.base_field
+                }
+            fin_report.due_rates_snapshot = snap_data
+
         # Update Spiritual Report
+
         sp_report = db.query(ChurchSpiritualReport).filter_by(church_id=cid, report_month=r_month, report_year=r_year).first()
         if not sp_report:
             sp_report = ChurchSpiritualReport(
