@@ -163,19 +163,26 @@
 
     <!-- ═══ DASHBOARD OVERVIEW ═══════════════════════════════════════════ -->
     {% if not page or page == 'dashboard' %}
-      <div class="stat-grid">
+      <div class="stat-grid" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));">
         <div class="card stat-card">
           <div class="stat-top"><div class="stat-icon" style="background:#FDEBE9;">
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"/></svg>
           </div></div>
-          <div class="stat-value" id="admin-stat-churches">{{ total_churches_count }}</div>
+          <div class="stat-value" id="admin-stat-users">{{ users|length }}</div>
+          <div class="stat-label">Registered users</div>
+        </div>
+        <div class="card stat-card">
+          <div class="stat-top"><div class="stat-icon" style="background:#EFF6FF;">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#2563EB" stroke-width="2"><path d="M3 21h18M5 21V7l8-4v18M19 21V11l-6-4"/></svg>
+          </div></div>
+          <div class="stat-value" id="admin-stat-churches">{{ churches|length }}</div>
           <div class="stat-label">Registered churches</div>
         </div>
         <div class="card stat-card">
           <div class="stat-top"><div class="stat-icon" style="background:#ECE9F7;">
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--purple)" stroke-width="2"><path d="M3 21V8l9-5 9 5v13"/></svg>
           </div></div>
-          <div class="stat-value" id="admin-stat-zones">{{ total_zones_count }}</div>
+          <div class="stat-value" id="admin-stat-zones">{{ zones|length }}</div>
           <div class="stat-label">Registered zones</div>
         </div>
         <div class="card stat-card">
@@ -193,6 +200,7 @@
           <div class="stat-label">Reports outstanding</div>
         </div>
       </div>
+
 
       <div class="card section-card" style="margin-top:24px;">
         <div class="section-card-head d-flex justify-content-between align-items-center flex-wrap gap-2">
@@ -882,6 +890,7 @@ function filterKbTable() {
       .then(function(r) { return r.json(); })
       .then(function(d) {
         if (d.error) return;
+        update('admin-stat-users',       d.total_users);
         update('admin-stat-churches',    d.total_churches);
         update('admin-stat-zones',       d.total_zones);
         update('admin-stat-submitted',   d.reports_submitted);
