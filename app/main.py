@@ -99,15 +99,21 @@ templates.env.filters["md5"] = md5_helper
 templates.env.globals["md5"] = md5_helper
 
 def get_ss(key: str, default: str = "") -> str:
-    """Helper to fetch site settings from database (cached or direct)."""
+    """Helper to fetch site settings from database with dynamic payment key resolution."""
     db = SessionLocal()
     try:
+        if key in ["payment_public_key", "payment_secret_key"]:
+            from app.utils import getPaymentSettings
+            ps = getPaymentSettings(db)
+            return ps.get(key) or default
+
         setting = db.query(SiteSetting).filter_by(setting_key=key).first()
         return setting.setting_value if setting else default
     except Exception:
         return default
     finally:
         db.close()
+
 
 def hero_title_formatter(key: str, default: str) -> str:
     """Formats [em]text[/em] into <em>text</em> for HTML titles."""
