@@ -214,15 +214,16 @@
   <main class="main">
 
     <!-- Sticky Topbar with notification bell -->
-    <div class="dash-topbar" style="display:flex;align-items:center;justify-content:space-between;width:100%;flex-wrap:nowrap;gap:16px;">
-      <div class="dash-topbar-left" style="min-width:0;flex:1;overflow:hidden;">
+    <div class="dash-topbar">
+      <div class="dash-topbar-left">
         <h1>Welcome back, {{ (user.full_name.split()[0] if user.full_name else 'Pastor') | lower }}!</h1>
         <p>{{ church.name }} &bull; {{ church.district or 'District' }} &bull; {{ church.church_type }} Church</p>
       </div>
-      <div class="dash-topbar-right" style="display:flex;align-items:center;justify-content:flex-end;margin-left:auto;gap:10px;flex-shrink:0;">
+      <div class="dash-topbar-right">
         {% include 'includes/notifications_bell.html' %}
       </div>
     </div>
+
 
 
 
