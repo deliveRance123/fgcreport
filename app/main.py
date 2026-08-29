@@ -6,6 +6,7 @@ from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette.middleware.sessions import SessionMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 from sqlalchemy.orm import Session
 
 from app.database import engine, Base, SessionLocal, get_db
@@ -15,6 +16,9 @@ from app.auth import is_logged_in
 
 # Initialize FastAPI app
 app = FastAPI(title="Foursquare Gospel Church Reporting System")
+
+# Enable HTTP GZip Compression for ultra-fast payload delivery on slow networks
+app.add_middleware(GZipMiddleware, minimum_size=500)
 
 # Session Secret Key config (Render uses environment variable, fallback to consistent default)
 SECRET_KEY = os.getenv("SESSION_SECRET", "super-secret-fgc-key-999-permanent-2026")
@@ -26,6 +30,7 @@ app.add_middleware(
     same_site="lax",
     https_only=False
 )
+
 
 @app.middleware("http")
 async def no_cache_html(request: Request, call_next):

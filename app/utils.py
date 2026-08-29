@@ -206,11 +206,41 @@ def getSiteSettings(db: Session) -> dict:
     return settings
 
 
+import threading
+
+def _send_email_thread_worker(settings: dict, to_email: str, to_name: str, subject: str, full_html: str):
+    """Worker function executed in background thread to eliminate HTTP request latency."""
+    gmail_user = settings.get("smtp_email", "").strip()
+    app_password = settings.get("smtp_secret_key", "").replace(" ", "").strip()
+    sender_name = settings.get("smtp_sender_name", "Foursquare Reports").strip()
+
+    if not gmail_user or not app_password or not to_email:
+        return
+
+    try:
+        msg = MIMEText(full_html, "html", "utf-8")
+        msg["Subject"] = Header(subject, "utf-8")
+        msg["From"] = f'"{sender_name}" <{gmail_user}>'
+        msg["To"] = f'"{to_name or to_email}" <{to_email}>'
+
+        server = smtplib.SMTP_SSL("smtp.gmail.com", 465, timeout=10)
+        server.login(gmail_user, app_password)
+        server.sendmail(gmail_user, [to_email], msg.as_string())
+        server.quit()
+    except Exception as e:
+        try:
+            server = smtplib.SMTP("smtp.gmail.com", 587, timeout=10)
+            server.starttls()
+            server.login(gmail_user, app_password)
+            server.sendmail(gmail_user, [to_email], msg.as_string())
+            server.quit()
+        except Exception:
+            pass
+
+
 def sendAppEmail(db: Session, to_email: str, to_name: str, subject: str, message_html: str, action_url: str = "", action_text: str = "") -> bool:
     """
-    Sends notification email via Gmail SMTP using credentials stored in site_settings.
-    All action button links are converted to absolute URLs using APP_BASE_URL env var
-    (defaults to https://fgcreport.onrender.com).
+    Asynchronously sends notification email via Gmail SMTP without blocking web requests.
     """
     if not to_email or "@" not in to_email:
         return False
@@ -224,20 +254,15 @@ def sendAppEmail(db: Session, to_email: str, to_name: str, subject: str, message
 
     gmail_user = settings.get("smtp_email", "").strip()
     app_password = settings.get("smtp_secret_key", "").replace(" ", "").strip()
-    sender_name = settings.get("smtp_sender_name", "Foursquare Reports").strip()
-
     if not gmail_user or not app_password:
         return False
 
-    # ── Resolve base URL: DB setting → env var → hard default ──
-    # Admin can update this from Site Settings → Website Base URL
     base_url = (
         settings.get("app_base_url", "").strip()
         or os.environ.get("APP_BASE_URL", "").strip()
         or "https://fgcreport.onrender.com"
     ).rstrip("/")
 
-    # Ensure action_url is always absolute
     full_action_url = ""
     if action_url:
         if action_url.startswith("http://") or action_url.startswith("https://"):
@@ -245,7 +270,6 @@ def sendAppEmail(db: Session, to_email: str, to_name: str, subject: str, message
         else:
             full_action_url = f"{base_url}/{action_url.lstrip('/')}"
 
-    # Construct button HTML if action details exist
     btn_html = ""
     if full_action_url and action_text:
         btn_html = f"""
@@ -259,7 +283,6 @@ def sendAppEmail(db: Session, to_email: str, to_name: str, subject: str, message
         </p>
         """
 
-    # Wrap email content in template layout
     full_html = f"""<!DOCTYPE html><html><head><meta charset="utf-8"><title>{subject}</title></head>
 <body style="font-family:'Segoe UI',Arial,sans-serif;background:#FAF9F6;margin:0;padding:30px 15px;color:#1A1040;">
 <div style="max-width:600px;margin:0 auto;background:#fff;border-radius:16px;border:1px solid #E4E4E7;overflow:hidden;box-shadow:0 10px 30px rgba(26,16,64,0.08);">
@@ -281,32 +304,15 @@ def sendAppEmail(db: Session, to_email: str, to_name: str, subject: str, message
 </div>
 </body></html>"""
 
-    try:
-        msg = MIMEText(full_html, "html", "utf-8")
-        msg["Subject"] = Header(subject, "utf-8")
-        # Format sender as: "Foursquare Reports" <your-gmail@gmail.com>
-        msg["From"] = f'"{sender_name}" <{gmail_user}>'
-        msg["To"] = f'"{to_name or to_email}" <{to_email}>'
+    # Dispatch to background thread so user web response is instant
+    t = threading.Thread(
+        target=_send_email_thread_worker,
+        args=(settings, to_email, to_name, subject, full_html),
+        daemon=True
+    )
+    t.start()
+    return True
 
-        # Connect to Gmail SMTP (SSL Port 465)
-        server = smtplib.SMTP_SSL("smtp.gmail.com", 465, timeout=15)
-        server.login(gmail_user, app_password)
-        server.sendmail(gmail_user, [to_email], msg.as_string())
-        server.quit()
-        return True
-    except Exception as e:
-        print(f"SMTP Error: {e}")
-        # Try TLS upgrade port 587 fallback
-        try:
-            server = smtplib.SMTP("smtp.gmail.com", 587, timeout=15)
-            server.starttls()
-            server.login(gmail_user, app_password)
-            server.sendmail(gmail_user, [to_email], msg.as_string())
-            server.quit()
-            return True
-        except Exception as ex:
-            print(f"SMTP TLS Fallback Error: {ex}")
-            return False
 
 
 

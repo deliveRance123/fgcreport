@@ -52,11 +52,12 @@ def _make_pg_engine(url: str):
         url,
         connect_args=connect_args,
         pool_pre_ping=True,       # Automatically tests & reconnects stale/cold connections
-        pool_size=3,              # Safe for Render / Neon free tier
-        max_overflow=5,           # Allow burst connections
-        pool_recycle=300,         # Recycle connections every 5 min
-        pool_timeout=30,          # Don't wait more than 30s
+        pool_size=10,             # Keep 10 warm connections ready for sub-millisecond responses
+        max_overflow=20,          # Allow up to 30 concurrent fast database queries
+        pool_recycle=600,         # Recycle connections every 10 min
+        pool_timeout=15,          # Fast failover
     )
+
 
 def _make_sqlite_engine():
     """SQLite fallback for reliable local / container persistence."""
