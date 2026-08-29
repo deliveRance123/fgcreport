@@ -590,9 +590,9 @@ async def post_admin_dashboard(
                             f.write(await showcase_file.read())
                         db.query(HeroShowcaseVideo).update({HeroShowcaseVideo.is_active: False})
                         db.add(HeroShowcaseVideo(video_path=dest, is_active=True))
-_active=True))
 
             # Save external showcase video URL to site_settings if provided
+
             showcase_url = form_data.get("showcase_video_url", "").strip() if hasattr(form_data, "get") else ""
             if showcase_url:
                 existing_svurl = db.query(SiteSetting).filter_by(setting_key="showcase_video_url").first()
