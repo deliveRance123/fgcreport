@@ -26,20 +26,25 @@
   {% endif %}
 {% endmacro %}
 
-{% macro renderExpenseRow(item, view_only_flag) %}
-  {% if item %}
-    <tr data-expense-item="true" data-item-key="{{ item.item_key }}">
+{% macro renderExpenseRow(item, view_only_flag, fallbackLabel='', fallbackKey='') %}
+  {% set label = item.label if item else fallbackLabel %}
+  {% set item_id = item.id if item else (fallbackKey or 'def') %}
+  {% set item_key = item.item_key if item else fallbackKey %}
+  {% set amount = item.amount if item else 0.0 %}
+  {% if label %}
+    <tr data-expense-item="true" data-item-key="{{ item_key }}">
       <td>
-        {% if not view_only_flag and not is_pdf %}
-          <span class="editable-label text-decoration-underline" onclick="openRenameModal({{ item.id }}, '{{ item.label }}')" style="cursor:pointer;" title="Click to rename">{{ item.label }}</span>
+        {% if item and not view_only_flag and not is_pdf %}
+          <span class="editable-label text-decoration-underline" onclick="openRenameModal({{ item.id }}, '{{ label }}')" style="cursor:pointer;" title="Click to rename">{{ label }}</span>
         {% else %}
-          {{ item.label }}
+          {{ label }}
         {% endif %}
       </td>
-      {{ renderInput('expense_amount[' ~ item.id ~ ']', item.amount, view_only_flag) }}
+      {{ renderInput('expense_amount[' ~ item_id ~ ']', amount, view_only_flag) }}
     </tr>
   {% endif %}
 {% endmacro %}
+
 
 <!DOCTYPE html>
 <html lang="en">
@@ -656,8 +661,8 @@
             
             {% set basic = expenseItems|selectattr('item_key', 'equalto', 'ministers_basic')|first %}
             {% set allowance = expenseItems|selectattr('item_key', 'equalto', 'ministers_allowances')|first %}
-            {{ renderExpenseRow(basic, viewOnly) }}
-            {{ renderExpenseRow(allowance, viewOnly) }}
+            {{ renderExpenseRow(basic, viewOnly, "Minister's Basic", "ministers_basic") }}
+            {{ renderExpenseRow(allowance, viewOnly, "Minister's Allowances", "ministers_allowances") }}
             
             <tr>
               <td class="indent">Sub Total (Ministers)</td>
@@ -666,8 +671,8 @@
             
             {% set obasic = expenseItems|selectattr('item_key', 'equalto', 'other_workers_basic')|first %}
             {% set oallowance = expenseItems|selectattr('item_key', 'equalto', 'other_workers_allowances')|first %}
-            {{ renderExpenseRow(obasic, viewOnly) }}
-            {{ renderExpenseRow(oallowance, viewOnly) }}
+            {{ renderExpenseRow(obasic, viewOnly, "Other Workers' Basic", "other_workers_basic") }}
+            {{ renderExpenseRow(oallowance, viewOnly, "Other Workers' Allowances", "other_workers_allowances") }}
             
             <tr>
               <td class="indent">Sub Total (Other Workers)</td>
@@ -702,10 +707,11 @@
             {% set motor = expenseItems|selectattr('item_key', 'equalto', 'purchase_motor_vehicles')|first %}
             {% set equip = expenseItems|selectattr('item_key', 'equalto', 'purchase_new_equipment')|first %}
             
-            {{ renderExpenseRow(land, viewOnly) }}
-            {{ renderExpenseRow(building, viewOnly) }}
-            {{ renderExpenseRow(motor, viewOnly) }}
-            {{ renderExpenseRow(equip, viewOnly) }}
+            {{ renderExpenseRow(land, viewOnly, "Land Acquisition", "land_acquisition") }}
+            {{ renderExpenseRow(building, viewOnly, "Church Building", "church_building") }}
+            {{ renderExpenseRow(motor, viewOnly, "Purchase of Motor Vehicles", "purchase_motor_vehicles") }}
+            {{ renderExpenseRow(equip, viewOnly, "Purchase of New Equipment", "purchase_new_equipment") }}
+
             
             <tr>
               <td><strong>SUB TOTAL (Fixed Assets)</strong></td>

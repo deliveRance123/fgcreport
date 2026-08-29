@@ -163,6 +163,45 @@ def get_church_report(
         report_id=fin_report.id
     ).order_by(ChurchExpenseItem.display_order.asc()).all()
 
+    # Fallback safety: If report has no expense items cloned yet, clone them automatically
+    if not expense_items and cid:
+        default_expenses = db.query(ChurchExpenseItem).filter_by(
+            church_id=cid, report_id=None
+        ).order_by(ChurchExpenseItem.display_order.asc()).all()
+
+        if not default_expenses:
+            from app.utils import defaultExpenseItems
+            for def_item in defaultExpenseItems():
+                db.add(ChurchExpenseItem(
+                    church_id=cid,
+                    report_id=None,
+                    item_key=def_item['item_key'],
+                    label=def_item['label'],
+                    amount=0.00,
+                    is_custom=False,
+                    display_order=def_item['display_order']
+                ))
+            db.commit()
+            default_expenses = db.query(ChurchExpenseItem).filter_by(
+                church_id=cid, report_id=None
+            ).order_by(ChurchExpenseItem.display_order.asc()).all()
+
+        for item in default_expenses:
+            db.add(ChurchExpenseItem(
+                church_id=cid,
+                report_id=fin_report.id,
+                item_key=item.item_key,
+                label=item.label,
+                amount=0.00,
+                is_custom=item.is_custom,
+                display_order=item.display_order
+            ))
+        db.commit()
+        expense_items = db.query(ChurchExpenseItem).filter_by(
+            report_id=fin_report.id
+        ).order_by(ChurchExpenseItem.display_order.asc()).all()
+
+
     # Load rates:
     # - Submitted reports load from immutable due_rates_snapshot
     # - New and draft (unsaved) reports load directly from DuePercentageSettings so Admin rate/lock edits take immediate effect
