@@ -1225,8 +1225,7 @@
   let recognition = null;
   let isListening = false;
   let isRestarting = false;
-  let lastProcessedPhrase = "";
-  let lastProcessedTime = 0;
+  let lastFilledTime = 0;
 
   function parseSpokenNumber(text) {
       if (!text) return null;
@@ -1235,59 +1234,64 @@
           .replace(/kobo/g, '')
           .replace(/,/g, '')
           .trim();
-      
-      // Direct digits (e.g. "50000", "35000", "1500")
-      let digitsOnly = clean.replace(/[^0-9.]/g, ' ').trim().split(/\s+/).filter(Boolean);
-      if (digitsOnly.length > 0) {
-          let candidate = parseFloat(digitsOnly[digitsOnly.length - 1]);
-          if (!isNaN(candidate)) return candidate;
-      }
 
-      // Word number parser
-      const wordMap = {
+      // Word number map
+      const smallWords = {
           'zero': 0, 'one': 1, 'two': 2, 'three': 3, 'four': 4, 'five': 5, 'six': 6, 'seven': 7,
           'eight': 8, 'nine': 9, 'ten': 10, 'eleven': 11, 'twelve': 12, 'thirteen': 13, 'fourteen': 14,
           'fifteen': 15, 'sixteen': 16, 'seventeen': 17, 'eighteen': 18, 'nineteen': 19, 'twenty': 20,
-          'thirty': 30, 'forty': 40, 'fifty': 50, 'sixty': 60, 'seventy': 70, 'eighty': 80, 'ninety': 90,
-          'hundred': 100
+          'thirty': 30, 'forty': 40, 'fifty': 50, 'sixty': 60, 'seventy': 70, 'eighty': 80, 'ninety': 90
       };
 
-      let words = text.toLowerCase().replace(/-/g, ' ').split(/\s+/);
-      let total = 0, current = 0, hasNum = false;
+      // 1. Direct digits (e.g., "50000", "70,000", "35000")
+      let matchDigits = clean.match(/\b\d+(\.\d+)?\b/g);
+      if (matchDigits && matchDigits.length > 0) {
+          let num = parseFloat(matchDigits[matchDigits.length - 1]);
+          // Check if followed by thousand or million
+          if (clean.includes(matchDigits[matchDigits.length - 1] + ' thousand') || clean.includes(matchDigits[matchDigits.length - 1] + 'k')) {
+              num *= 1000;
+          }
+          if (clean.includes(matchDigits[matchDigits.length - 1] + ' million') || clean.includes(matchDigits[matchDigits.length - 1] + 'm')) {
+              num *= 1000000;
+          }
+          if (!isNaN(num)) return num;
+      }
+
+      // 2. Full words parsing (e.g. "fifty thousand", "thirty five thousand")
+      let words = clean.replace(/-/g, ' ').split(/\s+/);
+      let total = 0, current = 0, found = false;
 
       for (let w of words) {
-          if (wordMap[w] !== undefined) {
-              hasNum = true;
-              let val = wordMap[w];
-              if (val === 100) {
-                  current = (current === 0 ? 1 : current) * 100;
-              } else {
-                  current += val;
-              }
+          if (smallWords[w] !== undefined) {
+              found = true;
+              current += smallWords[w];
+          } else if (w === 'hundred') {
+              found = true;
+              current = (current === 0 ? 1 : current) * 100;
           } else if (w === 'thousand' || w === 'k') {
-              hasNum = true;
+              found = true;
               current = (current === 0 ? 1 : current) * 1000;
               total += current;
               current = 0;
           } else if (w === 'million' || w === 'm') {
-              hasNum = true;
+              found = true;
               current = (current === 0 ? 1 : current) * 1000000;
               total += current;
               current = 0;
           }
       }
       total += current;
-      return hasNum ? total : null;
+      return found ? total : null;
   }
 
   function findTargetInputOnChurchForm(transcript) {
       let lower = transcript.toLowerCase();
 
-      // STRICT RULE: Only target manual, allowable inputs (never disabled or auto-calculated summary inputs)
+      // STRICT RULES FOR MANUAL EDITABLE FIELDS ONLY
       const ALIAS_RULES = [
           // Tithes & Offerings
-          { keys: ['general tithe', 'tithe a', 'general tithes'], name: 'general_tithe_naira' },
-          { keys: ['minister tithe', "minister's tithe", 'tithe b', 'ministers tithe'], name: 'minister_tithe_naira' },
+          { keys: ['general tithe', 'general tithes', 'tithe a'], name: 'general_tithe_naira' },
+          { keys: ['minister tithe', "minister's tithe", 'ministers tithe', 'pastor tithe', 'tithe b'], name: 'minister_tithe_naira' },
           { keys: ['worship offering', 'worship offerings', 'worship', 'tithe c'], name: 'worship_offerings_naira' },
           { keys: ['missionary offering', 'missionary offerings', 'missionary'], name: 'missionary_offerings_naira' },
           { keys: ['midweek offering', 'midweek offerings', 'midweek'], name: 'midweek_offerings_naira' },
@@ -1348,6 +1352,10 @@
                       let row = document.querySelector(`[data-expense-item="true"][data-item-key="${rule.name}"]`);
                       if (row) el = row.querySelector('input[name*="expense_amount"][name$="_naira"]');
                   }
+                  if (!el) {
+                      // Support both naming schemes
+                      el = document.querySelector(`[name="${rule.name}_naira"]`);
+                  }
                   if (el && !el.disabled && el.type !== 'hidden') return el;
               }
           }
@@ -1381,44 +1389,34 @@
   function handleVoiceCommand(transcript) {
       if (!transcript || !transcript.trim()) return;
       
-      let now = Date.now();
       let cleanTranscript = transcript.trim().toLowerCase();
-
-      // Prevent duplicate triggers within 1.5 seconds
-      if (cleanTranscript === lastProcessedPhrase && (now - lastProcessedTime) < 1500) {
-          return;
-      }
-
       let numVal = parseSpokenNumber(cleanTranscript);
       let targetInput = findTargetInputOnChurchForm(cleanTranscript);
 
       if (targetInput && numVal !== null) {
-          lastProcessedPhrase = cleanTranscript;
-          lastProcessedTime = now;
+          lastFilledTime = Date.now();
 
           targetInput.value = Math.round(numVal);
           targetInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
           targetInput.focus();
           
-          // Flash animation
-          targetInput.style.transition = 'all 0.25s ease';
+          targetInput.style.transition = 'all 0.2s ease';
           targetInput.style.backgroundColor = '#FEF3C7';
           targetInput.style.outline = '2.5px solid #E31E24';
           setTimeout(() => {
               targetInput.style.backgroundColor = '';
               targetInput.style.outline = '';
-          }, 1200);
+          }, 1000);
 
           targetInput.dispatchEvent(new Event('input', { bubbles: true }));
           targetInput.dispatchEvent(new Event('change', { bubbles: true }));
           
-          let fieldTitle = targetInput.getAttribute('name') || 'Field';
           showVoiceToast(`⚡ Auto-Filled: ₦${Math.round(numVal).toLocaleString()}`);
           return;
       }
 
-      if (cleanTranscript.length > 3) {
-          showVoiceToast(`🗣️ Listening: "${transcript}"`);
+      if (cleanTranscript.length > 2) {
+          showVoiceToast(`🗣️ Heard: "${transcript}"`);
       }
   }
 
@@ -1440,9 +1438,13 @@
       const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
       if (!SpeechRec) return;
 
+      if (recognition) {
+          try { recognition.abort(); } catch(e){}
+      }
+
       recognition = new SpeechRec();
       recognition.continuous = true;
-      recognition.interimResults = true; // Instant processing of spoken words
+      recognition.interimResults = true;
       recognition.lang = 'en-NG'; // Nigerian English with British fallback
 
       recognition.onstart = function() {
@@ -1457,16 +1459,7 @@
       recognition.onresult = function(event) {
           for (let i = event.resultIndex; i < event.results.length; ++i) {
               let spoken = event.results[i][0].transcript;
-              if (event.results[i].isFinal) {
-                  handleVoiceCommand(spoken);
-              } else if (spoken.length > 6) {
-                  // Instant interim check for fast recognition
-                  let num = parseSpokenNumber(spoken);
-                  let el = findTargetInputOnChurchForm(spoken);
-                  if (el && num !== null) {
-                      handleVoiceCommand(spoken);
-                  }
-              }
+              handleVoiceCommand(spoken);
           }
       };
 
@@ -1484,7 +1477,7 @@
                       try { recognition.start(); } catch(err){}
                   }
                   isRestarting = false;
-              }, 200);
+              }, 150);
           }
       };
 
@@ -1519,6 +1512,7 @@
           startRecognitionEngine();
       }
   }
+
 
   </script>
   <script src="/assets/js/church_calc.js?v=20260829_06"></script>
