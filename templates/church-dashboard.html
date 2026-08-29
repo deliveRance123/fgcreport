@@ -264,11 +264,21 @@
       </h3>
 
       {% if paymentSettings.payment_enabled == "1" and not sub.is_active %}
-        <div style="text-align:center;padding:12px 0;">
-          <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#EF4444" stroke-width="2" style="margin-bottom:8px;"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-          <p style="font-size:12.5px;color:var(--ink-soft);">Your subscription is expired. Renew above to create new reports.</p>
+        <div style="text-align:center;padding:24px 16px;background:#FEF2F2;border:1.5px dashed #FCA5A5;border-radius:12px;margin-top:10px;">
+          <div style="width:48px;height:48px;border-radius:50%;background:#FEE2E2;display:flex;align-items:center;justify-content:center;margin:0 auto 12px auto;">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#DC2626" stroke-width="2.2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          </div>
+          <h4 style="font-size:16px;font-weight:700;color:#991B1B;margin-bottom:6px;">Annual Portal Subscription Required</h4>
+          <p style="font-size:13.5px;color:#7F1D1D;max-width:500px;margin:0 auto 16px auto;line-height:1.5;">
+            An active 1-Year Portal Subscription (₦{{ paymentSettings.monthly_sub_amount|format_naira }}) is required to create, edit, and submit monthly church financial &amp; spiritual reports.
+          </p>
+          <button type="button" onclick="openFgcCheckoutModal('subscription','1-Year Annual Subscription',{{ paymentSettings.monthly_sub_amount }})" class="btn" style="background:linear-gradient(135deg, #E31E24 0%, #B91C1C 100%);color:#fff;font-weight:700;font-size:14px;padding:12px 28px;border-radius:9px;border:none;box-shadow:0 4px 12px rgba(227,30,36,0.28);display:inline-flex;align-items:center;gap:8px;">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+            Pay Now to Create Report (₦{{ paymentSettings.monthly_sub_amount|format_naira }}) &rarr;
+          </button>
         </div>
       {% else %}
+
         <form method="GET" action="/church-report">
           <div class="create-report-row">
             <div>

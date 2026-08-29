@@ -235,36 +235,48 @@
         {% endif %}
       </div>
 
-      <form method="POST" action="/zone-dashboard" class="start-report-box pt-1">
-        <input type="hidden" name="new_zonal_report" value="1">
-        <div class="create-report-inner" style="padding:16px; border:1px solid #E5E7EB; border-radius:12px; background:#FAFAFA; display:flex; gap:16px; align-items:flex-end; flex-wrap:wrap; width:100%;">
-          <div class="create-report-col" style="flex:1; min-width:180px;">
-            <label style="font-size:13px; font-weight:700; color:#1A1040; display:block; margin-bottom:8px; letter-spacing:0.02em;">Month</label>
-            <select name="report_month" class="form-select" {{ 'disabled' if not canCreateReport else 'required' }} style="font-size:14px; height:46px; font-weight:600; color:#1A1040; border:1.5px solid #D1D5DB; border-radius:9px; padding:0 14px; background:#fff;">
-              {% for m in range(1, 13) %}
-                <option value="{{ m }}" {{ 'selected' if m == selectedMonth else '' }}>{{ m|month_name }}</option>
-              {% endfor %}
-            </select>
+      {% if not canCreateReport and paymentSettings.payment_enabled == '1' %}
+        <div style="text-align:center;padding:24px 16px;background:#FEF2F2;border:1.5px dashed #FCA5A5;border-radius:12px;margin-top:10px;">
+          <div style="width:48px;height:48px;border-radius:50%;background:#FEE2E2;display:flex;align-items:center;justify-content:center;margin:0 auto 12px auto;">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#DC2626" stroke-width="2.2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
           </div>
-          <div class="create-report-col" style="flex:1; min-width:140px;">
-            <label style="font-size:13px; font-weight:700; color:#1A1040; display:block; margin-bottom:8px; letter-spacing:0.02em;">Year</label>
-            <select name="report_year" class="form-select" {{ 'disabled' if not canCreateReport else 'required' }} style="font-size:14px; height:46px; font-weight:600; color:#1A1040; border:1.5px solid #D1D5DB; border-radius:9px; padding:0 14px; background:#fff;">
-              {% for y in range(selectedYear + 2, selectedYear - 6, -1) %}
-                <option value="{{ y }}" {{ 'selected' if y == selectedYear else '' }}>{{ y }}</option>
-              {% endfor %}
-            </select>
-          </div>
-          <button type="submit" class="btn btn-primary px-4 fw-semibold create-report-btn" {{ 'disabled style="height:46px; font-size:14px; border-radius:9px; background:#60A5FA; border:none; opacity:0.85; cursor:not-allowed;"' if not canCreateReport else 'style="height:46px; font-size:14px; border-radius:9px;"' }}>
-            {% if not canCreateReport %}
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:5px;vertical-align:-2px;"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-              Create Zonal Report (Subscription Required)
-            {% else %}
-              Create Zonal Report
-            {% endif %}
+          <h4 style="font-size:16px;font-weight:700;color:#991B1B;margin-bottom:6px;">Annual Zonal Portal Subscription Required</h4>
+          <p style="font-size:13.5px;color:#7F1D1D;max-width:500px;margin:0 auto 16px auto;line-height:1.5;">
+            An active 1-Year Subscription (₦{{ subAmount|format_naira }}) is required to create, consolidate, and submit zonal ministry reports.
+          </p>
+          <button type="button" onclick="openFgcCheckoutModal('subscription', 'Annual Zonal Portal Subscription (1-Year Access)', {{ subAmount }})" class="btn" style="background:linear-gradient(135deg, #E31E24 0%, #B91C1C 100%);color:#fff;font-weight:700;font-size:14px;padding:12px 28px;border-radius:9px;border:none;box-shadow:0 4px 12px rgba(227,30,36,0.28);display:inline-flex;align-items:center;gap:8px;">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+            Pay Now to Create Zonal Report (₦{{ subAmount|format_naira }}) &rarr;
           </button>
         </div>
-      </form>
+      {% else %}
+        <form method="POST" action="/zone-dashboard" class="start-report-box pt-1">
+          <input type="hidden" name="new_zonal_report" value="1">
+          <div class="create-report-inner" style="padding:16px; border:1px solid #E5E7EB; border-radius:12px; background:#FAFAFA; display:flex; gap:16px; align-items:flex-end; flex-wrap:wrap; width:100%;">
+            <div class="create-report-col" style="flex:1; min-width:180px;">
+              <label style="font-size:13px; font-weight:700; color:#1A1040; display:block; margin-bottom:8px; letter-spacing:0.02em;">Month</label>
+              <select name="report_month" class="form-select" required style="font-size:14px; height:46px; font-weight:600; color:#1A1040; border:1.5px solid #D1D5DB; border-radius:9px; padding:0 14px; background:#fff;">
+                {% for m in range(1, 13) %}
+                  <option value="{{ m }}" {{ 'selected' if m == selectedMonth else '' }}>{{ m|month_name }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="create-report-col" style="flex:1; min-width:140px;">
+              <label style="font-size:13px; font-weight:700; color:#1A1040; display:block; margin-bottom:8px; letter-spacing:0.02em;">Year</label>
+              <select name="report_year" class="form-select" required style="font-size:14px; height:46px; font-weight:600; color:#1A1040; border:1.5px solid #D1D5DB; border-radius:9px; padding:0 14px; background:#fff;">
+                {% for y in range(selectedYear + 2, selectedYear - 6, -1) %}
+                  <option value="{{ y }}" {{ 'selected' if y == selectedYear else '' }}>{{ y }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <button type="submit" class="btn btn-primary px-4 fw-semibold create-report-btn" style="height:46px; font-size:14px; border-radius:9px;">
+              Create Zonal Report
+            </button>
+          </div>
+        </form>
+      {% endif %}
     </div>
+
 
     <div class="stat-grid">
       <div class="card stat-card">
