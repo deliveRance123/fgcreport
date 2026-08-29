@@ -37,10 +37,16 @@
   50% { transform: scale(1.1); }
   100% { transform: scale(1); }
 }
-@media (max-width: 480px) {
+@media (max-width: 767px) {
   .notif-dropdown-menu {
-    right: -8px !important;
-    width: calc(100vw - 24px) !important;
+    position: fixed !important;
+    top: 60px !important;
+    left: 12px !important;
+    right: 12px !important;
+    width: auto !important;
+    max-width: calc(100vw - 24px) !important;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35) !important;
+    z-index: 999999 !important;
   }
 }
 </style>

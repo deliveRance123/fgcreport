@@ -819,11 +819,17 @@ function openPasswordReset(id, name) {
 }
 
 function openKbEditModal(id, q, a, kw) {
-  document.getElementById('editKbId').value = id;
-  document.getElementById('editKbQuestion').value = q;
-  document.getElementById('editKbAnswer').value = a;
-  document.getElementById('editKbKeywords').value = kw || '';
-  document.getElementById('kbEditModal').style.display = 'flex';
+  var idEl = document.getElementById('editKbId');
+  var qEl = document.getElementById('editKbQuestion');
+  var aEl = document.getElementById('editKbAnswer');
+  var kwEl = document.getElementById('editKbKeywords');
+  var modal = document.getElementById('kbEditModal');
+
+  if (idEl) idEl.value = id;
+  if (qEl) qEl.value = q || '';
+  if (aEl) aEl.value = a || '';
+  if (kwEl) kwEl.value = kw || '';
+  if (modal) modal.style.display = 'flex';
 }
 
 function filterKbTable() {
@@ -837,33 +843,37 @@ function filterKbTable() {
 </script>
 
 <!-- KB Edit Modal -->
-<div id="kbEditModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;align-items:center;justify-content:center;padding:16px;">
-  <div style="background:#fff;border-radius:14px;padding:26px;width:100%;max-width:540px;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
-    <h5 style="margin-top:0;font-size:17px;font-weight:800;color:#1A1040;font-family:'Outfit',sans-serif;">Edit Knowledge Base Entry</h5>
-    <p style="font-size:12.5px;color:#6B7280;margin-bottom:18px;">Update the inquiry response for the AI chatbot.</p>
+<div id="kbEditModal" style="display:none;position:fixed;inset:0;background:rgba(13,13,24,0.65);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);z-index:99999;align-items:center;justify-content:center;padding:16px;">
+  <div style="background:#fff;border-radius:16px;padding:26px;width:100%;max-width:540px;box-shadow:0 24px 70px rgba(0,0,0,0.35);border:1px solid #E5E7EB;max-height:90vh;overflow-y:auto;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+      <h5 style="margin:0;font-size:18px;font-weight:800;color:#1A1040;font-family:'Outfit',sans-serif;">Edit Knowledge Base Entry</h5>
+      <button type="button" onclick="document.getElementById('kbEditModal').style.display='none'" style="background:none;border:none;font-size:24px;line-height:1;color:#9CA3AF;cursor:pointer;padding:0;">&times;</button>
+    </div>
+    <p style="font-size:12.5px;color:#6B7280;margin-bottom:18px;">Update this guidance response for the AI reporting assistant.</p>
     <form method="POST" action="/admin-dashboard">
       <input type="hidden" name="action" value="edit_kb_entry">
       <input type="hidden" name="page" value="chatbot">
       <input type="hidden" name="kb_id" id="editKbId">
       <div class="mb-3">
-        <label style="font-size:12px;font-weight:700;display:block;margin-bottom:4px;color:#374151;">Question</label>
-        <input type="text" name="question" id="editKbQuestion" required style="width:100%;padding:10px 12px;border:1.5px solid #D1D5DB;border-radius:8px;font-size:13.5px;">
+        <label style="font-size:12px;font-weight:700;display:block;margin-bottom:6px;color:#1A1040;">Question / Inquiry Title</label>
+        <input type="text" name="question" id="editKbQuestion" required style="width:100%;padding:10px 14px;border:1.5px solid #D1D5DB;border-radius:8px;font-size:13.5px;outline:none;">
       </div>
       <div class="mb-3">
-        <label style="font-size:12px;font-weight:700;display:block;margin-bottom:4px;color:#374151;">Answer</label>
-        <textarea name="answer" id="editKbAnswer" rows="4" required style="width:100%;padding:10px 12px;border:1.5px solid #D1D5DB;border-radius:8px;font-size:13.5px;"></textarea>
+        <label style="font-size:12px;font-weight:700;display:block;margin-bottom:6px;color:#1A1040;">Answer / Guidance Content</label>
+        <textarea name="answer" id="editKbAnswer" rows="5" required style="width:100%;padding:10px 14px;border:1.5px solid #D1D5DB;border-radius:8px;font-size:13.5px;outline:none;resize:vertical;"></textarea>
       </div>
       <div class="mb-3">
-        <label style="font-size:12px;font-weight:700;display:block;margin-bottom:4px;color:#374151;">Keywords (comma-separated)</label>
-        <input type="text" name="keywords" id="editKbKeywords" style="width:100%;padding:10px 12px;border:1.5px solid #D1D5DB;border-radius:8px;font-size:13.5px;">
+        <label style="font-size:12px;font-weight:700;display:block;margin-bottom:6px;color:#1A1040;">Matching Keywords (comma-separated)</label>
+        <input type="text" name="keywords" id="editKbKeywords" style="width:100%;padding:10px 14px;border:1.5px solid #D1D5DB;border-radius:8px;font-size:13.5px;outline:none;">
       </div>
       <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:20px;">
-        <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('kbEditModal').style.display='none'">Cancel</button>
-        <button type="submit" class="btn btn-primary btn-sm px-4 fw-bold" style="background:#E31E24;border:none;">Save Changes</button>
+        <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('kbEditModal').style.display='none'" style="border-radius:8px;padding:8px 16px;">Cancel</button>
+        <button type="submit" class="btn btn-primary btn-sm px-4 fw-bold" style="background:#E31E24;border:none;border-radius:8px;padding:8px 20px;">Save Changes</button>
       </div>
     </form>
   </div>
 </div>
+
 
 {% include 'includes/chat_widget.html' %}
 
