@@ -74,6 +74,29 @@
   @media (max-width: 560px) {
     .hero { margin-top: 0; padding-top: 0; min-height: auto; }
   }
+  .hero-bg-video-wrapper {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    z-index: 0;
+    pointer-events: none;
+    user-select: none;
+    opacity: 0.25;
+  }
+  .hero-bg-video-iframe {
+    position: absolute;
+    top: -65px;
+    left: -15%;
+    width: 130%;
+    height: calc(100% + 130px);
+    border: none;
+    pointer-events: none;
+    user-select: none;
+    transform: scale(1.1);
+  }
   .hero-bg-video {
     position: absolute;
     top: 0;
@@ -82,7 +105,7 @@
     height: 100%;
     object-fit: cover;
     z-index: 0;
-    opacity: 0.22;
+    opacity: 0.25;
     pointer-events: none;
     user-select: none;
     border: none;
@@ -619,15 +642,17 @@
   {% if hero_video %}
     {% set _hero_ext = hero_video.split('.')[-1].lower() %}
     {% set _hero_mime = 'video/webm' if _hero_ext == 'webm' else ('video/ogg' if _hero_ext == 'ogg' else 'video/mp4') %}
-    <video autoplay muted loop playsinline preload="auto" class="hero-bg-video" crossorigin="anonymous">
+    <video autoplay muted loop playsinline preload="auto" class="hero-bg-video" crossorigin="anonymous" disablepictureinpicture disableremoteplayback onended="this.currentTime=0;this.play();">
       <source src="/{{ hero_video }}" type="{{ _hero_mime }}">
     </video>
   {% elif ss('hero_video_url', '') %}
     {% set _hinfo = normalize_video(ss('hero_video_url', '')) %}
     {% if _hinfo.type == 'gdrive' %}
-      <iframe src="{{ _hinfo.embed_url }}" class="hero-bg-video" style="border:none;pointer-events:none;transform:scale(1.25);transform-origin:center;" allow="autoplay" loading="eager"></iframe>
+      <div class="hero-bg-video-wrapper">
+        <iframe src="{{ _hinfo.embed_url }}" class="hero-bg-video-iframe" allow="autoplay; fullscreen" loading="eager"></iframe>
+      </div>
     {% else %}
-      <video autoplay muted loop playsinline preload="auto" class="hero-bg-video" crossorigin="anonymous">
+      <video autoplay muted loop playsinline preload="auto" class="hero-bg-video" crossorigin="anonymous" disablepictureinpicture disableremoteplayback onended="this.currentTime=0;this.play();">
         <source src="{{ _hinfo.src }}" type="{{ _hinfo.mime }}">
       </video>
     {% endif %}
