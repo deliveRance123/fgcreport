@@ -378,6 +378,11 @@
   </div>
 
 
+  {% if ss('ai_voice_enabled', '1') == '1' and not viewOnly %}
+    {% set is_landscape = false %}
+    {% include 'includes/ai_voice_tip_banner.html' %}
+  {% endif %}
+
   {% if successMsg %}
       <div class="container my-2 no-print" style="max-width: 210mm;"><div class="alert alert-success p-2 small">{{ successMsg }}</div></div>
   {% endif %}

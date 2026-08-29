@@ -1,0 +1,78 @@
+﻿<!-- templates/includes/ai_voice_tip_banner.html -->
+<div id="aiVoiceTipBanner" class="no-print" style="max-width: {{ '297mm' if is_landscape else '210mm' }}; margin: 8px auto 12px auto; padding: 0 4px; display: none;">
+  <div style="background: linear-gradient(135deg, #1A1040 0%, #2D1B69 100%); color: #ffffff; border-radius: 12px; padding: 12px 16px; display: flex; align-items: center; justify-content: space-between; gap: 14px; box-shadow: 0 4px 18px rgba(26,16,64,0.18); border: 1px solid rgba(255,255,255,0.15); position: relative; animation: slideDownNotif 0.35s cubic-bezier(0.16, 1, 0.3, 1);">
+    
+    <div style="display: flex; align-items: center; gap: 12px; flex: 1; min-width: 0;">
+      <div style="width: 38px; height: 38px; border-radius: 10px; background: rgba(227,30,36,0.18); border: 1.5px solid #E31E24; display: flex; align-items: center; justify-content: center; font-size: 19px; flex-shrink: 0;">
+        🎙️
+      </div>
+      <div style="font-size: 13px; line-height: 1.45; color: rgba(255,255,255,0.92); font-family: 'Inter', system-ui, sans-serif;">
+        <strong style="color: #fff; font-size: 13.5px; display: inline-block; margin-right: 4px;">⚡ AI Voice Filling is Available:</strong>
+        Click <strong style="color: #FCD34D;">Voice Assistant</strong>, place your cursor on any box, and pronounce the figure or name — the AI will automatically type and fill it for you!
+      </div>
+    </div>
+
+    <div style="display: flex; align-items: center; gap: 8px; flex-shrink: 0;">
+      <button type="button" onclick="tryVoiceNow()" style="background: #E31E24; color: #ffffff; border: none; padding: 6px 14px; border-radius: 7px; font-size: 12.5px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; transition: background 0.2s; white-space: nowrap;">
+        Try Voice 🎙️
+      </button>
+      <button type="button" onclick="dismissAiVoiceTip()" aria-label="Cancel" style="background: rgba(255,255,255,0.12); color: #ffffff; border: 1px solid rgba(255,255,255,0.22); width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 16px; cursor: pointer; transition: all 0.2s; line-height: 1; flex-shrink: 0;" title="Dismiss notification">
+        &times;
+      </button>
+    </div>
+
+  </div>
+</div>
+
+<style>
+@keyframes slideDownNotif {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@media (max-width: 600px) {
+  #aiVoiceTipBanner > div {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 14px;
+    gap: 10px;
+  }
+  #aiVoiceTipBanner > div > div:last-child {
+    width: 100%;
+    justify-content: flex-end;
+  }
+}
+</style>
+
+<script>
+(function() {
+  var tip = document.getElementById('aiVoiceTipBanner');
+  if (tip) {
+    var dismissed = sessionStorage.getItem('fgc_dismiss_ai_voice_tip');
+    if (!dismissed) {
+      tip.style.display = 'block';
+    }
+  }
+})();
+
+function dismissAiVoiceTip() {
+  var tip = document.getElementById('aiVoiceTipBanner');
+  if (tip) {
+    tip.style.transition = 'all 0.25s ease';
+    tip.style.opacity = '0';
+    tip.style.transform = 'translateY(-10px)';
+    setTimeout(function() {
+      tip.style.display = 'none';
+    }, 250);
+  }
+  sessionStorage.setItem('fgc_dismiss_ai_voice_tip', 'true');
+}
+
+function tryVoiceNow() {
+  if (typeof toggleVoiceAssistant === 'function') {
+    toggleVoiceAssistant();
+  } else if (typeof toggleZonalVoiceAssistant === 'function') {
+    toggleZonalVoiceAssistant();
+  }
+  dismissAiVoiceTip();
+}
+</script>
