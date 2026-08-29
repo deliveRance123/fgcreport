@@ -126,12 +126,43 @@
 /* ══ MAIN CONTENT ════════════════════════════ */
 .main {
   flex: 1;
-  padding: 36px 40px;
+  padding: 0 40px 40px 40px;
   overflow-y: auto;
-  max-width: 1160px;
+  max-width: 1200px;
   margin-left: 240px;
   width: calc(100% - 240px);
   box-sizing: border-box;
+}
+
+/* ══ STICKY TOPBAR WITH NOTIFICATION BELL ═════ */
+.dash-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 95;
+  background: var(--paper, #FAF9FC);
+  padding: 24px 0 16px 0;
+  margin-bottom: 20px;
+  border-bottom: 1px solid var(--line, #ECEAEF);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  width: 100%;
+  box-sizing: border-box;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+.dash-topbar h1 {
+  font-size: 24px;
+  font-weight: 700;
+  margin: 0 0 4px 0;
+  color: var(--navy);
+}
+.dash-topbar p {
+  font-size: 13px;
+  color: var(--ink-faint);
+  margin: 0;
+  font-weight: 450;
 }
 
 .page-head {
@@ -146,6 +177,7 @@
   font-size: 13px; color: var(--ink-faint); margin: 0; font-weight: 450;
 }
 .head-actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+
 
 /* ══ CARDS ════════════════════════════════════ */
 .card {
@@ -642,47 +674,52 @@
   /* ─── Sticky Topbar — mobile adjustments ─── */
   .dash-topbar {
     position: sticky;
-    top: 56px; /* height of fixed mobile-header */
-    margin-left: -14px !important;
-    margin-right: -14px !important;
-    padding-left: 14px !important;
-    padding-right: 14px !important;
-    padding-top: 18px !important;
-    padding-bottom: 14px !important;
-    margin-bottom: 20px !important;
-    z-index: 490;
+    top: 0;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    padding: 16px 0 12px 0 !important;
+    margin-bottom: 16px !important;
+    z-index: 95;
     flex-wrap: nowrap !important;
-    gap: 8px !important;
-    width: calc(100% + 28px) !important;
+    gap: 12px !important;
+    width: 100% !important;
+    background: var(--paper, #FAF9FC);
   }
 
+  .dash-topbar-left {
+    min-width: 0;
+    flex: 1;
+  }
   .dash-topbar-left h1 {
-    font-size: 16px !important;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: calc(100vw - 80px);
+    font-size: 17px !important;
+    line-height: 1.25;
+    margin-bottom: 2px !important;
+    word-break: break-word;
   }
   .dash-topbar-left p {
-    font-size: 11px !important;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: calc(100vw - 80px);
+    font-size: 11.5px !important;
+    line-height: 1.3;
+    word-break: break-word;
+  }
+  .dash-topbar-right {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
   }
 }
 
-
 @media (max-width: 420px) {
   .stat-grid { grid-template-columns: 1fr; }
-  .main { padding: 14px 10px 36px; }
-  .section-card { padding: 12px; }
+  .main { padding: 0 12px 36px 12px; }
+  .section-card { padding: 14px; }
   .stat-card { padding: 14px; }
   .stat-value { font-size: 18px !important; }
   td .btn { font-size: 10px; padding: 3px 6px; }
   .page-head h1 { font-size: 18px !important; }
   .head-actions .btn { font-size: 12px; padding: 6px 10px; }
 }
+
 
 
 
