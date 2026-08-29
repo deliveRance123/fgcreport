@@ -1203,10 +1203,7 @@
             <div class="col-6">
               <label class="small text-muted" style="font-size:11px;">Calculate on</label>
               <select id="renamePctBase" class="form-select form-select-sm">
-                <option value="subtotal_ac">A - C (General Tithe + Minister's Tithe + Worship Offerings)</option>
-                <option value="general_tithe">A only (General Tithe)</option>
-                <option value="minister_tithe">B only (Minister's Tithe)</option>
-                <option value="worship_offerings">C only (Worship Offerings)</option>
+                <option value="subtotal_ac">A - C</option>
                 <option value="total_receipts">Total Receipts</option>
               </select>
             </div>
@@ -1243,10 +1240,7 @@
             <div class="col-6">
               <label class="small text-muted" style="font-size:11px;">Calculate on</label>
               <select id="addPctBase" class="form-select form-select-sm">
-                <option value="subtotal_ac">A - C (General Tithe + Minister's Tithe + Worship Offerings)</option>
-                <option value="general_tithe">A only (General Tithe)</option>
-                <option value="minister_tithe">B only (Minister's Tithe)</option>
-                <option value="worship_offerings">C only (Worship Offerings)</option>
+                <option value="subtotal_ac">A - C</option>
                 <option value="total_receipts">Total Receipts</option>
               </select>
             </div>
@@ -1270,18 +1264,15 @@
     function openRenameModal(itemId, label, isCustom) {
         document.getElementById('renameItemId').value = itemId;
         
-        // Parse existing percentage formula if present
+        // Parse existing percentage formula if present e.g. "Music 10% (a - c)", "Music 10% A-C"
         var cleanLabel = label;
-        var pctMatch = label.match(/^(.*?)\s*(\d+(?:\.\d+)?)\s*%\s*(a\s*-\s*c|a\b|b\b|c\b|total\s*receipts)?$/i);
+        var pctMatch = label.match(/^(.*?)\s*(\d+(?:\.\d+)?)\s*%\s*(a\s*-\s*c|total\s*receipts)?$/i);
         
         if (pctMatch) {
             cleanLabel = pctMatch[1].trim();
             var rate = pctMatch[2];
             var baseRaw = pctMatch[3] ? pctMatch[3].toLowerCase().replace(/\s+/g, '') : 'a-c';
-            var baseVal = (baseRaw === 'a') ? 'general_tithe' :
-                          (baseRaw === 'b') ? 'minister_tithe' :
-                          (baseRaw === 'c') ? 'worship_offerings' :
-                          (baseRaw === 'totalreceipts') ? 'total_receipts' : 'subtotal_ac';
+            var baseVal = (baseRaw === 'totalreceipts') ? 'total_receipts' : 'subtotal_ac';
 
             document.getElementById('renameCalcSwitch').checked = true;
             document.getElementById('renamePctRate').value = rate;
@@ -1323,10 +1314,7 @@
             var rate = parseFloat(document.getElementById('addPctRate').value);
             var base = document.getElementById('addPctBase').value;
             if (!isNaN(rate) && rate > 0) {
-                var baseTag = (base === 'general_tithe') ? 'a' :
-                              (base === 'minister_tithe') ? 'b' :
-                              (base === 'worship_offerings') ? 'c' :
-                              (base === 'total_receipts') ? 'Total Receipts' : '(a - c)';
+                var baseTag = (base === 'total_receipts') ? 'Total Receipts' : '(a - c)';
                 label = label + ' ' + rate + '% ' + baseTag;
             }
         }
@@ -1350,10 +1338,7 @@
             var rate = parseFloat(document.getElementById('renamePctRate').value);
             var base = document.getElementById('renamePctBase').value;
             if (!isNaN(rate) && rate > 0) {
-                var baseTag = (base === 'general_tithe') ? 'a' :
-                              (base === 'minister_tithe') ? 'b' :
-                              (base === 'worship_offerings') ? 'c' :
-                              (base === 'total_receipts') ? 'Total Receipts' : '(a - c)';
+                var baseTag = (base === 'total_receipts') ? 'Total Receipts' : '(a - c)';
                 label = label + ' ' + rate + '% ' + baseTag;
             }
         }
@@ -1711,7 +1696,8 @@
 
 
   </script>
-  <script src="/assets/js/church_calc.js?v=20260829_10"></script>
+  <script src="/assets/js/church_calc.js?v=20260829_11"></script>
+
 
 
 
