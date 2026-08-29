@@ -14,7 +14,7 @@
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#E31E24" stroke-width="2.5"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
         Notifications
       </span>
-      <button type="button" onclick="markAllNotificationsRead()" style="background:none;border:none;color:#E31E24;font-size:11.5px;font-weight:700;cursor:pointer;padding:0;letter-spacing:0.01em;">Mark all read</button>
+      <button type="button" onclick="markAllNotificationsRead()" style="background:none;border:none;color:#E31E24;font-size:11.5px;font-weight:700;cursor:pointer;padding:0;letter-spacing:0.01em;">Clear all</button>
     </div>
     <div id="notifListContainer" style="max-height:360px;overflow-y:auto;padding:0;">
       <div style="padding:32px 20px;text-align:center;color:#9CA3AF;font-size:12.5px;">Loading notifications...</div>
@@ -94,17 +94,18 @@ function fetchNotifications() {
 
         var safeLink = (n.link && n.link !== '#' && n.link !== '') ? n.link : '';
 
-        html += '<div onclick="markSingleNotifRead(' + n.id + ', \'' + safeLink + '\')" style="' + unreadStyle + 'padding:13px 16px;border-bottom:1px solid #F3F4F6;cursor:pointer;display:flex;gap:12px;align-items:flex-start;transition:background 0.15s;">' +
+        html += '<div onclick="viewAndDeleteNotif(' + n.id + ', \'' + safeLink + '\')" style="' + unreadStyle + 'padding:13px 16px;border-bottom:1px solid #F3F4F6;cursor:pointer;display:flex;gap:12px;align-items:flex-start;position:relative;transition:all 0.15s ease;" onmouseover="this.style.background=\'#F9FAFB\'" onmouseout="this.style.background=\'' + (!n.is_read ? '#FEF2F2' : '#ffffff') + '\'">' +
                   '<div style="width:30px;height:30px;border-radius:8px;background:' + catBg + ';color:' + catColor + ';display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px;">' +
                     '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path></svg>' +
                   '</div>' +
-                  '<div style="flex:1;min-width:0;">' +
+                  '<div style="flex:1;min-width:0;padding-right:18px;">' +
                     '<div style="font-size:12.5px;font-weight:700;color:#1A1040;margin-bottom:3px;display:flex;justify-content:space-between;align-items:baseline;">' +
-                      '<span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:190px;">' + n.title + '</span>' +
+                      '<span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:170px;">' + n.title + '</span>' +
                       '<span style="font-size:10.5px;font-weight:500;color:#9CA3AF;margin-left:6px;flex-shrink:0;">' + n.time_ago + '</span>' +
                     '</div>' +
                     '<div style="font-size:12px;color:#4B5563;line-height:1.45;word-break:break-word;">' + n.message + '</div>' +
                   '</div>' +
+                  '<button type="button" onclick="event.stopPropagation(); deleteSingleNotif(' + n.id + ');" title="Dismiss" style="position:absolute;top:10px;right:10px;background:none;border:none;color:#9CA3AF;cursor:pointer;font-size:14px;padding:2px 4px;border-radius:4px;line-height:1;">&times;</button>' +
                 '</div>';
       });
       list.innerHTML = html;
@@ -112,7 +113,7 @@ function fetchNotifications() {
     .catch(function() {});
 }
 
-function markSingleNotifRead(id, link) {
+function viewAndDeleteNotif(id, link) {
   fetch('/api/notifications/' + id + '/read', { method: 'POST' })
     .then(function() {
       fetchNotifications();
@@ -127,11 +128,18 @@ function markSingleNotifRead(id, link) {
     });
 }
 
+function deleteSingleNotif(id) {
+  fetch('/api/notifications/' + id + '/read', { method: 'POST' })
+    .then(function() { fetchNotifications(); })
+    .catch(function() {});
+}
+
 function markAllNotificationsRead() {
   fetch('/api/notifications/read-all', { method: 'POST' })
     .then(function() { fetchNotifications(); })
     .catch(function() {});
 }
+
 
 // Global click outside to close dropdown
 document.addEventListener('click', function(e) {

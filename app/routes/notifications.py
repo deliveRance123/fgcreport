@@ -107,9 +107,9 @@ def mark_notification_read(notif_id: int, request: Request, db: Session = Depend
 
     notif = db.query(Notification).filter(Notification.id == notif_id).first()
     if notif:
-        notif.is_read = True
+        db.delete(notif)
         db.commit()
-        return JSONResponse({"success": True})
+        return JSONResponse({"success": True, "deleted": True})
     return JSONResponse({"success": False, "error": "Notification not found"}, status_code=404)
 
 @router.post("/read-all")
@@ -125,13 +125,10 @@ def mark_all_notifications_read(request: Request, db: Session = Depends(get_db))
             Notification.user_id == uid,
             and_(
                 Notification.user_id == None,
-                or_(
-                    Notification.role_target == None,
-                    Notification.role_target == role
-                )
+                Notification.role_target == role
             )
         )
-    ).update({"is_read": True}, synchronize_session=False)
+    ).delete(synchronize_session=False)
     db.commit()
 
-    return JSONResponse({"success": True})
+    return JSONResponse({"success": True, "deleted_all": True})
