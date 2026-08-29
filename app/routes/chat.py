@@ -34,7 +34,9 @@ SYNONYMS = {
     'spiritual': ['attendance', 'convert', 'baptism', 'dedication', 'wedding', 'funeral', 'membership', 'growth', 'cell', 'outreach'],
     'pdf': ['download', 'print', 'export', 'paper', 'copy'],
     'chartered': ['unchartered', 'type', 'status', 'established'],
+    'voice': ['assistant', 'dictation', 'microphone', 'speak', 'audio', 'talk', 'cursor', 'type'],
 }
+
 
 @router.api_route("/chat-api", methods=["GET", "POST"])
 async def chat_api(request: Request, db: Session = Depends(get_db)):
