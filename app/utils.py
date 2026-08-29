@@ -407,14 +407,16 @@ def getUserTrialAndSubStatus(db: Session, user_id: int) -> dict:
         return {'is_active': True, 'in_trial': True, 'trial_title': 'Super Admin Access', 'trial_days_left': 999, 'status_label': 'Super Admin (Unlimited Access)', 'expires_at': None}
 
     # Calculate trial end
-    created_at = user.created_at
+    created_at = user.created_at or datetime.utcnow()
     if settings.get("free_trial_days") and str(settings["free_trial_days"]).isdigit() and int(settings["free_trial_days"]) > 0:
         trial_days = int(settings["free_trial_days"])
         trial_ends_at = created_at + timedelta(days=trial_days)
     else:
         trial_months = max(1, int(settings.get("free_trial_months") or 3))
-        # rough month add (30 days per month)
         trial_ends_at = created_at + timedelta(days=trial_months * 30)
+
+    now = datetime.utcnow()
+
 
     # 1. First check for active paid / admin-granted subscription in user_payments table
     try:
@@ -424,6 +426,7 @@ def getUserTrialAndSubStatus(db: Session, user_id: int) -> dict:
             UserPayment.status == 'success',
             UserPayment.expires_at >= now
         ).order_by(UserPayment.expires_at.desc()).first()
+
 
         if active_sub and active_sub.expires_at:
             exp_formatted = active_sub.expires_at.strftime('%b %d, %Y')
