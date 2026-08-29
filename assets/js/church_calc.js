@@ -183,8 +183,8 @@ document.addEventListener('DOMContentLoaded', function () {
             const row = document.querySelector(`[data-expense-item="true"][data-item-key="${itemKey}"]`);
             if (!row)
                 return 0;
-            const nEl = row.querySelector('input[name^="expense_amount_naira"]');
-            const kEl = row.querySelector('input[name^="expense_amount_kobo"]');
+            const nEl = row.querySelector('input[name*="expense_amount"][name$="_naira"]');
+            const kEl = row.querySelector('input[name*="expense_amount"][name$="_kobo"]');
             const n = nEl ? (parseFloat(nEl.value) || 0) : 0;
             const k = kEl ? (parseFloat(kEl.value) || 0) : 0;
             return roundHalfUp(n + k / 100, 2);
@@ -207,7 +207,7 @@ document.addEventListener('DOMContentLoaded', function () {
         const purchaseNewEquipment = getExpenseVal('purchase_new_equipment');
         const fixedAssetsSubtotal = roundHalfUp(landAcquisition + churchBuilding + purchaseMotorVehicles + purchaseNewEquipment, 2);
         setVal('fixed_assets_subtotal', fixedAssetsSubtotal);
-        // Sum general expenses — inputs are named expense_amount_naira[id] / expense_amount_kobo[id]
+        // Sum general expenses — inputs are named expense_amount[id]_naira / expense_amount[id]_kobo
         let generalExpensesTotal = 0;
         const expenseRows = document.querySelectorAll('[data-expense-item="true"]');
         const skipKeys = ['ministers_basic', 'ministers_allowances', 'other_workers_basic',
@@ -218,8 +218,8 @@ document.addEventListener('DOMContentLoaded', function () {
             if (skipKeys.includes(key))
                 return;
             // find the naira and kobo inputs inside this row
-            const nEl = row.querySelector('input[name^="expense_amount_naira"]');
-            const kEl = row.querySelector('input[name^="expense_amount_kobo"]');
+            const nEl = row.querySelector('input[name*="expense_amount"][name$="_naira"]');
+            const kEl = row.querySelector('input[name*="expense_amount"][name$="_kobo"]');
             const n = nEl ? (parseFloat(nEl.value) || 0) : 0;
             const k = kEl ? (parseFloat(kEl.value) || 0) : 0;
             generalExpensesTotal += roundHalfUp(n + k / 100, 2);
@@ -227,6 +227,7 @@ document.addEventListener('DOMContentLoaded', function () {
         generalExpensesTotal = roundHalfUp(generalExpensesTotal, 2);
         const totalPayment = roundHalfUp(payable + totalEmoluments + generalExpensesTotal + fixedAssetsSubtotal, 2);
         setVal('total_payment', totalPayment);
+
         // ─── LEFT COLUMN BOTTOM ───────────────────────────────────────────
         setVal('less_total_payment', totalPayment);
         const balanceSurplusDeficit = roundHalfUp(totalReceipts - totalPayment, 2);

@@ -481,8 +481,10 @@ async def post_church_report(
             item = db_expense_keys.get(key)
             if not item:
                 return 0.0
-            n_val = toFloat(form_data.get(f"expense_amount_naira[{item.id}]", 0))
-            k_val = toFloat(form_data.get(f"expense_amount_kobo[{item.id}]", 0))
+            n_raw = form_data.get(f"expense_amount[{item.id}]_naira") or form_data.get(f"expense_amount_naira[{item.id}]", 0)
+            k_raw = form_data.get(f"expense_amount[{item.id}]_kobo") or form_data.get(f"expense_amount_kobo[{item.id}]", 0)
+            n_val = toFloat(n_raw)
+            k_val = toFloat(k_raw)
             return moneyRound(n_val + k_val / 100)
 
         # Salaries
@@ -507,14 +509,17 @@ async def post_church_report(
         general_expenses = 0.0
         skip_keys = ['ministers_basic', 'ministers_allowances', 'other_workers_basic', 'other_workers_allowances', 'land_acquisition', 'church_building', 'purchase_motor_vehicles', 'purchase_new_equipment']
         for item in db_expenses:
-            n_val = toFloat(form_data.get(f"expense_amount_naira[{item.id}]", 0))
-            k_val = toFloat(form_data.get(f"expense_amount_kobo[{item.id}]", 0))
+            n_raw = form_data.get(f"expense_amount[{item.id}]_naira") or form_data.get(f"expense_amount_naira[{item.id}]", 0)
+            k_raw = form_data.get(f"expense_amount[{item.id}]_kobo") or form_data.get(f"expense_amount_kobo[{item.id}]", 0)
+            n_val = toFloat(n_raw)
+            k_val = toFloat(k_raw)
             amt = moneyRound(n_val + k_val / 100)
             item.amount = amt
             
             if item.item_key not in skip_keys:
                 general_expenses += amt
         general_expenses = moneyRound(general_expenses)
+
 
         # Total payments
         total_payment = moneyRound(payable + total_emoluments + general_expenses + fixed_assets_subtotal)
