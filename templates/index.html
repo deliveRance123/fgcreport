@@ -82,9 +82,17 @@
     height: 100%;
     object-fit: cover;
     z-index: 0;
-    opacity: 0.18;
+    opacity: 0.22;
     pointer-events: none;
+    user-select: none;
+    border: none;
   }
+  /* Hide video player controls, preloaders, and play buttons across WebKit & Firefox */
+  video::-webkit-media-controls { display: none !important; }
+  video::-webkit-media-controls-start-playback-button { display: none !important; -webkit-appearance: none; }
+  video::-webkit-media-controls-enclosure { display: none !important; }
+  video::-webkit-media-controls-panel { display: none !important; }
+
   .hero-canvas {
     position: absolute;
     top: 0;
