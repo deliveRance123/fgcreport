@@ -510,6 +510,55 @@ async def post_admin_dashboard(
             db.commit()
             msg = "Percentages and settings updated successfully!"
 
+            # Dispatch notification bell and email to Church & Zonal Admins
+            try:
+                from app.models import Notification, User
+                from app.utils import sendAppEmail
+                
+                # In-app notification for all church and zonal admins
+                db.add(Notification(
+                    role_target="church_admin",
+                    title="📊 Due Percentages Updated",
+                    message="National Headquarters has updated due rates and calculation parameters. These updates apply to your new monthly reports.",
+                    link="/church-dashboard",
+                    category="info"
+                ))
+                db.add(Notification(
+                    role_target="zonal_admin",
+                    title="📊 Due Percentages Updated",
+                    message="National Headquarters has updated due rates and calculation parameters.",
+                    link="/zone-dashboard",
+                    category="info"
+                ))
+                db.commit()
+
+                # Dispatch email alerts to active Church and Zonal Admins
+                all_admins = db.query(User).filter(User.role.in_(["church_admin", "zonal_admin"]), User.status == "active").all()
+                for adm in all_admins:
+                    if adm.email:
+                        email_html = f"""
+                        <p>Dear <strong>{adm.full_name}</strong>,</p>
+                        <p>This is an official notice that the <strong>National Headquarters</strong> has updated the monthly due percentage rates and calculation settings on the Foursquare Gospel Church Reporting Portal.</p>
+                        <div style="background:#FAF9FC;border-left:4px solid #E31E24;padding:14px 18px;border-radius:6px;margin:18px 0;">
+                            <p style="margin:0;font-size:13.5px;color:#1A1040;font-weight:600;">
+                                The revised percentages and lock settings have taken immediate effect on all new and draft monthly returns.
+                            </p>
+                        </div>
+                        <p>Please log in to your dashboard to review your returns and submit your monthly report.</p>
+                        """
+                        sendAppEmail(
+                            db=db,
+                            to_email=adm.email,
+                            to_name=adm.full_name,
+                            subject="📊 Notice: Monthly Due Percentages Updated",
+                            message_html=email_html,
+                            action_url="/login",
+                            action_text="Open Reporting Portal"
+                        )
+            except Exception:
+                pass
+
+
         elif form_data.get("update_site_settings") == "1" or action == "update_site_settings":
             redirect_page = "settings"
             keys = [
