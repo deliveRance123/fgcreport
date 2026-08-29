@@ -152,15 +152,16 @@
 
 <!-- Mobile header & overlay -->
 <div class="mobile-header">
-  <a href="/church-dashboard" class="mobile-brand">
+  <div class="mobile-brand">
     <img src="/assets/logo.jpg" alt="Logo">
     <div><span>Foursquare</span><small>Reports</small></div>
-  </a>
-  <button type="button" class="mobile-nav-toggle" id="churchMobileNavToggle" aria-label="Toggle navigation" onclick="toggleChurchSidebar(event);">
+  </div>
+  <button type="button" class="mobile-nav-toggle" id="churchMobileNavToggle" aria-label="Toggle navigation">
     <span></span><span></span><span></span>
   </button>
 </div>
-<div class="sidebar-overlay" id="churchSidebarOverlay" onclick="closeChurchSidebar(event);"></div>
+<div class="sidebar-overlay" id="churchSidebarOverlay"></div>
+
 
 
 <div class="shell">
@@ -428,13 +429,20 @@ function closeChurchSidebar(e) {
 (function() {
   var toggle = document.getElementById('churchMobileNavToggle');
   if (toggle) {
-    toggle.addEventListener('click', toggleChurchSidebar);
+    toggle.addEventListener('click', toggleChurchSidebar, { passive: false });
+    toggle.addEventListener('touchend', function(e) {
+      toggleChurchSidebar(e);
+    }, { passive: false });
   }
 
   var overlay = document.getElementById('churchSidebarOverlay');
   if (overlay) {
-    overlay.addEventListener('click', closeChurchSidebar);
+    overlay.addEventListener('click', closeChurchSidebar, { passive: false });
+    overlay.addEventListener('touchend', function(e) {
+      closeChurchSidebar(e);
+    }, { passive: false });
   }
+
 
 
   // ── REAL-TIME STATS POLLING ──────────────────────────────────────────────
