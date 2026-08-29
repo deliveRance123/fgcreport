@@ -1221,9 +1221,12 @@
       openFgcCheckoutModal('report_unlock', 'Unlock Submitted Report for Editing', 2000, {{ finReport.id }}, 'church');
   }
 
-  // ================= UPGRADED AI VOICE REPORT ASSISTANT =================
+  // ================= ULTRA-FAST PERSISTENT AI VOICE ASSISTANT =================
   let recognition = null;
   let isListening = false;
+  let isRestarting = false;
+  let lastProcessedPhrase = "";
+  let lastProcessedTime = 0;
 
   function parseSpokenNumber(text) {
       if (!text) return null;
@@ -1231,18 +1234,16 @@
           .replace(/naira/g, '')
           .replace(/kobo/g, '')
           .replace(/,/g, '')
-          .replace(/thousand/g, '000')
-          .replace(/million/g, '000000')
           .trim();
       
-      // Direct digits (e.g. "50000", "35000.50")
+      // Direct digits (e.g. "50000", "35000", "1500")
       let digitsOnly = clean.replace(/[^0-9.]/g, ' ').trim().split(/\s+/).filter(Boolean);
       if (digitsOnly.length > 0) {
           let candidate = parseFloat(digitsOnly[digitsOnly.length - 1]);
           if (!isNaN(candidate)) return candidate;
       }
 
-      // Word mappings
+      // Word number parser
       const wordMap = {
           'zero': 0, 'one': 1, 'two': 2, 'three': 3, 'four': 4, 'five': 5, 'six': 6, 'seven': 7,
           'eight': 8, 'nine': 9, 'ten': 10, 'eleven': 11, 'twelve': 12, 'thirteen': 13, 'fourteen': 14,
@@ -1251,7 +1252,7 @@
           'hundred': 100
       };
 
-      let words = text.toLowerCase().split(/\s+/);
+      let words = text.toLowerCase().replace(/-/g, ' ').split(/\s+/);
       let total = 0, current = 0, hasNum = false;
 
       for (let w of words) {
@@ -1263,12 +1264,12 @@
               } else {
                   current += val;
               }
-          } else if (w === 'thousand') {
+          } else if (w === 'thousand' || w === 'k') {
               hasNum = true;
               current = (current === 0 ? 1 : current) * 1000;
               total += current;
               current = 0;
-          } else if (w === 'million') {
+          } else if (w === 'million' || w === 'm') {
               hasNum = true;
               current = (current === 0 ? 1 : current) * 1000000;
               total += current;
@@ -1281,120 +1282,144 @@
 
   function findTargetInputOnChurchForm(transcript) {
       let lower = transcript.toLowerCase();
-      
-      // 1. Direct label fuzzy scanning in entire document
-      let allRows = document.querySelectorAll('tr, .stat-line, .credential-row, .meta-group');
-      let bestInput = null;
-      let highestMatchScore = 0;
 
-      for (let row of allRows) {
-          let labelText = row.innerText.toLowerCase().replace(/[\r\n\t]/g, ' ').replace(/\s+/g, ' ');
-          let candidateInput = row.querySelector('input:not([disabled]):not([type="hidden"])');
-          if (!candidateInput) continue;
+      // STRICT RULE: Only target manual, allowable inputs (never disabled or auto-calculated summary inputs)
+      const ALIAS_RULES = [
+          // Tithes & Offerings
+          { keys: ['general tithe', 'tithe a', 'general tithes'], name: 'general_tithe_naira' },
+          { keys: ['minister tithe', "minister's tithe", 'tithe b', 'ministers tithe'], name: 'minister_tithe_naira' },
+          { keys: ['worship offering', 'worship offerings', 'worship', 'tithe c'], name: 'worship_offerings_naira' },
+          { keys: ['missionary offering', 'missionary offerings', 'missionary'], name: 'missionary_offerings_naira' },
+          { keys: ['midweek offering', 'midweek offerings', 'midweek'], name: 'midweek_offerings_naira' },
+          { keys: ['sunday school', 'sunday school offering', 'sunday school offerings'], name: 'sunday_school_offerings_naira' },
+          { keys: ['thanksgiving', 'thanksgiving offering', 'thanksgiving offerings'], name: 'thanksgiving_offerings_naira' },
+          { keys: ['love offering', 'welfare offering', 'love and welfare', 'love welfare'], name: 'love_welfare_offerings_naira' },
+          { keys: ['building pledge', 'building offering', 'building pledges'], name: 'building_pledge_offerings_naira' },
+          { keys: ['pioneering', 'church pioneering'], name: 'church_pioneering_receipts_naira' },
+          { keys: ['seed faith'], name: 'seed_faith_naira' },
+          { keys: ['staff loan repayment', 'staff loans', 'staff loan'], name: 'staff_loans_repayment_naira' },
+          { keys: ['loan cash deposit', 'cash deposit from church arms', 'cash deposit'], name: 'loan_cash_deposit_naira' },
+          { keys: ['pastor pension', "pastor's pension", 'pastor personal pension'], name: 'pastor_pension_5pct_naira' },
+          { keys: ['national grant', 'augmentation'], name: 'national_grant_naira' },
+          { keys: ['convention pledge', 'convention pledges'], name: 'convention_pledges_naira' },
+          { keys: ['special project', 'special projects'], name: 'special_projects_naira' },
+          { keys: ['decade of multiplication', 'decade project', 'multiplication projects'], name: 'decade_multiplication_receipts_naira' },
+          { keys: ['third sunday', '3rd sunday', 'third sunday offering'], name: 'third_sunday_offering_naira' },
+          
+          // Staff Emoluments
+          { keys: ['minister basic', 'pastor basic', "minister's basic"], name: 'ministers_basic' },
+          { keys: ['minister allowance', 'pastor allowance', "minister's allowance", "minister's allowances"], name: 'ministers_allowances' },
+          { keys: ['other worker basic', 'workers basic', 'other workers basic'], name: 'other_workers_basic' },
+          { keys: ['other worker allowance', 'workers allowance', 'other workers allowance', 'other workers allowances'], name: 'other_workers_allowances' },
+          
+          // Operating Expenses
+          { keys: ['entertainment', 'refreshment', 'refreshments'], name: 'entertainment_refreshments' },
+          { keys: ['electricity', 'nepa', 'power bill', 'light bill'], name: 'electricity' },
+          { keys: ['transport', 'transportation', 'travelling'], name: 'transportation' },
+          { keys: ['bank charges', 'bank fee'], name: 'bank_charges' },
+          { keys: ['land acquisition', 'land'], name: 'land_acquisition' },
+          { keys: ['church building', 'building construction'], name: 'church_building' },
+          { keys: ['motor vehicle', 'vehicle', 'bus', 'car'], name: 'purchase_motor_vehicles' },
+          { keys: ['equipment', 'new equipment', 'musical equipment', 'instruments'], name: 'purchase_new_equipment' },
+          
+          // Balance & Financial Info
+          { keys: ['balance last month', 'last month balance', 'previous balance'], name: 'balance_last_month_naira' },
+          { keys: ['cash in hand', 'cash at bank', 'bank balance', 'cash in bank'], name: 'cash_in_hand_bank_naira' },
+          { keys: ['investment', 'investments'], name: 'investment_naira' },
+          { keys: ['outstanding loan', 'debt'], name: 'outstanding_loan_naira' },
+          
+          // Spiritual Stats
+          { keys: ['new comers', 'new comer', 'first timers', 'first timer'], name: 'total_new_comers' },
+          { keys: ['decision for christ', 'decisions for christ', 'souls won', 'converts'], name: 'total_decision_christ' },
+          { keys: ['water baptism', 'baptised'], name: 'total_water_baptism' },
+          { keys: ['holy spirit', 'holy ghost', 'spirit baptism'], name: 'total_holy_spirit_baptism' },
+          { keys: ['healings', 'healing', 'miracles'], name: 'total_healings' },
+          { keys: ['house fellowship', 'fellowship centres', 'cell centres'], name: 'total_house_fellowship_centres' },
+          { keys: ['child dedication', 'baby dedication', 'dedications'], name: 'total_child_dedications' },
+          { keys: ['weddings', 'wedding'], name: 'total_weddings' },
+          { keys: ['funerals', 'funeral'], name: 'total_funerals' }
+      ];
 
-          // Compute matching score based on keywords in label
-          let wordsInLabel = labelText.split(/[^a-zA-Z0-9]+/).filter(w => w.length > 2);
-          let matchCount = 0;
-          for (let lw of wordsInLabel) {
-              if (lower.includes(lw)) {
-                  matchCount++;
+      for (let rule of ALIAS_RULES) {
+          for (let k of rule.keys) {
+              if (lower.includes(k)) {
+                  let el = document.querySelector(`[name="${rule.name}"]`);
+                  if (!el) {
+                      let row = document.querySelector(`[data-expense-item="true"][data-item-key="${rule.name}"]`);
+                      if (row) el = row.querySelector('input[name*="expense_amount"][name$="_naira"]');
+                  }
+                  if (el && !el.disabled && el.type !== 'hidden') return el;
               }
           }
+      }
 
-          if (matchCount > 0 && matchCount > highestMatchScore) {
-              highestMatchScore = matchCount;
+      // Fuzzy scan over manual table rows (only rows with writable inputs)
+      let allRows = document.querySelectorAll('tr:not(.row-header), .stat-line, .credential-row');
+      let bestInput = null;
+      let highestMatch = 0;
+
+      for (let row of allRows) {
+          let candidateInput = row.querySelector('input:not([disabled]):not([type="hidden"]):not([readonly])');
+          if (!candidateInput) continue;
+
+          let labelText = row.innerText.toLowerCase().replace(/[\r\n\t]/g, ' ').replace(/\s+/g, ' ');
+          let wordsInLabel = labelText.split(/[^a-zA-Z0-9]+/).filter(w => w.length > 2);
+          let matchScore = 0;
+          for (let lw of wordsInLabel) {
+              if (lower.includes(lw)) matchScore++;
+          }
+
+          if (matchScore > 0 && matchScore > highestMatch) {
+              highestMatch = matchScore;
               bestInput = candidateInput;
           }
       }
 
-      if (bestInput) return bestInput;
-
-      // 2. Fallback keyword dictionary
-      const ALIASES = [
-          { keys: ['general tithe', 'tithe a', 'general tithes'], name: 'general_tithe_naira' },
-          { keys: ['minister tithe', 'minister\'s tithe', 'tithe b'], name: 'minister_tithe_naira' },
-          { keys: ['worship offering', 'worship offerings', 'tithe c'], name: 'worship_offerings_naira' },
-          { keys: ['missionary offering', 'missionary offerings', 'missionary'], name: 'missionary_offerings_naira' },
-          { keys: ['midweek offering', 'midweek offerings', 'midweek'], name: 'midweek_offerings_naira' },
-          { keys: ['sunday school', 'sunday school offering'], name: 'sunday_school_offerings_naira' },
-          { keys: ['thanksgiving', 'thanksgiving offering'], name: 'thanksgiving_offerings_naira' },
-          { keys: ['love offering', 'welfare offering', 'love and welfare'], name: 'love_welfare_offerings_naira' },
-          { keys: ['building pledge', 'building offering'], name: 'building_pledge_offerings_naira' },
-          { keys: ['pioneering', 'church pioneering'], name: 'church_pioneering_receipts_naira' },
-          { keys: ['seed faith'], name: 'seed_faith_naira' },
-          { keys: ['staff loan', 'staff loans repayment'], name: 'staff_loans_repayment_naira' },
-          { keys: ['loan cash deposit', 'cash deposit'], name: 'loan_cash_deposit_naira' },
-          { keys: ['pastor pension', 'pastor personal pension'], name: 'pastor_pension_5pct_naira' },
-          { keys: ['national grant', 'augmentation'], name: 'national_grant_naira' },
-          { keys: ['convention pledge', 'convention pledges'], name: 'convention_pledges_naira' },
-          { keys: ['third sunday', '3rd sunday'], name: 'third_sunday_offering_naira' },
-          { keys: ['minister basic', 'pastor basic'], name: 'ministers_basic' },
-          { keys: ['minister allowance', 'pastor allowance'], name: 'ministers_allowances' },
-          { keys: ['other worker basic', 'workers basic'], name: 'other_workers_basic' },
-          { keys: ['other worker allowance', 'workers allowance'], name: 'other_workers_allowances' },
-          { keys: ['entertainment', 'refreshment'], name: 'entertainment_refreshments' },
-          { keys: ['electricity', 'nepa', 'power'], name: 'electricity' },
-          { keys: ['transport', 'transportation'], name: 'transportation' },
-          { keys: ['bank charges'], name: 'bank_charges' },
-          { keys: ['land acquisition'], name: 'land_acquisition' },
-          { keys: ['church building'], name: 'church_building' },
-          { keys: ['motor vehicle', 'vehicle'], name: 'purchase_motor_vehicles' },
-          { keys: ['equipment', 'new equipment'], name: 'purchase_new_equipment' },
-          { keys: ['balance last month', 'last month balance'], name: 'balance_last_month_naira' },
-          { keys: ['cash in hand', 'cash at bank', 'bank balance'], name: 'cash_in_hand_bank_naira' },
-          { keys: ['investment'], name: 'investment_naira' },
-          { keys: ['outstanding loan'], name: 'outstanding_loan_naira' },
-          { keys: ['new comers', 'new comer'], name: 'total_new_comers' },
-          { keys: ['decision for christ', 'decisions'], name: 'total_decision_christ' },
-          { keys: ['water baptism'], name: 'total_water_baptism' },
-          { keys: ['holy spirit', 'holy ghost'], name: 'total_holy_spirit_baptism' },
-          { keys: ['healings', 'healing'], name: 'total_healings' },
-          { keys: ['house fellowship', 'fellowship centres'], name: 'total_house_fellowship_centres' }
-      ];
-
-      for (let alias of ALIASES) {
-          for (let k of alias.keys) {
-              if (lower.includes(k)) {
-                  let el = document.querySelector(`[name="${alias.name}"]`);
-                  if (!el) {
-                      let row = document.querySelector(`[data-expense-item="true"][data-item-key="${alias.name}"]`);
-                      if (row) el = row.querySelector('input[name*="expense_amount"][name$="_naira"]');
-                  }
-                  if (el && !el.disabled) return el;
-              }
-          }
-      }
-
-      return null;
+      return bestInput;
   }
 
   function handleVoiceCommand(transcript) {
       if (!transcript || !transcript.trim()) return;
       
-      let numVal = parseSpokenNumber(transcript);
-      let targetInput = findTargetInputOnChurchForm(transcript);
+      let now = Date.now();
+      let cleanTranscript = transcript.trim().toLowerCase();
+
+      // Prevent duplicate triggers within 1.5 seconds
+      if (cleanTranscript === lastProcessedPhrase && (now - lastProcessedTime) < 1500) {
+          return;
+      }
+
+      let numVal = parseSpokenNumber(cleanTranscript);
+      let targetInput = findTargetInputOnChurchForm(cleanTranscript);
 
       if (targetInput && numVal !== null) {
+          lastProcessedPhrase = cleanTranscript;
+          lastProcessedTime = now;
+
           targetInput.value = Math.round(numVal);
           targetInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
           targetInput.focus();
           
           // Flash animation
-          targetInput.style.transition = 'all 0.3s';
+          targetInput.style.transition = 'all 0.25s ease';
           targetInput.style.backgroundColor = '#FEF3C7';
-          targetInput.style.outline = '2px solid #E31E24';
+          targetInput.style.outline = '2.5px solid #E31E24';
           setTimeout(() => {
               targetInput.style.backgroundColor = '';
               targetInput.style.outline = '';
-          }, 1500);
+          }, 1200);
 
           targetInput.dispatchEvent(new Event('input', { bubbles: true }));
           targetInput.dispatchEvent(new Event('change', { bubbles: true }));
-          showVoiceToast(`✅ Auto-Filled: ₦${Math.round(numVal).toLocaleString()}`);
+          
+          let fieldTitle = targetInput.getAttribute('name') || 'Field';
+          showVoiceToast(`⚡ Auto-Filled: ₦${Math.round(numVal).toLocaleString()}`);
           return;
       }
 
-      showVoiceToast(`🗣️ Heard: "${transcript}" — (Speak e.g. "General Tithe 50000")`);
+      if (cleanTranscript.length > 3) {
+          showVoiceToast(`🗣️ Listening: "${transcript}"`);
+      }
   }
 
   function showVoiceToast(msg) {
@@ -1402,13 +1427,72 @@
       if (!toast) {
           toast = document.createElement('div');
           toast.id = 'voiceToast';
-          toast.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1A1040;color:#fff;padding:12px 24px;border-radius:30px;font-size:13.5px;font-weight:600;box-shadow:0 8px 24px rgba(0,0,0,0.35);z-index:999999;transition:all 0.3s ease;pointer-events:none;display:flex;align-items:center;gap:8px;';
+          toast.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1A1040;color:#fff;padding:12px 24px;border-radius:30px;font-size:13.5px;font-weight:600;box-shadow:0 8px 24px rgba(0,0,0,0.35);z-index:999999;transition:all 0.2s ease;pointer-events:none;display:flex;align-items:center;gap:8px;';
           document.body.appendChild(toast);
       }
       toast.innerText = msg;
       toast.style.opacity = '1';
       clearTimeout(window.voiceToastTimer);
-      window.voiceToastTimer = setTimeout(() => { toast.style.opacity = '0'; }, 4500);
+      window.voiceToastTimer = setTimeout(() => { toast.style.opacity = '0'; }, 3000);
+  }
+
+  function startRecognitionEngine() {
+      const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SpeechRec) return;
+
+      recognition = new SpeechRec();
+      recognition.continuous = true;
+      recognition.interimResults = true; // Instant processing of spoken words
+      recognition.lang = 'en-NG'; // Nigerian English with British fallback
+
+      recognition.onstart = function() {
+          isListening = true;
+          isRestarting = false;
+          const btn = document.getElementById('voiceAssistantBtn');
+          const txt = document.getElementById('voiceBtnText');
+          if (btn) { btn.className = 'btn btn-sm btn-danger d-inline-flex align-items-center gap-1 pulse-anim'; }
+          if (txt) { txt.innerText = 'Listening... (Speak)'; }
+      };
+
+      recognition.onresult = function(event) {
+          for (let i = event.resultIndex; i < event.results.length; ++i) {
+              let spoken = event.results[i][0].transcript;
+              if (event.results[i].isFinal) {
+                  handleVoiceCommand(spoken);
+              } else if (spoken.length > 6) {
+                  // Instant interim check for fast recognition
+                  let num = parseSpokenNumber(spoken);
+                  let el = findTargetInputOnChurchForm(spoken);
+                  if (el && num !== null) {
+                      handleVoiceCommand(spoken);
+                  }
+              }
+          }
+      };
+
+      recognition.onerror = function(e) {
+          if (e.error !== 'no-speech') {
+              console.log('Voice assistant status:', e.error);
+          }
+      };
+
+      recognition.onend = function() {
+          if (isListening && !isRestarting) {
+              isRestarting = true;
+              setTimeout(() => {
+                  if (isListening) {
+                      try { recognition.start(); } catch(err){}
+                  }
+                  isRestarting = false;
+              }, 200);
+          }
+      };
+
+      try {
+          recognition.start();
+      } catch(e) {
+          console.log('Start engine error:', e);
+      }
   }
 
   function toggleVoiceAssistant() {
@@ -1423,54 +1507,22 @@
       const txt = document.getElementById('voiceBtnText');
 
       if (isListening) {
-          if (recognition) { recognition.stop(); }
           isListening = false;
+          if (recognition) {
+              try { recognition.abort(); } catch(e){}
+          }
           if (btn) { btn.className = 'btn btn-sm btn-outline-primary d-inline-flex align-items-center gap-1'; }
           if (txt) { txt.innerText = 'Voice Assistant'; }
           showVoiceToast('🎙️ Voice Assistant Paused.');
       } else {
-          recognition = new SpeechRec();
-          recognition.continuous = true;
-          recognition.interimResults = false;
-          recognition.lang = 'en-NG'; // Nigerian / International English
-
-          recognition.onstart = function() {
-              isListening = true;
-              if (btn) { btn.className = 'btn btn-sm btn-danger d-inline-flex align-items-center gap-1 pulse-anim'; }
-              if (txt) { txt.innerText = 'Listening... (Speak)'; }
-              showVoiceToast('🎙️ Listening... Speak field name & amount (e.g. "General Tithe 50000")');
-          };
-
-          recognition.onresult = function(event) {
-              for (let i = event.resultIndex; i < event.results.length; ++i) {
-                  if (event.results[i].isFinal) {
-                      let spoken = event.results[i][0].transcript;
-                      handleVoiceCommand(spoken);
-                  }
-              }
-          };
-
-          recognition.onerror = function(e) {
-              console.log('Voice assistant event error:', e);
-              showVoiceToast('⚠️ Microphone active. Say e.g. "General Tithe 50000"');
-          };
-
-          recognition.onend = function() {
-              if (isListening) {
-                  try { recognition.start(); } catch(err){}
-              }
-          };
-
-          try {
-              recognition.start();
-          } catch(e) {
-              console.log('Recognition start error:', e);
-          }
+          showVoiceToast('🎙️ Voice Assistant Active — Speak any field and amount!');
+          startRecognitionEngine();
       }
   }
 
   </script>
   <script src="/assets/js/church_calc.js?v=20260829_06"></script>
+
 
 </body>
 </html>
