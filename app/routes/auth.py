@@ -456,6 +456,57 @@ def post_register_church(
                 display_order=item["display_order"]
             ))
         db.commit()
+
+        # 4. Dispatch In-App Notification and Email Alert to Super Admin
+        try:
+            from app.models import Notification
+            from app.utils import sendAppEmail, getSiteSettings
+            
+            # In-App Notification for Super Admins
+            db.add(Notification(
+                role_target="super_admin",
+                title="🏛️ New Church Registered",
+                message=f"'{church.name}' ({church.district}) was registered by {user.full_name} ({user.email}).",
+                link="/admin-dashboard?page=churches",
+                category="success"
+            ))
+            db.commit()
+
+            # Email Notification to Admin
+            settings = getSiteSettings(db)
+            admin_email = settings.get("admin_notify_email", "").strip() or settings.get("smtp_email", "").strip()
+            if not admin_email:
+                super_admin = db.query(User).filter(User.role == "super_admin").first()
+                if super_admin:
+                    admin_email = super_admin.email
+
+            if admin_email:
+                email_body = f"""
+                <p>Hello Admin,</p>
+                <p>A new church account has just registered on the platform:</p>
+                <ul>
+                    <li><strong>Church Name:</strong> {church.name}</li>
+                    <li><strong>Church Type:</strong> {church.church_type.capitalize()}</li>
+                    <li><strong>District:</strong> {church.district}</li>
+                    <li><strong>Pastor:</strong> {church.pastor_name or 'N/A'}</li>
+                    <li><strong>Admin Name:</strong> {user.full_name}</li>
+                    <li><strong>Admin Email:</strong> {user.email}</li>
+                    <li><strong>Phone:</strong> {user.phone or 'N/A'}</li>
+                </ul>
+                <p>You can view and manage all churches from your admin dashboard.</p>
+                """
+                sendAppEmail(
+                    db=db,
+                    to_email=admin_email,
+                    to_name="Super Admin",
+                    subject=f"New Church Registration: {church.name}",
+                    message_html=email_body,
+                    action_url="/admin-dashboard?page=churches",
+                    action_text="View in Admin Dashboard"
+                )
+        except Exception:
+            pass
+
         msg = "Church account registered successfully! Please log in with your email and password."
         return RedirectResponse(url=f"/login?msg={quote(msg)}", status_code=303)
     except Exception as e:
@@ -542,6 +593,57 @@ async def post_register_zone(
             ))
         
         db.commit()
+
+        # 4. Dispatch In-App Notification and Email Alert to Super Admin
+        try:
+            from app.models import Notification
+            from app.utils import sendAppEmail, getSiteSettings
+            
+            # In-App Notification for Super Admins
+            db.add(Notification(
+                role_target="super_admin",
+                title="🏛️ New Zone Registered",
+                message=f"'{zone.zone_name}' ({len(churches)} churches) was registered by {user.full_name} ({user.email}).",
+                link="/admin-dashboard?page=zones",
+                category="success"
+            ))
+            db.commit()
+
+            # Email Notification to Admin
+            settings = getSiteSettings(db)
+            admin_email = settings.get("admin_notify_email", "").strip() or settings.get("smtp_email", "").strip()
+            if not admin_email:
+                super_admin = db.query(User).filter(User.role == "super_admin").first()
+                if super_admin:
+                    admin_email = super_admin.email
+
+            if admin_email:
+                churches_formatted = "".join([f"<li>{c}</li>" for c in churches])
+                email_body = f"""
+                <p>Hello Admin,</p>
+                <p>A new zone account has just registered on the platform:</p>
+                <ul>
+                    <li><strong>Zone Name:</strong> {zone.zone_name}</li>
+                    <li><strong>Admin Name:</strong> {user.full_name}</li>
+                    <li><strong>Admin Email:</strong> {user.email}</li>
+                    <li><strong>Phone:</strong> {user.phone or 'N/A'}</li>
+                </ul>
+                <p><strong>Registered Churches ({len(churches)}):</strong></p>
+                <ul>{churches_formatted}</ul>
+                <p>You can view and manage all zones from your admin dashboard.</p>
+                """
+                sendAppEmail(
+                    db=db,
+                    to_email=admin_email,
+                    to_name="Super Admin",
+                    subject=f"New Zone Registration: {zone.zone_name}",
+                    message_html=email_body,
+                    action_url="/admin-dashboard?page=zones",
+                    action_text="View in Admin Dashboard"
+                )
+        except Exception:
+            pass
+
         msg = "Zone account registered successfully! Please log in with your email and password."
         return RedirectResponse(url=f"/login?msg={quote(msg)}", status_code=303)
     except Exception as e:
