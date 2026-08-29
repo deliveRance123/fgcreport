@@ -156,11 +156,12 @@
     <img src="/assets/logo.jpg" alt="Logo">
     <div><span>Foursquare</span><small>Reports</small></div>
   </a>
-  <button class="mobile-nav-toggle" aria-label="Toggle navigation" onclick="document.body.classList.toggle('mobile-open');">
+  <button type="button" class="mobile-nav-toggle" id="churchMobileNavToggle" aria-label="Toggle navigation" onclick="toggleChurchSidebar(event);">
     <span></span><span></span><span></span>
   </button>
 </div>
-<div class="sidebar-overlay" onclick="document.body.classList.remove('mobile-open');"></div>
+<div class="sidebar-overlay" id="churchSidebarOverlay" onclick="closeChurchSidebar(event);"></div>
+
 
 <div class="shell">
   <!-- ══ SIDEBAR ══ -->
@@ -408,11 +409,33 @@
 {% include 'includes/chat_widget.html' %}
 
 <script>
+function toggleChurchSidebar(e) {
+  if (e) {
+    e.preventDefault();
+    e.stopPropagation();
+  }
+  document.body.classList.toggle('mobile-open');
+}
+
+function closeChurchSidebar(e) {
+  if (e) {
+    e.preventDefault();
+    e.stopPropagation();
+  }
+  document.body.classList.remove('mobile-open');
+}
+
 (function() {
-  var toggle = document.querySelector('.mobile-nav-toggle');
-  if (toggle) toggle.addEventListener('click', function() {
-    document.body.classList.toggle('mobile-open');
-  });
+  var toggle = document.getElementById('churchMobileNavToggle');
+  if (toggle) {
+    toggle.addEventListener('click', toggleChurchSidebar);
+  }
+
+  var overlay = document.getElementById('churchSidebarOverlay');
+  if (overlay) {
+    overlay.addEventListener('click', closeChurchSidebar);
+  }
+
 
   // ── REAL-TIME STATS POLLING ──────────────────────────────────────────────
   function fmtNaira(n) {
