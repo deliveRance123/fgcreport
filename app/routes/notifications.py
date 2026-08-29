@@ -49,37 +49,8 @@ def get_notifications(request: Request, db: Session = Depends(get_db)):
     ).order_by(desc(Notification.created_at)).limit(25)
 
     items = query.all()
+    unread_count = len(items)
 
-    # If no notifications exist yet, create a customized real-world welcome notification
-    if not items and uid:
-        if role == "church_admin":
-            title = "⛪ Welcome to Church Reporting Portal"
-            msg = "Your church account is ready. You can create monthly financial and spiritual reports, track national & district dues, and print official returns."
-            link = "/church-dashboard"
-        elif role == "zonal_admin":
-            title = "🏛️ Welcome to Zonal Oversight Portal"
-            msg = "Your zonal dashboard is ready. Monitor branch church returns, review consolidated remittances, and generate zonal monthly reports."
-            link = "/zone-dashboard"
-        else:
-            title = "🛡️ Welcome Super Administrator"
-            msg = "National control centre ready. Manage national due rates, view all church & zonal submissions, and oversee system configurations."
-            link = "/admin-dashboard"
-
-        welcome_notif = Notification(
-            user_id=uid,
-            role_target=role,
-            title=title,
-            message=msg,
-            link=link,
-            category="info",
-            is_read=False
-        )
-        db.add(welcome_notif)
-        db.commit()
-        items = [welcome_notif]
-
-
-    unread_count = sum(1 for n in items if not n.is_read)
 
     result = []
     for n in items:
