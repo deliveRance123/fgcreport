@@ -407,7 +407,7 @@
                 {% for u in users %}
                 {% set uNames = u.full_name.strip().split() if u.full_name else [] %}
                 {% set uInit = (uNames[0][0]|upper if uNames else 'U') + (uNames[-1][0]|upper if uNames|length > 1 else '') %}
-                {% set sub_info = get_user_sub(u.id) %}
+                {% set sub_info = user_subs.get(u.id, {}) %}
                 <tr>
                   <td>
                     <div style="display:flex;align-items:center;gap:10px;">
@@ -442,6 +442,7 @@
                         <!-- Instant Subscription ON / OFF Toggle Button -->
                         <form method="POST" action="/admin-dashboard" style="display:inline;">
                           <input type="hidden" name="action" value="toggle_user_instant_sub">
+                          <input type="hidden" name="page" value="users">
                           <input type="hidden" name="user_id" value="{{ u.id }}">
                           {% if sub_info.is_active and not sub_info.in_trial %}
                             <input type="hidden" name="state" value="off">
@@ -456,6 +457,7 @@
                           {% endif %}
                         </form>
                       {% endif %}
+
 
                       <form method="POST" action="/admin-dashboard" style="display:inline;">
                         <input type="hidden" name="action" value="update_user_status">

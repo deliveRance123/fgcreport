@@ -382,6 +382,17 @@ def get_admin_dashboard(
     from app.models import UserPayment
     payments = db.query(UserPayment).order_by(UserPayment.id.desc()).limit(100).all()
 
+    # Pre-calculate subscription status for all users (fast & safe)
+    user_subs = {}
+    for u in users:
+        try:
+            user_subs[u.id] = getUserTrialAndSubStatus(db, u.id)
+        except Exception:
+            user_subs[u.id] = {
+                'is_active': False, 'in_trial': False, 'trial_title': 'Annual Subscription Required',
+                'trial_days_left': 0, 'status_label': 'Subscription required'
+            }
+
     # Fetch site settings as a dict
     site_settings_rows = db.query(SiteSetting).all()
     site_settings = {s.setting_key: s.setting_value for s in site_settings_rows}
@@ -408,6 +419,7 @@ def get_admin_dashboard(
             "reports_submitted_count": reports_submitted_count,
             "reports_outstanding_count": reports_outstanding_count,
             "users": users,
+            "user_subs": user_subs,
             "churches": churches,
             "zones": zones,
             "charteredSettings": dues_chartered,
@@ -425,6 +437,7 @@ def get_admin_dashboard(
             "paymentSettings": getPaymentSettings(db)
         }
     )
+
 
 
 
