@@ -275,21 +275,41 @@
         size: A4 portrait; 
         margin: 0 !important; 
       }
+      html, body {
+        background: #fff !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        width: 100% !important;
+        height: auto !important;
+      }
       *, *::before, *::after {
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
         color-adjust: exact !important;
       }
-      .back-btn-container { display: none !important; }
-      body { background: #fff; padding: 6mm 8mm !important; margin: 0 !important; }
+      .back-btn-container,
+      .no-print,
+      .alert,
+      #aiVoiceTipBanner,
+      .modal { display: none !important; margin: 0 !important; padding: 0 !important; height: 0 !important; }
+      .report-scroll-wrapper {
+        padding: 0 !important;
+        margin: 0 !important;
+        width: 100% !important;
+        overflow: visible !important;
+      }
+      form#reportForm {
+        margin: 0 !important;
+        padding: 0 !important;
+      }
       .page {
         box-shadow: none !important;
-        margin: 0 auto 0 auto !important;
+        margin: 0 auto !important;
         width: 194mm !important;
-        height: 285mm !important;
-
+        height: 277mm !important;
+        max-height: 277mm !important;
         min-height: 0 !important;
-        padding: 2mm 3mm !important;
+        padding: 4mm 5mm !important;
         overflow: hidden !important;
         box-sizing: border-box !important;
         page-break-after: always !important;
@@ -297,7 +317,14 @@
         break-after: page !important;
         break-inside: avoid !important;
       }
-      .page:last-child { page-break-after: avoid !important; break-after: avoid !important; }
+      .page:last-child {
+        page-break-after: avoid !important;
+        break-after: avoid !important;
+      }
+      .page + .page {
+        margin-top: 0 !important;
+      }
+
       input, select, textarea {
         background: transparent !important;
         box-shadow: none !important;
