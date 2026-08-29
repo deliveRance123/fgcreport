@@ -133,24 +133,26 @@
   width: calc(100% - 240px);
   box-sizing: border-box;
   min-height: 100vh;
+  position: relative;
 }
 
 /* ══ STICKY TOPBAR WITH NOTIFICATION BELL ═════ */
 .dash-topbar {
-  position: -webkit-sticky;
-  position: sticky;
-  top: 0;
-  z-index: 99;
-  background: #FAF9FC;
-  padding: 20px 0 14px 0;
-  margin-bottom: 24px;
-  border-bottom: 1px solid var(--line, #ECEAEF);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  width: 100%;
-  box-sizing: border-box;
+  position: -webkit-sticky !important;
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 999 !important;
+  background: #FAF9FC !important;
+  padding: 20px 0 14px 0 !important;
+  margin-bottom: 24px !important;
+  border-bottom: 1px solid var(--line, #ECEAEF) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 16px !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.02) !important;
 }
 .dash-topbar h1 {
   font-size: 22px;
@@ -165,6 +167,7 @@
   margin: 0;
   font-weight: 450;
 }
+
 
 
 
