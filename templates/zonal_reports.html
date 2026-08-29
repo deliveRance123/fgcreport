@@ -642,71 +642,81 @@
   function handleZonalVoiceCommand(transcript) {
       if (!transcript || !transcript.trim()) return;
       
-      let now = Date.now();
       let cleanTranscript = transcript.trim().toLowerCase();
+      let activeEl = document.activeElement;
+      let targetInput = null;
 
-      if (cleanTranscript === lastZonalPhrase && (now - lastZonalTime) < 1500) {
-          return;
-      }
+      // 1. If user clicked / focused an editable input
+      if (activeEl && activeEl.tagName === 'INPUT' && !activeEl.disabled && !activeEl.readOnly && activeEl.type !== 'hidden') {
+          targetInput = activeEl;
+      } else {
+          // 2. Search all table rows with manual allowable inputs
+          let allRows = document.querySelectorAll('tr, .planting-form .line');
+          let highestScore = 0;
 
-      let numVal = parseSpokenZonalNumber(cleanTranscript);
+          for (let row of allRows) {
+              let labelText = row.innerText.toLowerCase().replace(/[\r\n\t]/g, ' ').replace(/\s+/g, ' ');
+              let candidateInputs = row.querySelectorAll('input:not([disabled]):not([type="hidden"]):not([readonly])');
+              if (!candidateInputs || candidateInputs.length === 0) continue;
 
-      // Search all table rows with manual allowable inputs
-      let allRows = document.querySelectorAll('tr, .planting-form .line');
-      let bestInput = null;
-      let highestScore = 0;
+              let words = labelText.split(/[^a-zA-Z0-9]+/).filter(w => w.length > 2);
+              let score = 0;
+              for (let w of words) {
+                  if (cleanTranscript.includes(w)) score++;
+              }
 
-      for (let row of allRows) {
-          let labelText = row.innerText.toLowerCase().replace(/[\r\n\t]/g, ' ').replace(/\s+/g, ' ');
-          let candidateInputs = row.querySelectorAll('input:not([disabled]):not([type="hidden"]):not([readonly])');
-          if (!candidateInputs || candidateInputs.length === 0) continue;
-
-          let words = labelText.split(/[^a-zA-Z0-9]+/).filter(w => w.length > 2);
-          let score = 0;
-          for (let w of words) {
-              if (cleanTranscript.includes(w)) score++;
-          }
-
-          if (score > 0 && score > highestScore) {
-              highestScore = score;
-              if (cleanTranscript.includes('financial') || cleanTranscript.includes('remittance') || cleanTranscript.includes('naira') || cleanTranscript.includes('money')) {
-                  let finInput = row.querySelector('.p1-fin-tm, input[name*="fin_tm"]');
-                  bestInput = finInput || candidateInputs[0];
-              } else if (cleanTranscript.includes('spiritual') || cleanTranscript.includes('attendance') || cleanTranscript.includes('members')) {
-                  let spInput = row.querySelector('.p1-sp-tm, input[name*="sp_tm"]');
-                  bestInput = spInput || candidateInputs[0];
-              } else {
-                  bestInput = candidateInputs[0];
+              if (score > 0 && score > highestScore) {
+                  highestScore = score;
+                  if (cleanTranscript.includes('financial') || cleanTranscript.includes('remittance') || cleanTranscript.includes('naira') || cleanTranscript.includes('money')) {
+                      let finInput = row.querySelector('.p1-fin-tm, input[name*="fin_tm"]');
+                      targetInput = finInput || candidateInputs[0];
+                  } else if (cleanTranscript.includes('spiritual') || cleanTranscript.includes('attendance') || cleanTranscript.includes('members')) {
+                      let spInput = row.querySelector('.p1-sp-tm, input[name*="sp_tm"]');
+                      targetInput = spInput || candidateInputs[0];
+                  } else {
+                      targetInput = candidateInputs[0];
+                  }
               }
           }
       }
 
-      if (bestInput && numVal !== null) {
-          lastZonalPhrase = cleanTranscript;
-          lastZonalTime = now;
-
-          bestInput.value = Math.round(numVal);
-          bestInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          bestInput.focus();
+      if (targetInput) {
+          let isTextInput = (targetInput.type === 'text' && (targetInput.name.includes('name') || targetInput.name.includes('address') || targetInput.name.includes('coordinator') || targetInput.name.includes('pastor') || targetInput.name.includes('mother')));
           
-          bestInput.style.transition = 'all 0.25s ease';
-          bestInput.style.backgroundColor = '#FEF3C7';
-          bestInput.style.outline = '2.5px solid #E31E24';
-          setTimeout(() => {
-              bestInput.style.backgroundColor = '';
-              bestInput.style.outline = '';
-          }, 1200);
+          if (isTextInput) {
+              targetInput.value = transcript.trim();
+              targetInput.dispatchEvent(new Event('input', { bubbles: true }));
+              targetInput.dispatchEvent(new Event('change', { bubbles: true }));
+              showZonalVoiceToast(`✍️ Typed: "${transcript.trim()}"`);
+              return;
+          } else {
+              let numVal = parseSpokenZonalNumber(cleanTranscript);
+              if (numVal !== null) {
+                  targetInput.value = Math.round(numVal);
+                  targetInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                  targetInput.focus();
+                  
+                  targetInput.style.transition = 'all 0.2s ease';
+                  targetInput.style.backgroundColor = '#FEF3C7';
+                  targetInput.style.outline = '2.5px solid #E31E24';
+                  setTimeout(() => {
+                      targetInput.style.backgroundColor = '';
+                      targetInput.style.outline = '';
+                  }, 1000);
 
-          bestInput.dispatchEvent(new Event('input', { bubbles: true }));
-          bestInput.dispatchEvent(new Event('change', { bubbles: true }));
-          showZonalVoiceToast(`⚡ Auto-Filled: ${Math.round(numVal).toLocaleString()}`);
-          return;
+                  targetInput.dispatchEvent(new Event('input', { bubbles: true }));
+                  targetInput.dispatchEvent(new Event('change', { bubbles: true }));
+                  showZonalVoiceToast(`⚡ Filled: ${Math.round(numVal).toLocaleString()}`);
+                  return;
+              }
+          }
       }
 
-      if (cleanTranscript.length > 3) {
-          showZonalVoiceToast(`🗣️ Listening: "${transcript}"`);
+      if (cleanTranscript.length > 2) {
+          showZonalVoiceToast(`🗣️ Heard: "${transcript}"`);
       }
   }
+
 
   function showZonalVoiceToast(msg) {
       let toast = document.getElementById('zonalVoiceToast');

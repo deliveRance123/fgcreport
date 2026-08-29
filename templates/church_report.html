@@ -1390,35 +1390,57 @@
       if (!transcript || !transcript.trim()) return;
       
       let cleanTranscript = transcript.trim().toLowerCase();
-      let numVal = parseSpokenNumber(cleanTranscript);
-      let targetInput = findTargetInputOnChurchForm(cleanTranscript);
+      let activeEl = document.activeElement;
+      let targetInput = null;
 
-      if (targetInput && numVal !== null) {
-          lastFilledTime = Date.now();
+      // 1. If user placed their cursor into an editable input box
+      if (activeEl && activeEl.tagName === 'INPUT' && !activeEl.disabled && !activeEl.readOnly && activeEl.type !== 'hidden') {
+          targetInput = activeEl;
+      } else {
+          // 2. Otherwise auto-locate by spoken field name
+          targetInput = findTargetInputOnChurchForm(cleanTranscript);
+      }
 
-          targetInput.value = Math.round(numVal);
-          targetInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          targetInput.focus();
+      if (targetInput) {
+          let isTextInput = (targetInput.type === 'text' && (targetInput.name.includes('name') || targetInput.name.includes('address') || targetInput.name.includes('pastor') || targetInput.name.includes('details') || targetInput.name.includes('remark')));
           
-          targetInput.style.transition = 'all 0.2s ease';
-          targetInput.style.backgroundColor = '#FEF3C7';
-          targetInput.style.outline = '2.5px solid #E31E24';
-          setTimeout(() => {
-              targetInput.style.backgroundColor = '';
-              targetInput.style.outline = '';
-          }, 1000);
+          if (isTextInput) {
+              // Fill spoken text directly
+              targetInput.value = transcript.trim();
+              targetInput.dispatchEvent(new Event('input', { bubbles: true }));
+              targetInput.dispatchEvent(new Event('change', { bubbles: true }));
+              showVoiceToast(`✍️ Typed: "${transcript.trim()}"`);
+              return;
+          } else {
+              // Parse number
+              let numVal = parseSpokenNumber(cleanTranscript);
+              if (numVal !== null) {
+                  targetInput.value = Math.round(numVal);
+                  targetInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                  targetInput.focus();
+                  
+                  targetInput.style.transition = 'all 0.2s ease';
+                  targetInput.style.backgroundColor = '#FEF3C7';
+                  targetInput.style.outline = '2.5px solid #E31E24';
+                  setTimeout(() => {
+                      targetInput.style.backgroundColor = '';
+                      targetInput.style.outline = '';
+                  }, 1000);
 
-          targetInput.dispatchEvent(new Event('input', { bubbles: true }));
-          targetInput.dispatchEvent(new Event('change', { bubbles: true }));
-          
-          showVoiceToast(`⚡ Auto-Filled: ₦${Math.round(numVal).toLocaleString()}`);
-          return;
+                  targetInput.dispatchEvent(new Event('input', { bubbles: true }));
+                  targetInput.dispatchEvent(new Event('change', { bubbles: true }));
+                  
+                  showVoiceToast(`⚡ Filled: ${Math.round(numVal).toLocaleString()}`);
+                  return;
+              }
+          }
       }
 
       if (cleanTranscript.length > 2) {
           showVoiceToast(`🗣️ Heard: "${transcript}"`);
       }
   }
+
 
   function showVoiceToast(msg) {
       let toast = document.getElementById('voiceToast');
