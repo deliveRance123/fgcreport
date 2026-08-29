@@ -200,14 +200,14 @@ document.addEventListener('DOMContentLoaded', function () {
         setVal('other_workers_subtotal', otherWorkersSubtotal);
         const totalEmoluments = roundHalfUp(ministersSubtotal + otherWorkersSubtotal, 2);
         setVal('total_emoluments', totalEmoluments);
-        // Sum Fixed Assets
+        // Sum Fixed Assets (all fixed asset line items)
         const landAcquisition = getExpenseVal('land_acquisition');
         const churchBuilding = getExpenseVal('church_building');
         const purchaseMotorVehicles = getExpenseVal('purchase_motor_vehicles');
         const purchaseNewEquipment = getExpenseVal('purchase_new_equipment');
-        const fixedAssetsSubtotal = roundHalfUp(landAcquisition + churchBuilding + purchaseMotorVehicles + purchaseNewEquipment, 2);
-        setVal('fixed_assets_subtotal', fixedAssetsSubtotal);
-        // Sum general expenses — inputs are named expense_amount[id]_naira / expense_amount[id]_kobo
+        const fixedAssetsItemsSum = roundHalfUp(landAcquisition + churchBuilding + purchaseMotorVehicles + purchaseNewEquipment, 2);
+
+        // Sum general expenses — all line items between emoluments and fixed assets
         let generalExpensesTotal = 0;
         const expenseRows = document.querySelectorAll('[data-expense-item="true"]');
         const skipKeys = ['ministers_basic', 'ministers_allowances', 'other_workers_basic',
@@ -225,8 +225,15 @@ document.addEventListener('DOMContentLoaded', function () {
             generalExpensesTotal += roundHalfUp(n + k / 100, 2);
         });
         generalExpensesTotal = roundHalfUp(generalExpensesTotal, 2);
-        const totalPayment = roundHalfUp(payable + totalEmoluments + generalExpensesTotal + fixedAssetsSubtotal, 2);
+
+        // SUB TOTAL (Fixed Assets) = All Payments from Staff Salaries + General Expenses + Fixed Assets
+        const allPaymentsAboveDues = roundHalfUp(totalEmoluments + generalExpensesTotal + fixedAssetsItemsSum, 2);
+        setVal('fixed_assets_subtotal', allPaymentsAboveDues);
+
+        // TOTAL PAYMENTS = All Payments from Staff to Fixed Assets + All Dues Summary (Payables)
+        const totalPayment = roundHalfUp(allPaymentsAboveDues + payable, 2);
         setVal('total_payment', totalPayment);
+
 
         // ─── LEFT COLUMN BOTTOM ───────────────────────────────────────────
         setVal('less_total_payment', totalPayment);
