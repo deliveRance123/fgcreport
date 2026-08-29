@@ -480,7 +480,7 @@ async def post_admin_dashboard(
                     except ValueError:
                         pass
 
-                    if val_changed or lock_changed:
+                if val_changed or lock_changed:
                     setting.percentage_value = new_val if val_changed else old_val
                     setting.is_locked = new_lock
                     setting.updated_by = uid
@@ -503,6 +503,7 @@ async def post_admin_dashboard(
                             action="lock_change",
                             note="Locked by admin" if new_lock == 1 else "Unlocked by admin"
                         ))
+
             db.commit()
             msg = "Percentages and settings updated successfully!"
 
