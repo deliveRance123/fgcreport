@@ -84,18 +84,23 @@
     z-index: 0;
     pointer-events: none;
     user-select: none;
-    opacity: 0.25;
+    opacity: 0.35;
+    background: transparent;
+    transition: opacity 0.4s ease-in-out;
+    will-change: transform, opacity;
   }
   .hero-bg-video-iframe {
     position: absolute;
-    top: -65px;
-    left: -15%;
-    width: 130%;
-    height: calc(100% + 130px);
+    top: -85px;
+    left: -20%;
+    width: 140%;
+    height: calc(100% + 170px);
     border: none;
     pointer-events: none;
     user-select: none;
-    transform: scale(1.1);
+    transform: scale(1.15);
+    background: transparent;
+    filter: brightness(1.05) contrast(1.05);
   }
   .hero-bg-video {
     position: absolute;
@@ -105,16 +110,19 @@
     height: 100%;
     object-fit: cover;
     z-index: 0;
-    opacity: 0.25;
+    opacity: 0.35;
     pointer-events: none;
     user-select: none;
     border: none;
+    background: transparent;
   }
-  /* Hide video player controls, preloaders, and play buttons across WebKit & Firefox */
+  /* Strip all native video preloaders, circular spinners, and playback overlays */
   video::-webkit-media-controls { display: none !important; }
   video::-webkit-media-controls-start-playback-button { display: none !important; -webkit-appearance: none; }
   video::-webkit-media-controls-enclosure { display: none !important; }
   video::-webkit-media-controls-panel { display: none !important; }
+  video::-webkit-media-controls-loading-indicator { display: none !important; }
+  video::-moz-media-controls { display: none !important; }
 
   .hero-canvas {
     position: absolute;
