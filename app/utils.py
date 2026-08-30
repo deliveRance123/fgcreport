@@ -209,7 +209,7 @@ def getSiteSettings(db: Session) -> dict:
 import threading
 
 def _send_email_thread_worker(settings: dict, to_email: str, to_name: str, subject: str, full_html: str):
-    """Worker function executed in background thread to eliminate HTTP request latency with robust dual-port retry."""
+    """Worker function executed in background thread to eliminate HTTP request latency with robust dual-port retry and compliant MIME headers."""
     gmail_user = settings.get("smtp_email", "").strip()
     app_password = settings.get("smtp_secret_key", "").replace(" ", "").strip()
     sender_name = settings.get("smtp_sender_name", "Foursquare Reports").strip()
@@ -218,17 +218,31 @@ def _send_email_thread_worker(settings: dict, to_email: str, to_name: str, subje
         print(f"[EMAIL ERROR] Missing required SMTP configuration: user={bool(gmail_user)}, pass={bool(app_password)}, recipient={bool(to_email)}")
         return
 
+    import email.utils
+    from email.mime.multipart import MIMEMultipart
+    from email.mime.text import MIMEText
+
+    msg = MIMEMultipart("alternative")
+    msg["Subject"] = Header(subject, "utf-8")
+    msg["From"] = email.utils.formataddr((str(Header(sender_name, 'utf-8')), gmail_user))
+    msg["To"] = email.utils.formataddr((str(Header(to_name or to_email, 'utf-8')), to_email))
+    msg["Date"] = email.utils.formatdate(localtime=True)
+    msg["Message-ID"] = email.utils.make_msgid(domain="fgcreport.onrender.com")
+
+    # Plain text fallback for spam filters
+    plain_text = re.sub(r'<[^>]+>', ' ', full_html)
+    plain_text = " ".join(plain_text.split())
+    part1 = MIMEText(plain_text, "plain", "utf-8")
+    part2 = MIMEText(full_html, "html", "utf-8")
+    msg.attach(part1)
+    msg.attach(part2)
+
     sent = False
     last_err = None
 
-    # Try Port 587 (STARTTLS) first — most reliable across cloud hosting platforms like Render and AWS
+    # Try Port 587 (STARTTLS) first with fast 10-second timeout
     try:
-        msg = MIMEText(full_html, "html", "utf-8")
-        msg["Subject"] = Header(subject, "utf-8")
-        msg["From"] = f'"{sender_name}" <{gmail_user}>'
-        msg["To"] = f'"{to_name or to_email}" <{to_email}>'
-
-        server = smtplib.SMTP("smtp.gmail.com", 587, timeout=15)
+        server = smtplib.SMTP("smtp.gmail.com", 587, timeout=10)
         server.ehlo()
         server.starttls()
         server.ehlo()
@@ -236,29 +250,25 @@ def _send_email_thread_worker(settings: dict, to_email: str, to_name: str, subje
         server.sendmail(gmail_user, [to_email], msg.as_string())
         server.quit()
         sent = True
-        print(f"[EMAIL SUCCESS] Sent email '{subject}' to {to_email} via Port 587 (STARTTLS)")
+        print(f"[EMAIL SUCCESS] Dispatched '{subject}' to {to_email} via Port 587 (STARTTLS)")
     except Exception as e587:
         last_err = e587
-        print(f"[EMAIL WARN] Port 587 failed ({e587}), falling back to Port 465 (SSL)...")
+        print(f"[EMAIL WARN] Port 587 error ({e587}), trying Port 465 (SSL)...")
 
     # Fallback to Port 465 (SSL)
     if not sent:
         try:
-            msg = MIMEText(full_html, "html", "utf-8")
-            msg["Subject"] = Header(subject, "utf-8")
-            msg["From"] = f'"{sender_name}" <{gmail_user}>'
-            msg["To"] = f'"{to_name or to_email}" <{to_email}>'
-
-            server = smtplib.SMTP_SSL("smtp.gmail.com", 465, timeout=15)
+            server = smtplib.SMTP_SSL("smtp.gmail.com", 465, timeout=10)
             server.ehlo()
             server.login(gmail_user, app_password)
             server.sendmail(gmail_user, [to_email], msg.as_string())
             server.quit()
             sent = True
-            print(f"[EMAIL SUCCESS] Sent email '{subject}' to {to_email} via Port 465 (SSL)")
+            print(f"[EMAIL SUCCESS] Dispatched '{subject}' to {to_email} via Port 465 (SSL)")
         except Exception as e465:
             last_err = e465
-            print(f"[EMAIL ERROR] Failed to send email to {to_email}: Port 587 err: {last_err}, Port 465 err: {e465}")
+            print(f"[EMAIL ERROR] Failed to send email to {to_email}: Port 587: {last_err}, Port 465: {e465}")
+
 
 
 

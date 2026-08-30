@@ -295,10 +295,39 @@ async def google_setup_post(request: Request, db: Session = Depends(get_db)):
             db.commit()
             request.session["zone_id"] = zone.id
 
+        # Dispatch Welcome Email to new Google Sign-up user
+        try:
+            from app.utils import sendAppEmail
+            org_name = church_name if role == "church_admin" else zone_name
+            welcome_html = f"""
+            <p>Welcome to the <strong>Foursquare Gospel Church Monthly Reporting Portal</strong>! Your account for <strong>{org_name}</strong> has been successfully configured via Google Sign-In.</p>
+            <div style="background:#FAF9FC;border-left:4px solid #E31E24;padding:14px 18px;border-radius:6px;margin:18px 0;">
+                <h4 style="margin:0 0 8px 0;color:#1A1040;">📋 Quick Guidelines:</h4>
+                <ul style="margin:0;padding-left:20px;font-size:13px;color:#374151;line-height:1.6;">
+                    <li>You can now log in anytime seamlessly using <strong>'Continue with Google'</strong>.</li>
+                    <li>Save drafts of your monthly returns at any time before finalizing.</li>
+                    <li>Financial calculations (Tithes, Offerings, Fixed Assets, Dues) compute automatically.</li>
+                </ul>
+            </div>
+            <p>You can now access your dashboard to start reporting.</p>
+            """
+            sendAppEmail(
+                db=db,
+                to_email=user.email,
+                to_name=user.full_name,
+                subject=f"🎉 Welcome to FGC Reports — {org_name}",
+                message_html=welcome_html,
+                action_url="/login",
+                action_text="Open Portal"
+            )
+        except Exception as mail_err:
+            print(f"[GOOGLE SIGNUP EMAIL ERROR]: {mail_err}")
+
         request.session.pop("google_pending", None)
         login_user(request, user, db)
         from app.auth import redirect_to_dashboard
         return redirect_to_dashboard(user.role)
+
 
     except Exception as e:
         db.rollback()
