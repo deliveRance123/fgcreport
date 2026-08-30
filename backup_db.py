@@ -23,6 +23,14 @@ def backup_database():
     json_path = os.path.join(backup_dir, f"fgc_database_backup_{timestamp}.json")
     sql_path = os.path.join(backup_dir, f"fgc_database_backup_{timestamp}.sql")
     
+    # Clean old un-sanitized dump files in backups/ folder
+    for f in os.listdir(backup_dir):
+        if f.endswith(".json") or f.endswith(".sql"):
+            try:
+                os.remove(os.path.join(backup_dir, f))
+            except Exception:
+                pass
+
     db = SessionLocal()
     try:
         tables_query = text("""
@@ -48,6 +56,12 @@ def backup_database():
             "SET standard_conforming_strings = on;\n"
         ]
         
+        # Keys to redact / protect for GitHub push security scanning
+        sensitive_settings = [
+            "google_client_id", "google_client_secret",
+            "payment_secret_key", "payment_live_secret_key", "payment_test_secret_key"
+        ]
+        
         total_records = 0
         for table in tables:
             rows_query = text(f'SELECT * FROM "{table}";')
@@ -61,8 +75,21 @@ def backup_database():
             for r in rows:
                 row_dict = {}
                 sql_vals = []
+                
+                # Check if this row is a sensitive site setting
+                is_sensitive_setting = False
+                if table == "site_settings":
+                    row_map = dict(zip(keys, r))
+                    if row_map.get("setting_key") in sensitive_settings:
+                        is_sensitive_setting = True
+
                 for k, v in zip(keys, r):
-                    if isinstance(v, (datetime.date, datetime.datetime)):
+                    if is_sensitive_setting and k == "setting_value" and v:
+                        # Mask for GitHub push compliance
+                        val_str = "[REDACTED_FOR_SECURITY]"
+                        row_dict[k] = val_str
+                        sql_vals.append(f"'{val_str}'")
+                    elif isinstance(v, (datetime.date, datetime.datetime)):
                         row_dict[k] = v.isoformat()
                         sql_vals.append(f"'{v.isoformat()}'")
                     elif isinstance(v, Decimal):
@@ -113,4 +140,3 @@ def backup_database():
 
 if __name__ == "__main__":
     backup_database()
-
