@@ -16,9 +16,12 @@ from app.models import (
 from app.auth import (
     is_logged_in, current_role, current_user_id, current_church_id, current_zone_id, ensure_role_session
 )
-from app.utils import getUserTrialAndSubStatus, getPaymentSettings, formatNaira, monthName
+from app.utils import (
+    getUserTrialAndSubStatus, getPaymentSettings, formatNaira, monthName, sendAppEmail
+)
 
 router = APIRouter()
+
 
 from app.main import templates
 
@@ -513,7 +516,7 @@ async def post_admin_dashboard(
             # Dispatch notification bell and email to Church & Zonal Admins
             try:
                 from app.models import Notification, User
-                from app.utils import sendAppEmail
+
                 
                 # In-app notification for all church and zonal admins
                 db.add(Notification(
