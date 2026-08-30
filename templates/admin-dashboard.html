@@ -746,7 +746,17 @@
               <small style="font-size:11px;color:#6B7280;margin-top:4px;display:block;">All email action buttons will link to this domain. Leave default for Render hosting.</small>
             </div>
           </div>
+          <div class="mt-3 pt-3 border-top d-flex align-items-center justify-content-between flex-wrap gap-2">
+            <div class="d-flex align-items-center gap-2">
+              <input type="email" name="test_email_recipient" class="form-control form-control-sm" style="width:240px;height:34px;font-size:12px;" placeholder="recipient@gmail.com" value="{{ site_settings.get('smtp_email', '') }}">
+              <button type="submit" name="action" value="send_test_email" class="btn btn-sm btn-outline-secondary d-inline-flex align-items-center gap-1" style="font-size:12px;font-weight:600;height:34px;">
+                ✉️ Send Test Email
+              </button>
+            </div>
+            <small class="text-muted" style="font-size:11px;">Save settings before sending test if you just edited credentials.</small>
+          </div>
         </div>
+
 
         <!-- GOOGLE OAUTH 2.0 AUTHENTICATION -->
         <div class="card section-card" style="border-left: 4px solid #EA4335;">

@@ -661,6 +661,34 @@ async def post_admin_dashboard(
             if video_upload_warnings:
                 msg = " ".join(video_upload_warnings)
 
+        elif action == "send_test_email":
+            redirect_page = "settings"
+            recipient = form_data.get("test_email_recipient", "").strip()
+            if not recipient:
+                error = "Please specify a recipient email address for the test email."
+            else:
+                sent = sendAppEmail(
+                    db=db,
+                    to_email=recipient,
+                    to_name="Administrator",
+                    subject="✅ Gmail SMTP Test Email — Foursquare Reports",
+                    message_html="""
+                    <p>This is a test notification confirming that your <strong>Gmail SMTP Email Configuration</strong> is working properly!</p>
+                    <div style="background:#FAF9FC;border-left:4px solid #10B981;padding:12px 16px;border-radius:6px;margin:16px 0;">
+                        <span style="color:#065F46;font-weight:700;">Status:</span> Active &amp; Verified<br>
+                        <span style="color:#065F46;font-weight:700;">System:</span> Foursquare Gospel Church Monthly Reporting Portal
+                    </div>
+                    <p>All automated notifications (registrations, draft submissions, due updates) will be sent reliably through this email.</p>
+                    """,
+                    action_url="/login",
+                    action_text="Open Portal"
+                )
+                if sent:
+                    msg = f"Test email dispatched to {recipient}! Check your inbox in a few moments."
+                else:
+                    error = "Failed to dispatch test email. Please check that SMTP is enabled and credentials are valid."
+
+
         elif action == "delete_hero_video":
             redirect_page = "settings"
             hero_vids = db.query(HeroVideo).all()

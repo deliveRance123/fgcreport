@@ -209,33 +209,57 @@ def getSiteSettings(db: Session) -> dict:
 import threading
 
 def _send_email_thread_worker(settings: dict, to_email: str, to_name: str, subject: str, full_html: str):
-    """Worker function executed in background thread to eliminate HTTP request latency."""
+    """Worker function executed in background thread to eliminate HTTP request latency with robust dual-port retry."""
     gmail_user = settings.get("smtp_email", "").strip()
     app_password = settings.get("smtp_secret_key", "").replace(" ", "").strip()
     sender_name = settings.get("smtp_sender_name", "Foursquare Reports").strip()
 
     if not gmail_user or not app_password or not to_email:
+        print(f"[EMAIL ERROR] Missing required SMTP configuration: user={bool(gmail_user)}, pass={bool(app_password)}, recipient={bool(to_email)}")
         return
 
+    sent = False
+    last_err = None
+
+    # Try Port 587 (STARTTLS) first — most reliable across cloud hosting platforms like Render and AWS
     try:
         msg = MIMEText(full_html, "html", "utf-8")
         msg["Subject"] = Header(subject, "utf-8")
         msg["From"] = f'"{sender_name}" <{gmail_user}>'
         msg["To"] = f'"{to_name or to_email}" <{to_email}>'
 
-        server = smtplib.SMTP_SSL("smtp.gmail.com", 465, timeout=10)
+        server = smtplib.SMTP("smtp.gmail.com", 587, timeout=15)
+        server.ehlo()
+        server.starttls()
+        server.ehlo()
         server.login(gmail_user, app_password)
         server.sendmail(gmail_user, [to_email], msg.as_string())
         server.quit()
-    except Exception as e:
+        sent = True
+        print(f"[EMAIL SUCCESS] Sent email '{subject}' to {to_email} via Port 587 (STARTTLS)")
+    except Exception as e587:
+        last_err = e587
+        print(f"[EMAIL WARN] Port 587 failed ({e587}), falling back to Port 465 (SSL)...")
+
+    # Fallback to Port 465 (SSL)
+    if not sent:
         try:
-            server = smtplib.SMTP("smtp.gmail.com", 587, timeout=10)
-            server.starttls()
+            msg = MIMEText(full_html, "html", "utf-8")
+            msg["Subject"] = Header(subject, "utf-8")
+            msg["From"] = f'"{sender_name}" <{gmail_user}>'
+            msg["To"] = f'"{to_name or to_email}" <{to_email}>'
+
+            server = smtplib.SMTP_SSL("smtp.gmail.com", 465, timeout=15)
+            server.ehlo()
             server.login(gmail_user, app_password)
             server.sendmail(gmail_user, [to_email], msg.as_string())
             server.quit()
-        except Exception:
-            pass
+            sent = True
+            print(f"[EMAIL SUCCESS] Sent email '{subject}' to {to_email} via Port 465 (SSL)")
+        except Exception as e465:
+            last_err = e465
+            print(f"[EMAIL ERROR] Failed to send email to {to_email}: Port 587 err: {last_err}, Port 465 err: {e465}")
+
 
 
 def sendAppEmail(db: Session, to_email: str, to_name: str, subject: str, message_html: str, action_url: str = "", action_text: str = "") -> bool:
