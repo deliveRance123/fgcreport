@@ -473,12 +473,14 @@
                       {% if u.role != 'super_admin' or u.id != admin_user.id %}
                       <form method="POST" action="/admin-dashboard" style="display:inline;" onsubmit="return confirm('Are you sure you want to permanently delete user account for {{ u.full_name }}?');">
                         <input type="hidden" name="action" value="delete_user">
+                        <input type="hidden" name="page" value="users">
                         <input type="hidden" name="user_id" value="{{ u.id }}">
                         <button type="submit" class="btn btn-sm btn-danger" style="font-size:11px;padding:3px 8px;background:#DC2626;color:#fff;border:none;">
                           Delete
                         </button>
                       </form>
                       {% endif %}
+
                     </div>
                   </td>
                 </tr>

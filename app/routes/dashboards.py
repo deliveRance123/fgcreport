@@ -809,12 +809,18 @@ async def post_admin_dashboard(
                 u = db.query(User).filter(User.id == target_uid).first()
                 if u:
                     uname = u.full_name
+                    from app.models import (
+                        Notification, PasswordResetToken, UserPayment, 
+                        UserMessage, DuePercentageAuditLog, DuePercentageSettings, SiteSetting
+                    )
                     # Reassign created_by on any churches and zones to the active super admin
                     db.query(Church).filter(Church.created_by == target_uid).update({"created_by": uid})
                     db.query(Zone).filter(Zone.created_by == target_uid).update({"created_by": uid})
+                    db.query(DuePercentageSettings).filter(DuePercentageSettings.updated_by == target_uid).update({"updated_by": uid})
+                    db.query(SiteSetting).filter(SiteSetting.updated_by == target_uid).update({"updated_by": uid})
+                    db.query(DuePercentageAuditLog).filter(DuePercentageAuditLog.changed_by == target_uid).update({"changed_by": uid})
 
-                    # Clean up foreign key references
-                    from app.models import Notification, PasswordResetToken, UserPayment, UserMessage
+                    # Clean up dependent personal records
                     db.query(Notification).filter(Notification.user_id == target_uid).delete()
                     db.query(PasswordResetToken).filter(PasswordResetToken.user_id == target_uid).delete()
                     db.query(UserPayment).filter(UserPayment.user_id == target_uid).delete()
@@ -822,7 +828,10 @@ async def post_admin_dashboard(
 
                     db.delete(u)
                     db.commit()
-                    msg = f"User account '{uname}' has been deleted successfully."
+                    msg = f"User account '{uname}' has been permanently deleted successfully."
+                else:
+                    error = "User not found or already deleted."
+
 
         elif action == "add_kb_entry":
             redirect_page = "chatbot"
