@@ -11,9 +11,11 @@ from app.database import get_db
 from app.models import (
     User, Church, Zone, ZoneChurch, DuePercentageSettings, 
     DuePercentageAuditLog, SiteSetting, HeroVideo, HeroShowcaseVideo, 
-    ChatbotKnowledgeBase, ChurchFinancialReport, ChurchSpiritualReport, ZonalReport
+    ChatbotKnowledgeBase, ChurchFinancialReport, ChurchSpiritualReport, ZonalReport,
+    Notification, PasswordResetToken, UserPayment, UserMessage
 )
 from app.auth import (
+
     is_logged_in, current_role, current_user_id, current_church_id, current_zone_id, ensure_role_session
 )
 from app.utils import (
@@ -515,7 +517,8 @@ async def post_admin_dashboard(
 
             # Dispatch notification bell and email to Church & Zonal Admins
             try:
-                from app.models import Notification, User
+                from app.models import Notification
+
 
                 
                 # In-app notification for all church and zonal admins
@@ -809,10 +812,6 @@ async def post_admin_dashboard(
                 u = db.query(User).filter(User.id == target_uid).first()
                 if u:
                     uname = u.full_name
-                    from app.models import (
-                        Notification, PasswordResetToken, UserPayment, 
-                        UserMessage, DuePercentageAuditLog, DuePercentageSettings, SiteSetting
-                    )
                     # Reassign created_by on any churches and zones to the active super admin
                     db.query(Church).filter(Church.created_by == target_uid).update({"created_by": uid})
                     db.query(Zone).filter(Zone.created_by == target_uid).update({"created_by": uid})
@@ -831,6 +830,7 @@ async def post_admin_dashboard(
                     msg = f"User account '{uname}' has been permanently deleted successfully."
                 else:
                     error = "User not found or already deleted."
+
 
 
         elif action == "add_kb_entry":
